@@ -801,6 +801,33 @@ textarea.popcorn-form-control {
     .popcorn-discount-label {
         font-size: 0.625rem;
     }
+    
+    /* Checkout page tablet styles */
+    .popcorn-col-md-8 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    
+    .popcorn-col-md-4 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    
+    .popcorn-checkout-form {
+        margin-bottom: 2rem;
+    }
+    
+    .popcorn-order-summary {
+        margin-top: 2rem;
+    }
+    
+    .popcorn-checkout-title {
+        font-size: 1.75rem;
+    }
+    
+    .popcorn-form-input {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
 }
 
 @media (max-width: 576px) {
@@ -822,6 +849,11 @@ textarea.popcorn-form-control {
         max-width: 100%;
     }
     
+    .popcorn-col-md-8 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    
     .popcorn-membership-plan-card {
         margin-top: 1rem;
         margin-bottom: 2rem;
@@ -836,6 +868,72 @@ textarea.popcorn-form-control {
         right: 0.5rem;
         padding: 0.375rem;
         min-width: 60px;
+    }
+    
+    /* Checkout page mobile styles */
+    .popcorn-membership-checkout-page {
+        padding: 1rem 0;
+    }
+    
+    .popcorn-checkout-title {
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .popcorn-checkout-form {
+        margin-bottom: 2rem;
+    }
+    
+    .popcorn-order-summary {
+        margin-top: 2rem;
+        padding: 1rem;
+    }
+    
+    .popcorn-form-section {
+        margin-bottom: 1.5rem;
+    }
+    
+    .popcorn-section-title {
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+    }
+    
+    .popcorn-form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .popcorn-form-input {
+        font-size: 16px; /* Prevents zoom on iOS */
+        padding: 0.75rem;
+    }
+    
+    .popcorn-checkout-submit-btn {
+        width: 100%;
+        padding: 1rem;
+        font-size: 1.1rem;
+    }
+    
+    .popcorn-payment-methods {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .popcorn-payment-method-item {
+        padding: 0.75rem;
+        border: 1px solid var(--popcorn-border);
+        border-radius: 8px;
+        background: var(--popcorn-white);
+    }
+    
+    .popcorn-checkbox-group {
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .popcorn-checkbox-label {
+        font-size: 0.9rem;
+        line-height: 1.4;
     }
     
     .popcorn-discount-price,
