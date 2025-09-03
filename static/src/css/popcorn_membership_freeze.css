@@ -1,0 +1,172 @@
+/* Popcorn Membership Freeze Styles */
+
+.popcorn-freeze-btn {
+    transition: all 0.3s ease;
+}
+
+.popcorn-freeze-btn:hover {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #000;
+}
+
+.popcorn-unfreeze-btn {
+    transition: all 0.3s ease;
+}
+
+.popcorn-unfreeze-btn:hover {
+    background-color: #17a2b8;
+    border-color: #17a2b8;
+    color: #fff;
+}
+
+/* Freeze status indicator */
+.membership-frozen {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+}
+
+.membership-frozen .card-header {
+    background-color: #fff3cd;
+}
+
+/* Modal styles without Bootstrap dependency */
+#freezeModal {
+    display: none;
+    position: fixed;
+    z-index: 1050;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+#freezeModal.show {
+    display: block;
+}
+
+#freezeModal .modal-dialog {
+    position: relative;
+    width: auto;
+    margin: 0.5rem;
+    pointer-events: none;
+    max-width: 500px;
+    margin: 1.75rem auto;
+}
+
+#freezeModal .modal-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    pointer-events: auto;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 0.3rem;
+    outline: 0;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.5);
+}
+
+#freezeModal .modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+    border-top-left-radius: calc(0.3rem - 1px);
+    border-top-right-radius: calc(0.3rem - 1px);
+    background-color: #fff3cd;
+    border-bottom: 1px solid #ffeaa7;
+}
+
+#freezeModal .modal-title {
+    margin-bottom: 0;
+    line-height: 1.5;
+    color: #856404;
+}
+
+#freezeModal .btn-close {
+    padding: 0;
+    background: transparent;
+    border: 0;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: #000;
+    text-shadow: 0 1px 0 #fff;
+    opacity: 0.5;
+    cursor: pointer;
+}
+
+#freezeModal .btn-close:hover {
+    opacity: 0.75;
+}
+
+#freezeModal .modal-body {
+    position: relative;
+    flex: 1 1 auto;
+    padding: 1rem;
+}
+
+#freezeModal .modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0.75rem;
+    border-top: 1px solid #dee2e6;
+    border-bottom-right-radius: calc(0.3rem - 1px);
+    border-bottom-left-radius: calc(0.3rem - 1px);
+}
+
+#freezeModal .alert-info {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+    color: #0c5460;
+}
+
+/* Freeze period display */
+#freezeStartDate,
+#freezeEndDate {
+    font-weight: bold;
+    color: #495057;
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1040;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+}
+
+.modal-backdrop.fade {
+    opacity: 0;
+    transition: opacity 0.15s linear;
+}
+
+.modal-backdrop.show {
+    opacity: 0.5;
+}
+
+/* Body scroll lock when modal is open */
+body.modal-open {
+    overflow: hidden;
+}
+
+/* Responsive modal */
+@media (min-width: 576px) {
+    #freezeModal .modal-dialog {
+        max-width: 500px;
+        margin: 1.75rem auto;
+    }
+}
+
+@media (min-width: 768px) {
+    #freezeModal .modal-dialog {
+        max-width: 600px;
+    }
+}

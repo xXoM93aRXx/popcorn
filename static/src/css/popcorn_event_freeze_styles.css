@@ -1,0 +1,95 @@
+/* Popcorn Event Freeze Styles */
+
+/* Frozen event card styling */
+.popcorn-event-card.frozen {
+    opacity: 0.6;
+    filter: grayscale(30%);
+    pointer-events: none;
+}
+
+.popcorn-event-card.frozen:hover {
+    opacity: 0.7;
+    filter: grayscale(20%);
+}
+
+.popcorn-event-article.frozen {
+    position: relative;
+}
+
+/* Freeze overlay styling */
+.popcorn-event-freeze-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 193, 7, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.popcorn-freeze-status {
+    background: rgba(255, 193, 7, 0.9);
+    color: #856404;
+    padding: 8px 12px;
+    border-radius: 4px;
+    text-align: center;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.popcorn-freeze-status i {
+    margin-right: 4px;
+}
+
+.popcorn-freeze-status small {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.8em;
+    opacity: 0.8;
+}
+
+/* Frozen registration button styling */
+.btn-warning:disabled {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #856404;
+    opacity: 0.8;
+}
+
+.btn-warning:disabled:hover {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #856404;
+    opacity: 0.9;
+}
+
+/* Freeze status indicator in event body */
+.popcorn-event-frozen-indicator {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 0.8em;
+    margin-top: 8px;
+    display: inline-block;
+}
+
+.popcorn-event-frozen-indicator i {
+    margin-right: 4px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .popcorn-freeze-status {
+        padding: 6px 8px;
+        font-size: 0.9em;
+    }
+    
+    .popcorn-freeze-status small {
+        font-size: 0.7em;
+    }
+}

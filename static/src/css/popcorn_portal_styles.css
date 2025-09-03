@@ -1,0 +1,14 @@
+/* Custom styles for Popcorn Portal Cards */
+
+/* Set portal icons to 80px width */
+#portal_clubs_cards_category .o_portal_icon img {
+    width: 80px !important;
+    height: auto !important;
+    object-fit: contain;
+}
+
+/* Ensure proper spacing around the icons */
+#portal_clubs_cards_category .o_portal_icon {
+    flex-shrink: 0;
+    margin-right: 1rem;
+}

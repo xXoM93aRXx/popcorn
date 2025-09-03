@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+        <!-- Event Registration Access Template -->
+    <template id="event_registration_access_page" name="Event Registration Access">
+        <t t-call="website.layout">
+            <div class="popcorn-event-registration-page">
+                <div class="popcorn-container">
+                    <div class="popcorn-event-registration-content">
+                        <!-- Event Cover Image -->
+                        <div class="popcorn-event-cover" t-if="event.badge_image">
+                            <img t-att-src="'/web/image/event.event/' + str(event.id) + '/badge_image'" 
+                                 t-att-alt="event.name" class="popcorn-event-cover-img"/>
+                        </div>
+                        
+                        <!-- Event Details -->
+                        <div class="popcorn-event-details">
+                            <h1 class="popcorn-event-name"><t t-esc="event.name"/></h1>
+                            
+                            <div class="popcorn-event-info">
+                                <div class="popcorn-event-info-item" t-if="event.date_begin">
+                                    <i class="fa fa-calendar"></i>
+                                    <span t-esc="event.date_begin.strftime('%B %d, %Y')"/>
+                                </div>
+                                <div class="popcorn-event-info-item" t-if="event.date_begin">
+                                    <i class="fa fa-clock-o"></i>
+                                    <span t-esc="event.date_begin.strftime('%I:%M %p')"/>
+                                </div>
+                                <div class="popcorn-event-info-item" t-if="event.host_name">
+                                    <i class="fa fa-user"></i>
+                                    <span t-esc="event.host_name"/>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="popcorn-event-registration-actions">
+                            <form t-attf-action="/popcorn/event/#{event.id}/registration/confirm" method="POST" style="display: inline;">
+                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                <button type="submit" class="popcorn-event-btn popcorn-event-btn-primary">
+                                    <i class="fa fa-check"></i> Confirm Registration
+                                </button>
+                            </form>
+                            <a href="/event" class="popcorn-event-btn popcorn-event-btn-secondary">
+                                <i class="fa fa-arrow-left"></i> Back to Events
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- Event Registration Success Template -->
+    <template id="event_registration_success_page" name="Event Registration Success">
+        <t t-call="website.layout">
+            <div class="popcorn-event-registration-page">
+                <div class="popcorn-container">
+                    <div class="popcorn-event-registration-content">
+                        <div class="popcorn-event-registration-icon popcorn-event-success-icon">
+                            <i class="fa fa-check-circle"></i>
+                        </div>
+                        
+                        <h1 class="popcorn-event-registration-title">🎉 Registration Successful!</h1>
+                        
+                        <div class="popcorn-event-registration-message popcorn-event-success-message">
+                            <strong>Congratulations!</strong> You have been successfully registered for <t t-esc="event.name"/>.
+                        </div>
+                        
+                        <div class="popcorn-event-registration-details">
+                            <h3>Registration Details:</h3>
+                            <div class="popcorn-event-detail-row">
+                                <span class="popcorn-event-detail-label">Event:</span>
+                                <span class="popcorn-event-detail-value"><t t-esc="event.name"/></span>
+                            </div>
+                            <div class="popcorn-event-detail-row">
+                                <span class="popcorn-event-detail-label">Member:</span>
+                                <span class="popcorn-event-detail-value"><t t-esc="partner.name"/></span>
+                            </div>
+                            <div class="popcorn-event-detail-row">
+                                <span class="popcorn-event-detail-label">Membership Used:</span>
+                                <span class="popcorn-event-detail-value"><t t-esc="best_membership.membership_plan_id.name"/></span>
+                            </div>
+                            <div class="popcorn-event-detail-row">
+                                <span class="popcorn-event-detail-label">Registration ID:</span>
+                                <span class="popcorn-event-detail-value"><t t-esc="registration.id"/></span>
+                            </div>
+                            <div class="popcorn-event-detail-row">
+                                <span class="popcorn-event-detail-label">Event Type:</span>
+                                <span class="popcorn-event-detail-value"><t t-esc="event_club_type.replace('_', ' ').title()"/></span>
+                            </div>
+                            <div class="popcorn-event-detail-row">
+                                <span class="popcorn-event-detail-label">Consumption:</span>
+                                <span class="popcorn-event-detail-value"><t t-esc="consumption_text"/></span>
+                            </div>
+                        </div>
+                        
+                        <div class="popcorn-event-registration-actions">
+                            <a t-attf-href="/event/#{event.id}" class="popcorn-event-btn popcorn-event-btn-primary">
+                                <i class="fa fa-calendar"></i> View Event
+                            </a>
+                            <a href="/memberships" class="popcorn-event-btn popcorn-event-btn-secondary">
+                                <i class="fa fa-id-card"></i> My Memberships
+                            </a>
+                        </div>
+                        
+                        <div class="popcorn-event-registration-note">
+                            <p><strong>What's Next?</strong></p>
+                            <ul>
+                                <li>You will receive a confirmation email shortly</li>
+                                <li>Check your email for event details and reminders</li>
+                                <li>You can view your registration in your membership dashboard</li>
+                                <li>For any questions, please contact our support team</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- Membership Required Template -->
+    <template id="membership_required_page" name="Membership Required">
+        <t t-call="website.layout">
+            <div class="popcorn-event-registration-page">
+                <div class="popcorn-container">
+                    <div class="popcorn-event-registration-content">
+                        <div class="popcorn-event-registration-icon popcorn-event-error-icon">
+                            <i class="fa fa-exclamation-triangle"></i>
+                        </div>
+                        
+                        <h1 class="popcorn-event-registration-title">🚫 Membership Required</h1>
+                        
+                        <div class="popcorn-event-registration-message popcorn-event-error-message">
+                            <strong>Access Restricted:</strong> This feature is exclusive to Popcorn Club members.
+                        </div>
+                        
+                        <p class="popcorn-event-description">Our events are exclusive to active Popcorn Club members. Join us to access:</p>
+                        
+                        <div class="popcorn-event-features">
+                            <div class="popcorn-event-feature">
+                                <div class="popcorn-event-feature-icon">📅</div>
+                                <strong>Regular Events</strong><br/>
+                                <small>Offline &amp; Online sessions</small>
+                            </div>
+                            <div class="popcorn-event-feature">
+                                <div class="popcorn-event-feature-icon">⭐</div>
+                                <strong>Special Club</strong><br/>
+                                <small>Exclusive events</small>
+                            </div>
+                            <div class="popcorn-event-feature">
+                                <div class="popcorn-event-feature-icon">👥</div>
+                                <strong>Community</strong><br/>
+                                <small>Member network</small>
+                            </div>
+                        </div>
+                        
+                        <div class="popcorn-event-registration-actions">
+                            <a href="/web/login" class="popcorn-event-btn popcorn-event-btn-primary">
+                                <i class="fa fa-sign-in"></i> Log In
+                            </a>
+                            <a href="/shop" class="popcorn-event-btn popcorn-event-btn-secondary">
+                                <i class="fa fa-shopping-cart"></i> View Plans
+                            </a>
+                        </div>
+                        
+                        <div class="popcorn-event-registration-note">
+                            <p style="text-align: center; color: #7f8c8d; margin-top: 30px;">
+                                Already have an account? <a href="/web/login">Log in here</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+</odoo>

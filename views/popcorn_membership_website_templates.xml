@@ -1,0 +1,396 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Template (QWeb) -->
+    <template id="membership_plans_website_page" name="Membership Plans">
+        <t t-call="website.layout">
+            <div class="popcorn-membership-plans-page">
+                <div class="popcorn-container">
+                    <!-- Error Toast/Banner -->
+                    <t t-if="error_message">
+                        <div class="popcorn-error-banner" id="popcorn-error-banner">
+                            <div class="popcorn-error-content">
+                                <i class="fa fa-exclamation-triangle popcorn-error-icon"></i>
+                                <span class="popcorn-error-text"><t t-esc="error_message"/></span>
+                                <button type="button" class="popcorn-error-close">
+                                    <i class="fa fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </t>
+                    
+                    <h1 class="popcorn-page-title">Choose Your Membership Plan</h1>
+                    <div class="popcorn-row">
+                        <t t-foreach="request.env['popcorn.membership.plan'].search([('active','=', True)], order='sequence, name')" t-as="plan">
+                            <div class="popcorn-col-md-4">
+                                <div class="popcorn-membership-plan-card">
+                                    <!-- Cover Image Section -->
+                                    <div class="popcorn-plan-cover">
+                                        <t t-if="plan.cover_image">
+                                            <img t-att-src="'/web/image/popcorn.membership.plan/' + str(plan.id) + '/cover_image'" 
+                                                 alt="Plan Cover" class="popcorn-plan-cover-image"/>
+                                        </t>
+                                        <t t-else="">
+                                            <div class="popcorn-plan-cover-placeholder">
+                                                <i class="fa fa-image"></i>
+                                            </div>
+                                        </t>
+                                        
+                                        <!-- Price Badge -->
+                                        <div class="popcorn-price-badge">
+                                            <!-- Use first-timer status from controller -->
+                                            
+                                            <t t-if="plan.price_first_timer and plan.price_first_timer != plan.price_normal and is_first_timer">
+                                                <div class="popcorn-original-price"><t t-esc="plan.currency_id.symbol"/><t t-esc="plan.price_normal"/></div>
+                                                <div class="popcorn-discount-price"><t t-esc="plan.currency_id.symbol"/><t t-esc="plan.price_first_timer"/></div>
+                                                <div class="popcorn-discount-label">First Timer</div>
+                                            </t>
+                                            <t t-else="">
+                                                <div class="popcorn-normal-price"><t t-esc="plan.currency_id.symbol"/><t t-esc="plan.price_normal"/></div>
+                                            </t>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Plan Content -->
+                                    <div class="popcorn-plan-content">
+                                        <h5 class="popcorn-plan-title"><t t-esc="plan.display_name"/></h5>
+                                        
+                                        <!-- Plan Features with Icons -->
+                                        <div class="popcorn-plan-features">
+                                            <!-- Duration -->
+                                            <div class="popcorn-feature-item">
+                                                <i class="fa fa-calendar popcorn-feature-icon"></i>
+                                                <span class="popcorn-feature-text"><t t-esc="plan.duration_days"/> days</span>
+                                            </div>
+                                            
+                                            <!-- Quota Mode -->
+                                            <t t-if="plan.quota_mode == 'unlimited'">
+                                                <div class="popcorn-feature-item">
+                                                    <i class="fa fa-refresh popcorn-feature-icon"></i>
+                                                    <span class="popcorn-feature-text">Unlimited Access</span>
+                                                </div>
+                                            </t>
+                                            <t t-elif="plan.quota_mode == 'bucket_counts'">
+                                                <t t-if="plan.quota_offline">
+                                                    <div class="popcorn-feature-item">
+                                                        <i class="fa fa-building popcorn-feature-icon"></i>
+                                                        <span class="popcorn-feature-text"><t t-esc="plan.quota_offline"/> Offline Sessions</span>
+                                                    </div>
+                                                </t>
+                                                <t t-if="plan.quota_online">
+                                                    <div class="popcorn-feature-item">
+                                                        <i class="fa fa-laptop popcorn-feature-icon"></i>
+                                                        <span class="popcorn-feature-text"><t t-esc="plan.quota_online"/> Online Sessions</span>
+                                                    </div>
+                                                </t>
+                                                <t t-if="plan.quota_sp">
+                                                    <div class="popcorn-feature-item">
+                                                        <i class="fa fa-star popcorn-feature-icon"></i>
+                                                        <span class="popcorn-feature-text"><t t-esc="plan.quota_sp"/> Special Club Sessions</span>
+                                                    </div>
+                                                </t>
+                                            </t>
+                                            <t t-elif="plan.quota_mode == 'points'">
+                                                <div class="popcorn-feature-item">
+                                                    <i class="fa fa-coins popcorn-feature-icon"></i>
+                                                    <span class="popcorn-feature-text"><t t-esc="plan.points_start"/> Points</span>
+                                                </div>
+                                            </t>
+                                            
+                                            <!-- Club Access -->
+                                            <t t-if="plan.allowed_regular_offline">
+                                                <div class="popcorn-feature-item">
+                                                    <i class="fa fa-check-circle popcorn-feature-icon"></i>
+                                                    <span class="popcorn-feature-text">Regular Offline Access</span>
+                                                </div>
+                                            </t>
+                                            <t t-if="plan.allowed_regular_online">
+                                                <div class="popcorn-feature-item">
+                                                    <i class="fa fa-check-circle popcorn-feature-icon"></i>
+                                                    <span class="popcorn-feature-text">Regular Online Access</span>
+                                                </div>
+                                            </t>
+                                            <t t-if="plan.allowed_spclub">
+                                                <div class="popcorn-feature-item">
+                                                    <i class="fa fa-check-circle popcorn-feature-icon"></i>
+                                                    <span class="popcorn-feature-text">Special Club Access</span>
+                                                </div>
+                                            </t>
+                                            
+                                            <!-- Freeze Option -->
+                                            <t t-if="plan.freeze_allowed">
+                                                <div class="popcorn-feature-item">
+                                                    <i class="fa fa-pause popcorn-feature-icon"></i>
+                                                    <span class="popcorn-feature-text">Freeze Available</span>
+                                                </div>
+                                            </t>
+                                        </div>
+                                        
+                                        <a class="popcorn-plan-action" t-attf-href="/memberships/#{plan.id}/checkout">Choose This Plan</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- Membership Checkout Page Template -->
+    <template id="membership_checkout_page" name="Membership Checkout">
+        <t t-call="website.layout">
+            <div class="popcorn-membership-checkout-page">
+                <div class="popcorn-container">
+                    <div class="popcorn-row">
+                        <!-- Checkout Form -->
+                        <div class="popcorn-col-md-8">
+                            <div class="popcorn-checkout-form">
+                                <h2 class="popcorn-checkout-title">
+                                    <t t-if="is_upgrade">Complete Your Membership Upgrade</t>
+                                    <t t-else="">Complete Your Membership Purchase</t>
+                                </h2>
+                                
+                                <form t-attf-action="/memberships/#{plan.id}/process_checkout" method="post" class="popcorn-checkout-form-content">
+                                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                    
+                                    <!-- Personal Information -->
+                                    <div class="popcorn-form-section">
+                                        <h3 class="popcorn-section-title">Personal Information</h3>
+                                        <div class="popcorn-form-group">
+                                            <label for="name" class="popcorn-form-label">Full Name *</label>
+                                            <input type="text" id="name" name="name" class="popcorn-form-input" 
+                                                   t-att-value="request.env.user.partner_id.name or ''" required="required"/>
+                                        </div>
+                                        <div class="popcorn-form-group">
+                                            <label for="phone" class="popcorn-form-label">Phone Number *</label>
+                                            <input type="tel" id="phone" name="phone" class="popcorn-form-input" 
+                                                   t-att-value="request.env.user.partner_id.phone or ''" required="required"/>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Payment Methods -->
+                                    <div class="popcorn-form-section">
+                                        <h3 class="popcorn-section-title">Payment Method</h3>
+                                        <div class="popcorn-form-group">
+                                            <label class="popcorn-form-label">Select Payment Method *</label>
+                                            <div class="popcorn-payment-methods">
+                                                <t t-foreach="request.env['payment.method'].search([])" t-as="payment_method">
+                                                    <div class="popcorn-payment-method-item">
+                                                        <input type="radio" t-att-id="'payment_method_' + str(payment_method.id)" name="payment_method_id" 
+                                                               t-att-value="payment_method.id" class="popcorn-radio" required="required"/>
+                                                        <label t-att-for="'payment_method_' + str(payment_method.id)" class="popcorn-radio-label">
+                                                            <span class="popcorn-payment-method-name"><t t-esc="payment_method.name"/></span>
+                                                        </label>
+                                                    </div>
+                                                </t>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Terms and Conditions -->
+                                    <div class="popcorn-form-section">
+                                        <div class="popcorn-form-group">
+                                            <div class="popcorn-checkbox-group">
+                                                <input type="checkbox" id="terms_accepted" name="terms_accepted" class="popcorn-checkbox" required="required"/>
+                                                <label for="terms_accepted" class="popcorn-checkbox-label">
+                                                    I agree to the <a href="/terms" target="_blank">Terms and Conditions</a> *
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Submit Button -->
+                                    <div class="popcorn-form-section">
+                                        <button type="submit" class="popcorn-checkout-submit-btn">
+                                            <i class="fa fa-lock"></i> 
+                                            <t t-if="is_upgrade">Complete Upgrade</t>
+                                            <t t-else="">Complete Purchase</t>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        <!-- Order Summary -->
+                        <div class="popcorn-col-md-4">
+                            <div class="popcorn-order-summary">
+                                <h3 class="popcorn-summary-title">Order Summary</h3>
+                                <div class="popcorn-summary-item">
+                                    <div class="popcorn-summary-plan">
+                                        <h4 class="popcorn-plan-name"><t t-esc="plan.display_name"/></h4>
+                                        <p class="popcorn-plan-duration"><t t-esc="plan.duration_days"/> days</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="popcorn-summary-pricing">
+                                    <t t-if="is_upgrade and upgrade_details">
+                                        <!-- Upgrade pricing -->
+                                        <div class="popcorn-price-row">
+                                            <span class="popcorn-price-label">Upgrade Price:</span>
+                                            <span class="popcorn-price-value">
+                                                <t t-esc="plan.currency_id.symbol"/><t t-esc="upgrade_details.get('upgrade_price', 0)"/>
+                                            </span>
+                                        </div>
+                                        <div class="popcorn-price-row popcorn-total-row">
+                                            <span class="popcorn-price-label">Total:</span>
+                                            <span class="popcorn-price-value popcorn-total">
+                                                <t t-esc="plan.currency_id.symbol"/><t t-esc="upgrade_details.get('upgrade_price', 0)"/>
+                                            </span>
+                                        </div>
+                                    </t>
+                                    <t t-else="">
+                                        <!-- Regular pricing -->
+                                        <!-- Use first-timer status from controller -->
+                                        
+                                        <div class="popcorn-price-row">
+                                            <span class="popcorn-price-label">Membership Fee:</span>
+                                            <span class="popcorn-price-value">
+                                                <t t-esc="plan.currency_id.symbol"/><t t-esc="plan.price_normal"/>
+                                            </span>
+                                        </div>
+                                        <t t-if="plan.price_first_timer and plan.price_first_timer != plan.price_normal and is_first_timer">
+                                            <div class="popcorn-price-row popcorn-discount-row">
+                                                <span class="popcorn-price-label">First Timer Discount:</span>
+                                                <span class="popcorn-price-value popcorn-discount">
+                                                    -<t t-esc="plan.currency_id.symbol"/><t t-esc="plan.price_normal - plan.price_first_timer"/>
+                                                </span>
+                                            </div>
+                                        </t>
+                                        <div class="popcorn-price-row popcorn-total-row">
+                                            <span class="popcorn-price-label">Total:</span>
+                                            <span class="popcorn-price-value popcorn-total">
+                                                <t t-esc="plan.currency_id.symbol"/>
+                                                <t t-if="plan.price_first_timer and plan.price_first_timer != plan.price_normal and is_first_timer">
+                                                    <t t-esc="plan.price_first_timer"/>
+                                                </t>
+                                                <t t-else="">
+                                                    <t t-esc="plan.price_normal"/>
+                                                </t>
+                                            </span>
+                                        </div>
+                                    </t>
+                                </div>
+                                
+                                <div class="popcorn-summary-features">
+                                    <h4 class="popcorn-features-title">What's Included:</h4>
+                                    <ul class="popcorn-features-list">
+                                        <t t-if="plan.quota_mode == 'unlimited'">
+                                            <li>Unlimited access to all sessions</li>
+                                        </t>
+                                        <t t-elif="plan.quota_mode == 'bucket_counts'">
+                                            <t t-if="plan.quota_offline">
+                                                <li><t t-esc="plan.quota_offline"/> offline sessions</li>
+                                            </t>
+                                            <t t-if="plan.quota_online">
+                                                <li><t t-esc="plan.quota_online"/> online sessions</li>
+                                            </t>
+                                            <t t-if="plan.quota_sp">
+                                                <li><t t-esc="plan.quota_sp"/> special club sessions</li>
+                                            </t>
+                                        </t>
+                                        <t t-elif="plan.quota_mode == 'points'">
+                                            <li><t t-esc="plan.points_start"/> points to spend</li>
+                                        </t>
+                                        <t t-if="plan.freeze_allowed">
+                                            <li>Freeze option available</li>
+                                        </t>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- Register this page in the website -->
+    <data>
+        <record id="membership_plans_page_record" model="website.page">
+            <field name="name">Membership Plans</field>
+            <field name="url">/membership/plans</field>
+            <field name="view_id" ref="popcorn.membership_plans_website_page"/>
+            <field name="website_id" ref="website.default_website"/>
+        </record>
+    </data>
+
+    <!-- Membership Success Page Template -->
+    <template id="membership_success_page" name="Membership Success">
+        <t t-call="website.layout">
+            <div class="popcorn-membership-success-page">
+                <div class="popcorn-container">
+                    <div class="popcorn-success-content">
+                        <div class="popcorn-success-icon">
+                            <i class="fa fa-check-circle"></i>
+                        </div>
+                        
+                        <h1 class="popcorn-success-title">Membership Purchase Successful!</h1>
+                        
+                        <div class="popcorn-success-message">
+                            <p>Thank you for your purchase! Your membership has been successfully created.</p>
+                            
+                            <t t-if="membership">
+                                <div class="popcorn-membership-details">
+                                    <h3>Membership Details</h3>
+                                    <div class="popcorn-detail-row">
+                                        <span class="popcorn-detail-label">Plan:</span>
+                                        <span class="popcorn-detail-value"><t t-esc="membership.membership_plan_id.display_name"/></span>
+                                    </div>
+                                    <div class="popcorn-detail-row">
+                                        <span class="popcorn-detail-label">Status:</span>
+                                        <span class="popcorn-detail-value">
+                                            <span class="popcorn-status-badge popcorn-status-{membership.state}">
+                                                <t t-esc="membership.state.title()"/>
+                                            </span>
+                                        </span>
+                                    </div>
+                                    <div class="popcorn-detail-row">
+                                        <span class="popcorn-detail-label">Purchase Price:</span>
+                                        <span class="popcorn-detail-value">
+                                            <t t-esc="membership.membership_plan_id.currency_id.symbol"/><t t-esc="membership.purchase_price_paid"/>
+                                        </span>
+                                    </div>
+                                    <t t-if="membership.activation_date">
+                                        <div class="popcorn-detail-row">
+                                            <span class="popcorn-detail-label">Activation Date:</span>
+                                            <span class="popcorn-detail-value">
+                                                <t t-esc="membership.activation_date.strftime('%B %d, %Y')"/>
+                                            </span>
+                                        </div>
+                                    </t>
+                                    <t t-if="membership.effective_end_date">
+                                        <div class="popcorn-detail-row">
+                                            <span class="popcorn-detail-label">Expiry Date:</span>
+                                            <span class="popcorn-detail-value">
+                                                <t t-esc="membership.effective_end_date.strftime('%B %d, %Y')"/>
+                                            </span>
+                                        </div>
+                                    </t>
+                                </div>
+                            </t>
+                        </div>
+                        
+                        <div class="popcorn-success-actions">
+                            <a href="/memberships" class="popcorn-btn popcorn-btn-primary">
+                                <i class="fa fa-arrow-left"></i> Back to Memberships
+                            </a>
+                            <a href="/" class="popcorn-btn popcorn-btn-secondary">
+                                <i class="fa fa-home"></i> Go to Homepage
+                            </a>
+                        </div>
+                        
+                        <div class="popcorn-success-note">
+                            <p><strong>What's Next?</strong></p>
+                            <ul>
+                                <li>You will receive a confirmation email shortly</li>
+                                <li>Your membership card will be available at our facilities</li>
+                                <li>You can start using your membership benefits immediately</li>
+                                <li>For any questions, please contact our support team</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+</odoo>

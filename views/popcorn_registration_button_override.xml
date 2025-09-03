@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Create a custom registration template that we can call instead of the default one -->
+        <template id="popcorn_custom_registration_button" name="Popcorn Custom Registration Button">
+            <!-- Check if event is in freeze period for current user -->
+            <t t-set="is_frozen" t-value="False"/>
+            <t t-set="frozen_membership" t-value="None"/>
+            <t t-if="request.env.user.id != request.env.ref('base.public_user').id">
+                <t t-set="is_frozen" t-value="event.is_in_freeze_period(request.env.user.partner_id)[0]"/>
+                <t t-if="is_frozen" t-set="frozen_membership" t-value="event.is_in_freeze_period(request.env.user.partner_id)[1]"/>
+            </t>
+            
+            <t t-if="event.event_registrations_open and not event.is_participating and not is_frozen">
+                <a t-att-href="'/popcorn/event/' + slug(event) + '/register'" 
+                   t-att-class="'btn btn-primary ' + (cta_additional_classes or '')"
+                   t-att-title="'Register for this event'">
+                    <i class="fa fa-ticket me-2"/>Register Now
+                </a>
+            </t>
+            <t t-elif="event.is_participating">
+                <button type="button" 
+                        t-att-class="'btn btn-secondary ' + (cta_additional_classes or '')"
+                        disabled="disabled"
+                        t-att-title="'Already registered for this event'">
+                    <i class="fa fa-check me-2"/>Already Registered
+                </button>
+            </t>
+            <t t-elif="is_frozen">
+                <button type="button" 
+                        t-att-class="'btn btn-warning ' + (cta_additional_classes or '')"
+                        disabled="disabled"
+                        t-att-title="'Membership is frozen during this event period'">
+                    <i class="fa fa-pause me-2"/>Membership Frozen
+                    <t t-if="frozen_membership">
+                        <br/><small>Until <t t-esc="frozen_membership.freeze_end"/></small>
+                    </t>
+                </button>
+            </t>
+            <t t-else="">
+                <button type="button" 
+                        t-att-class="'btn btn-secondary ' + (cta_additional_classes or '')"
+                        disabled="disabled"
+                        t-att-title="'Registrations are closed'">
+                    <i class="fa fa-ban me-2"/>Registrations Closed
+                </button>
+            </t>
+        </template>
+
+        <!-- Override the default registration template to use our custom button -->
+        <template id="popcorn_registration_template_override" name="Popcorn Registration Template Override" inherit_id="website_event.registration_template">
+            <xpath expr="." position="replace">
+                <t t-call="popcorn.popcorn_custom_registration_button"/>
+            </xpath>
+        </template>
+    </data>
+</odoo>

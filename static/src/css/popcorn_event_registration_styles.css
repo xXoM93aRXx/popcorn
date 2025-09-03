@@ -1,0 +1,454 @@
+/* Popcorn Event Registration Styles */
+/* Special classes to avoid conflicts with existing styles */
+
+/* Theme Colors - Using your brand colors */
+:root {
+    --popcorn-event-primary: #e60000; /* Your brand red */
+    --popcorn-event-primary-dark: #cc0000; /* Darker red for hover */
+    --popcorn-event-secondary: #6c757d;
+    --popcorn-event-secondary-dark: #545b62;
+    --popcorn-event-success: #28a745;
+    --popcorn-event-info: #17a2b8;
+    --popcorn-event-warning: #ffc107;
+    --popcorn-event-danger: #dc3545;
+    --popcorn-event-light: #f8f9fa;
+    --popcorn-event-dark: #101010; /* Your brand black */
+    --popcorn-event-gray: #6c757d;
+    --popcorn-event-gray-dark: #495057;
+    --popcorn-event-white: #ffffff;
+    --popcorn-event-black: #000000;
+    --popcorn-event-border: #dee2e6;
+    --popcorn-event-border-light: #e9ecef;
+}
+
+/* Event Registration Page Layout */
+.popcorn-event-registration-page {
+    background: var(--popcorn-event-light);
+    min-height: 100vh;
+    padding: 2rem 0;
+}
+
+.popcorn-event-registration-content {
+    background: var(--popcorn-event-white);
+    border: 1px solid var(--popcorn-event-border);
+    border-radius: 0.75rem;
+    padding: 3rem 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Registration Icon */
+.popcorn-event-registration-icon {
+    font-size: 4rem;
+    color: var(--popcorn-event-success);
+    margin-bottom: 1.5rem;
+}
+
+.popcorn-event-success-icon {
+    color: var(--popcorn-event-success);
+}
+
+.popcorn-event-error-icon {
+    color: var(--popcorn-event-danger);
+}
+
+/* Registration Title */
+.popcorn-event-registration-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--popcorn-event-dark);
+    margin-bottom: 1rem;
+}
+
+/* Registration Message */
+.popcorn-event-registration-message {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin: 1.5rem 0;
+    font-size: 1.125rem;
+    color: #155724;
+}
+
+.popcorn-event-success-message {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.popcorn-event-error-message {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+/* Event Cover Image */
+.popcorn-event-cover {
+    margin-bottom: 2rem;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    max-width: 100%;
+}
+
+.popcorn-event-cover-img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    display: block;
+}
+
+/* Event Details */
+.popcorn-event-details {
+    margin-bottom: 2rem;
+}
+
+.popcorn-event-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+
+.popcorn-event-info-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--popcorn-event-gray-dark);
+    font-size: 1rem;
+}
+
+.popcorn-event-info-item i {
+    color: var(--popcorn-event-primary);
+    width: 16px;
+}
+
+/* Event Name and Description */
+.popcorn-event-name {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--popcorn-event-primary);
+    margin-bottom: 1rem;
+}
+
+.popcorn-event-description {
+    font-size: 1.125rem;
+    color: var(--popcorn-event-gray-dark);
+    line-height: 1.6;
+    margin-bottom: 2rem;
+}
+
+/* Registration Form */
+.popcorn-event-registration-form {
+    margin: 2rem 0;
+    text-align: left;
+}
+
+.popcorn-event-form-group {
+    margin-bottom: 1.5rem;
+}
+
+.popcorn-event-form-group:last-child {
+    margin-bottom: 0;
+}
+
+.popcorn-event-form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--popcorn-event-gray-dark);
+}
+
+.popcorn-event-form-input {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--popcorn-event-gray-dark);
+    background-color: var(--popcorn-event-light);
+    background-clip: padding-box;
+    border: 2px solid var(--popcorn-event-border-light);
+    border-radius: 0.5rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.popcorn-event-form-input:focus {
+    color: var(--popcorn-event-gray-dark);
+    background-color: var(--popcorn-event-white);
+    border-color: var(--popcorn-event-primary);
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(230, 0, 0, 0.25);
+}
+
+.popcorn-event-form-input[readonly] {
+    background-color: var(--popcorn-event-light);
+    color: var(--popcorn-event-gray);
+    cursor: not-allowed;
+}
+
+/* Submit Button */
+.popcorn-event-submit-btn {
+    width: 100%;
+    padding: 1rem 2rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    background: var(--popcorn-event-primary);
+    color: var(--popcorn-event-white);
+    box-shadow: 0 2px 8px rgba(230, 0, 0, 0.3);
+    margin-top: 1rem;
+}
+
+.popcorn-event-submit-btn:hover {
+    background: var(--popcorn-event-primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(230, 0, 0, 0.4);
+}
+
+.popcorn-event-submit-btn i {
+    margin-right: 0.5rem;
+}
+
+/* Registration Details */
+.popcorn-event-registration-details {
+    background: var(--popcorn-event-light);
+    border: 1px solid var(--popcorn-event-border-light);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    text-align: left;
+}
+
+.popcorn-event-registration-details h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--popcorn-event-dark);
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.popcorn-event-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--popcorn-event-border-light);
+}
+
+.popcorn-event-detail-row:last-child {
+    border-bottom: none;
+}
+
+.popcorn-event-detail-label {
+    font-weight: 600;
+    color: var(--popcorn-event-gray-dark);
+}
+
+.popcorn-event-detail-value {
+    color: var(--popcorn-event-dark);
+    font-weight: 500;
+}
+
+/* Registration Actions */
+.popcorn-event-registration-actions {
+    margin: 2rem 0;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.popcorn-event-btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    cursor: pointer;
+}
+
+.popcorn-event-btn-primary {
+    background: var(--popcorn-event-primary);
+    color: var(--popcorn-event-white);
+    border-color: var(--popcorn-event-primary);
+    box-shadow: 0 2px 8px rgba(230, 0, 0, 0.3);
+}
+
+.popcorn-event-btn-primary:hover {
+    background: var(--popcorn-event-primary-dark);
+    border-color: var(--popcorn-event-primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(230, 0, 0, 0.4);
+    color: var(--popcorn-event-white);
+    text-decoration: none;
+}
+
+.popcorn-event-btn-secondary {
+    background: var(--popcorn-event-white);
+    color: var(--popcorn-event-gray-dark);
+    border-color: var(--popcorn-event-border);
+}
+
+.popcorn-event-btn-secondary:hover {
+    background: var(--popcorn-event-light);
+    border-color: var(--popcorn-event-gray);
+    color: var(--popcorn-event-gray-dark);
+    text-decoration: none;
+}
+
+.popcorn-event-btn i {
+    margin-right: 0.5rem;
+}
+
+/* Event Features */
+.popcorn-event-features {
+    display: flex;
+    justify-content: space-around;
+    margin: 2rem 0;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.popcorn-event-feature {
+    text-align: center;
+    flex: 1;
+    min-width: 120px;
+}
+
+.popcorn-event-feature-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.popcorn-event-feature strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--popcorn-event-dark);
+}
+
+.popcorn-event-feature small {
+    color: var(--popcorn-event-gray);
+    font-size: 0.875rem;
+}
+
+/* Registration Note */
+.popcorn-event-registration-note {
+    background: linear-gradient(135deg, #e6f3ff 0%, #f0f8ff 100%);
+    border: 1px solid #b3d9ff;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-top: 2rem;
+    text-align: left;
+}
+
+.popcorn-event-registration-note p {
+    font-weight: 600;
+    color: var(--popcorn-event-dark);
+    margin-bottom: 1rem;
+}
+
+.popcorn-event-registration-note ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.popcorn-event-registration-note li {
+    padding: 0.5rem 0;
+    color: var(--popcorn-event-gray-dark);
+    position: relative;
+    padding-left: 1.5rem;
+}
+
+.popcorn-event-registration-note li::before {
+    content: "✓";
+    color: var(--popcorn-event-success);
+    font-weight: bold;
+    position: absolute;
+    left: 0;
+    font-size: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .popcorn-event-registration-content {
+        padding: 2rem 1.5rem;
+        margin: 0 1rem;
+    }
+    
+    .popcorn-event-registration-title {
+        font-size: 1.75rem;
+    }
+    
+    .popcorn-event-name {
+        font-size: 1.25rem;
+    }
+    
+    .popcorn-event-registration-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .popcorn-event-btn {
+        width: 100%;
+        max-width: 300px;
+        text-align: center;
+    }
+    
+    .popcorn-event-features {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .popcorn-event-feature {
+        min-width: auto;
+        width: 100%;
+        max-width: 200px;
+    }
+}
+
+@media (max-width: 576px) {
+    .popcorn-event-registration-page {
+        padding: 1rem 0;
+    }
+    
+    .popcorn-event-registration-content {
+        padding: 1.5rem 1rem;
+        margin: 0 0.5rem;
+    }
+    
+    .popcorn-event-registration-title {
+        font-size: 1.5rem;
+    }
+    
+    .popcorn-event-registration-icon {
+        font-size: 3rem;
+    }
+    
+    .popcorn-event-registration-message {
+        font-size: 1rem;
+        padding: 0.75rem;
+    }
+    
+    .popcorn-event-form-input {
+        padding: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .popcorn-event-submit-btn {
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+    }
+}

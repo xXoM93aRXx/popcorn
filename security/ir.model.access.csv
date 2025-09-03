@@ -1,0 +1,10 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_popcorn_membership_user,popcorn.membership.user,model_popcorn_membership,base.group_user,1,1,1,0
+access_popcorn_membership_manager,popcorn.membership.manager,model_popcorn_membership,base.group_system,1,1,1,1
+access_popcorn_membership_plan_user,popcorn.membership.plan.user,model_popcorn_membership_plan,base.group_user,1,0,0,0
+access_popcorn_membership_plan_manager,popcorn.membership.plan.manager,model_popcorn_membership_plan,base.group_system,1,1,1,1
+access_popcorn_membership_plan_portal,popcorn.membership.plan.portal,model_popcorn_membership_plan,base.group_portal,1,0,0,0
+access_popcorn_membership_portal,popcorn.membership.portal,model_popcorn_membership,base.group_portal,1,1,1,0
+access_event_registration_portal,event.registration.portal,event.model_event_registration,base.group_portal,1,0,0,0
+access_event_event_portal,event.event.portal,event.model_event_event,base.group_portal,1,0,0,0
+

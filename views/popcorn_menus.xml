@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Root Popcorn Menu -->
+        <menuitem id="menu_popcorn_root"
+                  name="Popcorn"
+                  sequence="50"/>
+        
+
+    </data>
+</odoo>
+
+

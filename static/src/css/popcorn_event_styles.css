@@ -1,0 +1,404 @@
+/* Popcorn Event Card Styles */
+.popcorn-event-card {
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+}
+
+.popcorn-event-card:hover {
+    text-decoration: none;
+    color: inherit;
+}
+
+.popcorn-event-article {
+    height: 100%;
+    border-radius: 0.375rem;
+    overflow: hidden;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: box-shadow 0.15s ease-in-out;
+}
+
+.popcorn-event-article:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Disabled card styles */
+.popcorn-event-article.disabled {
+    filter: grayscale(100%);
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.popcorn-event-article.disabled .popcorn-event-card {
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.popcorn-event-header {
+    position: relative;
+    overflow: hidden;
+    background-color: #6c757d;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+}
+
+.popcorn-event-image-container {
+    display: block;
+    height: 100%;
+    width: 100%;
+    position: relative;
+}
+
+.popcorn-event-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.popcorn-event-date-overlay {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: white;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
+    font-weight: bold;
+    text-align: center;
+    line-height: 1;
+}
+
+.popcorn-event-month {
+    font-size: 0.75rem;
+    color: #6c757d;
+    text-transform: uppercase;
+}
+
+.popcorn-event-day {
+    font-size: 1.25rem;
+    color: #495057;
+    font-weight: bold;
+}
+
+.popcorn-event-host-overlay {
+    position: absolute;
+    bottom: 0.75rem;
+    left: 0.75rem;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    color: white;
+    backdrop-filter: blur(4px);
+}
+
+.popcorn-event-host-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+}
+
+.popcorn-event-host-fallback {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.9);
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.5rem;
+}
+
+.popcorn-event-host-name {
+    font-weight: bold;
+    font-size: 0.875rem;
+    line-height: 1.2;
+}
+
+.popcorn-event-host-label {
+    font-size: 0.75rem;
+    opacity: 0.8;
+    line-height: 1.2;
+}
+
+/* Status overlay styles */
+.popcorn-event-status-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: bold;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    z-index: 20;
+    backdrop-filter: blur(4px);
+}
+
+.popcorn-event-body {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.popcorn-event-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.popcorn-event-tag {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    background-color: #f8f9fa;
+    color: #6c757d;
+}
+
+.popcorn-event-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin: 0.5rem 0;
+    color: #212529;
+    line-height: 1.3;
+}
+
+.popcorn-event-datetime {
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+}
+
+.popcorn-event-datetime i {
+    width: 16px;
+    text-align: center;
+}
+
+.popcorn-event-subtitle {
+    font-size: 0.875rem;
+    opacity: 0.75;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+.popcorn-event-location {
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.popcorn-event-location-icon {
+    margin-right: 0.5rem;
+    color: #6c757d;
+}
+
+.popcorn-event-location-text {
+    font-weight: bold;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .popcorn-event-date-overlay {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .popcorn-event-month {
+        font-size: 0.625rem;
+    }
+    
+    .popcorn-event-day {
+        font-size: 1rem;
+    }
+    
+    .popcorn-event-host-overlay {
+        padding: 0.375rem;
+    }
+    
+    .popcorn-event-host-avatar,
+    .popcorn-event-host-fallback {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .popcorn-event-status-overlay {
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+    }
+}
+
+/* Popup Styles */
+.popcorn-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(4px);
+}
+
+.popcorn-popup-content {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    animation: popupSlideIn 0.3s ease-out;
+}
+
+@keyframes popupSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.popcorn-popup-header {
+    padding: 1.5rem 1.5rem 1rem;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.popcorn-popup-header h4 {
+    margin: 0;
+    color: #212529;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.btn-close-popup {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.btn-close-popup:hover {
+    background-color: #f8f9fa;
+    color: #495057;
+}
+
+.popcorn-popup-body {
+    padding: 1.5rem;
+}
+
+.popcorn-popup-body p {
+    margin-bottom: 1.5rem;
+    color: #6c757d;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.popcorn-popup-body .btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+    border: none;
+    cursor: pointer;
+}
+
+.popcorn-popup-body .btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.popcorn-popup-body .btn-primary:hover {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+}
+
+.popcorn-popup-body .btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.popcorn-popup-body .btn-secondary:hover {
+    background-color: #545b62;
+    transform: translateY(-1px);
+}
+
+/* Loading popup specific styles */
+.popcorn-popup-content .spinner-border {
+    width: 3rem;
+    height: 3rem;
+    color: #007bff;
+}
+
+.popcorn-popup-content .mt-3 {
+    margin-top: 1rem !important;
+}
+
+.popcorn-popup-content .text-center {
+    text-align: center;
+}
+
+.popcorn-popup-content .ms-2 {
+    margin-left: 0.5rem !important;
+}
+
+/* Responsive popup adjustments */
+@media (max-width: 576px) {
+    .popcorn-popup-content {
+        width: 95%;
+        margin: 1rem;
+    }
+    
+    .popcorn-popup-header,
+    .popcorn-popup-body {
+        padding: 1rem;
+    }
+    
+    .popcorn-popup-body .btn {
+        display: block;
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    .popcorn-popup-body .ms-2 {
+        margin-left: 0 !important;
+    }
+}

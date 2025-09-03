@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="popcorn_event_tag_category_view_form" model="ir.ui.view">
+        <field name="name">popcorn.event.tag.category.form</field>
+        <field name="model">event.tag.category</field>
+        <field name="inherit_id" ref="event.event_tag_category_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group" position="inside">
+                <field name="controls_card_color"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

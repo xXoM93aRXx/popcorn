@@ -1,0 +1,816 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+         <!-- Extend Portal Home to add My Clubs and Your Cards sections -->
+     <template id="portal_my_home_clubs" inherit_id="portal.portal_my_home">
+        <xpath expr="//div[@id='portal_common_category']" position="before">
+            <div class="o_portal_category row g-2 mt-3" id="portal_clubs_cards_category">
+
+                <!-- My Clubs -->
+                <div class="o_portal_index_card col-md-6 order-2">
+                    <a href="/my/clubs" title="Your Clubs"
+                    class="d-flex gap-2 gap-md-3 py-3 pe-2 px-md-3 h-100 rounded text-decoration-none bg-100">
+                        <div class="o_portal_icon d-block align-self-start">
+                            <img src="/popcorn/static/src/images/clubs.png" loading="lazy" alt="Clubs Icon" style="width: 80px; height: auto; object-fit: contain;"/>
+                        </div>
+                        <div>
+                            <div class="mt-0 mb-1 fs-5 fw-normal lh-1 d-flex gap-2">
+                                <span>Your Clubs</span>
+                            </div>
+                            <div class="opacity-75">
+                                View your registered clubs and upcoming events
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Your Cards -->
+                <div class="o_portal_index_card col-md-6 order-2">
+                    <a href="/my/cards" title="Your Cards"
+                    class="d-flex gap-2 gap-md-3 py-3 pe-2 px-md-3 h-100 rounded text-decoration-none bg-100">
+                        <div class="o_portal_icon d-block align-self-start">
+                            <img src="/popcorn/static/src/images/cards.png" loading="lazy" alt="Cards Icon" style="width: 80px; height: auto; object-fit: contain;"/>
+                        </div>
+                        <div>
+                            <div class="mt-0 mb-1 fs-5 fw-normal lh-1 d-flex gap-2">
+                                <span>Your Cards</span>
+                            </div>
+                            <div class="opacity-75">
+                                View your membership cards and their status
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+            </div>
+        </xpath>
+    </template>
+
+         <!-- My Clubs Portal Section -->
+     <template id="portal_my_clubs" name="My Clubs">
+         <t t-call="portal.portal_docs_entry">
+             <t t-set="icon" t-value="'fa-calendar'"/>
+             <t t-set="title">Your Clubs</t>
+             <t t-set="text">View your registered clubs and upcoming events</t>
+             <t t-set="url" t-value="'/my/clubs'"/>
+             <t t-set="config_card" t-value="True"/>
+         </t>
+     </template>
+
+         <!-- Your Cards Portal Section -->
+     <template id="portal_your_cards" name="Your Cards">
+         <t t-call="portal.portal_docs_entry">
+             <t t-set="icon" t-value="'fa-id-card'"/>
+             <t t-set="title">Your Cards</t>
+             <t t-set="text">View your membership cards and their status</t>
+             <t t-set="url" t-value="'/my/cards'"/>
+             <t t-set="config_card" t-value="True"/>
+         </t>
+     </template>
+
+    <!-- My Clubs Page -->
+    <template id="portal_my_clubs_page" name="My Clubs Page">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="True"/>
+            
+            <!-- Hidden CSRF token for JavaScript -->
+            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+            
+            <div class="o_portal_my_clubs">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-12">
+                            <h2 class="mb-4">My Clubs</h2>
+                            
+                            <!-- Success/Error Messages -->
+                            <t t-if="success_message">
+                                <div class="alert alert-success alert-dismissible" role="alert">
+                                    <i class="fa fa-check-circle me-2"></i>
+                                    <span t-esc="success_message"/>
+                                    <button type="button" class="btn-close" onclick="this.parentElement.remove()" aria-label="Close"></button>
+                                </div>
+                            </t>
+                            <t t-if="error_message">
+                                <div class="alert alert-danger alert-dismissible" role="alert">
+                                    <i class="fa fa-exclamation-circle me-2"></i>
+                                    <span t-esc="error_message"/>
+                                    <button type="button" class="btn-close" onclick="this.parentElement.remove()" aria-label="Close"></button>
+                                </div>
+                            </t>
+                            
+                            <!-- Active Registrations -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fa fa-calendar-check-o me-2"></i>
+                                        Upcoming Clubs
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <t t-if="registrations">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Host</th>
+                                                        <th>Club Name</th>
+                                                        <th>Date &amp; Time</th>
+                                                        <th>Location</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                                                                         <t t-foreach="registrations" t-as="registration">
+                                                         <tr>
+                                                             <td>
+                                                                 <span t-field="registration.event_id.host_id.name" t-if="registration.event_id.host_id"/>
+                                                                 <span t-if="not registration.event_id.host_id">-</span>
+                                                             </td>
+                                                            <td>
+                                                                <strong t-field="registration.event_id.name"/>
+                                                            </td>
+                                                            <td>
+                                                                <span t-field="registration.event_id.date_begin" t-options="{'widget': 'datetime'}"/>
+                                                            </td>
+                                                            <td>
+                                                                <span t-field="registration.event_id.address_id.city" t-if="registration.event_id.address_id"/>
+                                                                <span t-if="not registration.event_id.address_id">Online</span>
+                                                            </td>
+                                                            <td>
+                                                                <div class="btn-group" role="group">
+                                                                    <a t-attf-href="/event/#{registration.event_id.id}" 
+                                                                       class="btn btn-sm btn-outline-primary">
+                                                                        <i class="fa fa-eye"></i> View Details
+                                                                    </a>
+                                                                    <t t-if="registration.can_cancel">
+                                                                        <button type="button" 
+                                                                                class="btn btn-sm btn-outline-danger btn-cancel-registration"
+                                                                                t-att-data-registration-id="registration.id"
+                                                                                t-att-data-event-name="registration.event_id.name">
+                                                                            <i class="fa fa-times"></i> Cancel
+                                                                        </button>
+                                                                    </t>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    </t>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </t>
+                                    <t t-else="">
+                                        <div class="text-center py-4">
+                                            <i class="fa fa-calendar-times-o fa-3x text-muted mb-3"></i>
+                                            <p class="text-muted">No upcoming clubs found.</p>
+                                            <a href="/event" class="btn btn-primary">
+                                                <i class="fa fa-search"></i> Browse Clubs
+                                            </a>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+
+                            <!-- Past Registrations -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fa fa-history me-2"></i>
+                                        Past Clubs
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <t t-if="past_registrations">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Host</th>
+                                                        <th>Club Name</th>
+                                                        <th>Date &amp; Time</th>
+                                                        <th>Location</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                                                                         <t t-foreach="past_registrations" t-as="registration">
+                                                         <tr>
+                                                             <td>
+                                                                 <span t-field="registration.event_id.host_id.name" t-if="registration.event_id.host_id"/>
+                                                                 <span t-if="not registration.event_id.host_id">-</span>
+                                                             </td>
+                                                            <td>
+                                                                <strong t-field="registration.event_id.name"/>
+                                                            </td>
+                                                            <td>
+                                                                <span t-field="registration.event_id.date_begin" t-options="{'widget': 'datetime'}"/>
+                                                            </td>
+                                                            <td>
+                                                                <span t-field="registration.event_id.address_id.city" t-if="registration.event_id.address_id"/>
+                                                                <span t-if="not registration.event_id.address_id">Online</span>
+                                                            </td>
+                                                            <td>
+                                                                <a t-attf-href="/event/#{registration.event_id.id}" 
+                                                                   class="btn btn-sm btn-outline-secondary">
+                                                                    <i class="fa fa-eye"></i> View Details
+                                                                </a>
+                                                            </td>
+                                                        </tr>
+                                                    </t>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </t>
+                                    <t t-else="">
+                                        <div class="text-center py-4">
+                                            <i class="fa fa-history fa-3x text-muted mb-3"></i>
+                                            <p class="text-muted">No past clubs found.</p>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+             </div>
+             
+             <!-- Include Cancel Modal -->
+             <t t-call="popcorn.cancel_registration_modal"/>
+         </t>
+     </template>
+
+     <!-- Your Cards Page -->
+     <template id="portal_your_cards_page" name="Your Cards Page">
+         <t t-call="portal.portal_layout">
+             <t t-set="breadcrumbs_searchbar" t-value="True"/>
+             
+             <div class="o_portal_your_cards">
+                 <div class="container">
+                     <div class="row">
+                         <div class="col-12">
+                             <h2 class="mb-4">Your Cards</h2>
+                             
+                                                           <!-- Error Messages -->
+                              <t t-if="error_message">
+                                  <div class="alert alert-danger alert-dismissible" role="alert">
+                                      <i class="fa fa-exclamation-triangle me-2"></i>
+                                      <t t-esc="error_message"/>
+                                      <button type="button" class="btn-close" onclick="this.parentElement.remove()" aria-label="Close"></button>
+                                  </div>
+                              </t>
+                              
+                              <!-- Success Messages -->
+                              <t t-if="success_message">
+                                  <div class="alert alert-success alert-dismissible" role="alert">
+                                      <i class="fa fa-check-circle me-2"></i>
+                                      <t t-esc="success_message"/>
+                                      <button type="button" class="btn-close" onclick="this.parentElement.remove()" aria-label="Close"></button>
+                                  </div>
+                              </t>
+                             
+                             <!-- Active Memberships -->
+                             <div class="card mb-4">
+                                 <div class="card-header">
+                                     <h5 class="mb-0">
+                                         <i class="fa fa-check-circle me-2 text-success"></i>
+                                         Active Cards
+                                     </h5>
+                                 </div>
+                                 <div class="card-body">
+                                     <t t-if="active_memberships">
+                                         <div class="table-responsive">
+                                             <table class="table table-hover">
+                                                 <thead>
+                                                     <tr>
+                                                         <th>Card Name</th>
+                                                         <th>Valid Until</th>
+                                                         <th>Remaining</th>
+                                                         <th>Actions</th>
+                                                     </tr>
+                                                 </thead>
+                                                 <tbody>
+                                                     <t t-foreach="active_memberships" t-as="membership">
+                                                                                                                   <tr>
+                                                              <td>
+                                                                  <strong t-field="membership.membership_plan_id.name"/>
+                                                                  <t t-if="membership.freeze_active">
+                                                                      <br/>
+                                                                      <small class="text-warning">
+                                                                          <i class="fa fa-pause"></i> Frozen until <t t-esc="membership.freeze_end"/>
+                                                                      </small>
+                                                                  </t>
+                                                              </td>
+                                                              <td>
+                                                                  <span t-field="membership.effective_end_date" t-options="{'widget': 'date'}"/>
+                                                              </td>
+                                                             <td>
+                                                                 <t t-if="membership.plan_quota_mode == 'unlimited'">
+                                                                     <span class="text-success">Unlimited</span>
+                                                                 </t>
+                                                                 <t t-elif="membership.plan_quota_mode == 'bucket_counts'">
+                                                                     <span t-if="membership.remaining_offline > 0">
+                                                                         <i class="fa fa-building"></i> <t t-esc="membership.remaining_offline"/> offline
+                                                                     </span>
+                                                                     <span t-if="membership.remaining_online > 0">
+                                                                         <i class="fa fa-globe"></i> <t t-esc="membership.remaining_online"/> online
+                                                                     </span>
+                                                                     <span t-if="membership.remaining_sp > 0">
+                                                                         <i class="fa fa-star"></i> <t t-esc="membership.remaining_sp"/> special
+                                                                     </span>
+                                                                 </t>
+                                                                 <t t-elif="membership.plan_quota_mode == 'points'">
+                                                                     <span class="text-info">
+                                                                         <i class="fa fa-coins"></i> <t t-esc="membership.points_remaining"/> points
+                                                                     </span>
+                                                                 </t>
+                                                             </td>
+                                                             <td>
+                                                                 <div class="btn-group" role="group">
+                                                                     <a t-attf-href="/my/cards/#{membership.id}" 
+                                                                        class="btn btn-sm btn-outline-primary">
+                                                                         <i class="fa fa-eye"></i> View Details
+                                                                     </a>
+                                                                     <t t-if="membership.upgrade_discount_allowed and membership.activation_date and (current_date - membership.activation_date).days &lt;= membership.membership_plan_id.upgrade_window_days">
+                                                                         <a t-attf-href="/my/cards/#{membership.id}/upgrade" 
+                                                                            class="btn btn-sm btn-outline-success">
+                                                                             <i class="fa fa-arrow-up"></i> Upgrade
+                                                                         </a>
+                                                                     </t>
+                                                                                                                                           <t t-if="membership.membership_plan_id.freeze_allowed and membership.state == 'active' and not membership.freeze_active">
+                                                                          <button type="button" class="btn btn-sm btn-outline-warning popcorn-freeze-btn" 
+                                                                                  t-att-data-membership-id="membership.id"
+                                                                                  t-att-data-min-days="membership.membership_plan_id.freeze_min_days"
+                                                                                  t-att-data-max-days="membership.membership_plan_id.freeze_max_total_days">
+                                                                              <i class="fa fa-pause"></i> Freeze
+                                                                          </button>
+
+                                                                      </t>
+                                                                                                                                           <t t-if="membership.freeze_active">
+                                                                          <button type="button" class="btn btn-sm btn-outline-warning popcorn-unfreeze-btn" 
+                                                                                  t-att-data-membership-id="membership.id">
+                                                                              <i class="fa fa-play"></i> Unfreeze
+                                                                          </button>
+                                                                      </t>
+                                                                 </div>
+                                                             </td>
+                                                         </tr>
+                                                     </t>
+                                                 </tbody>
+                                             </table>
+                                         </div>
+                                     </t>
+                                     <t t-else="">
+                                         <div class="text-center py-4">
+                                             <i class="fa fa-id-card fa-3x text-muted mb-3"></i>
+                                             <p class="text-muted">No active cards found.</p>
+                                             <a href="/memberships" class="btn btn-primary">
+                                                 <i class="fa fa-plus"></i> Get a Card
+                                             </a>
+                                         </div>
+                                     </t>
+                                 </div>
+                             </div>
+
+                             <!-- Unactivated Memberships -->
+                             <div class="card mb-4">
+                                 <div class="card-header">
+                                     <h5 class="mb-0">
+                                         <i class="fa fa-clock-o me-2 text-warning"></i>
+                                         Unactivated Cards
+                                     </h5>
+                                 </div>
+                                 <div class="card-body">
+                                     <t t-if="unactivated_memberships">
+                                         <div class="table-responsive">
+                                             <table class="table table-hover">
+                                                 <thead>
+                                                     <tr>
+                                                         <th>Card Name</th>
+                                                         <th>Activation Policy</th>
+                                                         <th>Actions</th>
+                                                     </tr>
+                                                 </thead>
+                                                 <tbody>
+                                                     <t t-foreach="unactivated_memberships" t-as="membership">
+                                                                                                                   <tr>
+                                                              <td>
+                                                                  <strong t-field="membership.membership_plan_id.name"/>
+                                                              </td>
+                                                              <td>
+                                                                  <span t-field="membership.membership_plan_id.activation_policy"/>
+                                                              </td>
+                                                             <td>
+                                                                 <a t-attf-href="/my/cards/#{membership.id}" 
+                                                                    class="btn btn-sm btn-outline-warning">
+                                                                     <i class="fa fa-eye"></i> View Details
+                                                                 </a>
+                                                             </td>
+                                                         </tr>
+                                                     </t>
+                                                 </tbody>
+                                             </table>
+                                         </div>
+                                     </t>
+                                     <t t-else="">
+                                         <div class="text-center py-4">
+                                             <i class="fa fa-clock-o fa-3x text-muted mb-3"></i>
+                                             <p class="text-muted">No unactivated cards found.</p>
+                                         </div>
+                                     </t>
+                                 </div>
+                             </div>
+
+                             <!-- Expired Memberships -->
+                             <div class="card">
+                                 <div class="card-header">
+                                     <h5 class="mb-0">
+                                         <i class="fa fa-times-circle me-2 text-danger"></i>
+                                         Expired Cards
+                                     </h5>
+                                 </div>
+                                 <div class="card-body">
+                                     <t t-if="expired_memberships">
+                                         <div class="table-responsive">
+                                             <table class="table table-hover">
+                                                 <thead>
+                                                     <tr>
+                                                         <th>Card Name</th>
+                                                         <th>Expired On</th>
+                                                         <th>Actions</th>
+                                                     </tr>
+                                                 </thead>
+                                                 <tbody>
+                                                     <t t-foreach="expired_memberships" t-as="membership">
+                                                                                                                   <tr>
+                                                              <td>
+                                                                  <strong t-field="membership.membership_plan_id.name"/>
+                                                              </td>
+                                                              <td>
+                                                                  <span t-field="membership.effective_end_date" t-options="{'widget': 'date'}"/>
+                                                              </td>
+                                                             <td>
+                                                                 <a t-attf-href="/my/cards/#{membership.id}" 
+                                                                    class="btn btn-sm btn-outline-secondary">
+                                                                     <i class="fa fa-eye"></i> View Details
+                                                                 </a>
+                                                             </td>
+                                                         </tr>
+                                                     </t>
+                                                 </tbody>
+                                             </table>
+                                         </div>
+                                     </t>
+                                     <t t-else="">
+                                         <div class="text-center py-4">
+                                             <i class="fa fa-times-circle fa-3x text-muted mb-3"></i>
+                                             <p class="text-muted">No expired cards found.</p>
+                                         </div>
+                                     </t>
+                                 </div>
+                                                          </div>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+             
+                           <!-- Include Freeze Modal -->
+              <t t-call="popcorn.freeze_membership_modal"/>
+          </t>
+      </template>
+
+     <!-- Membership Upgrade Page -->
+     <template id="portal_membership_upgrade_page" name="Membership Upgrade Page">
+         <t t-call="portal.portal_layout">
+             <t t-set="breadcrumbs_searchbar" t-value="True"/>
+             
+             <div class="o_portal_membership_upgrade">
+                 <div class="container">
+                     <div class="row">
+                         <div class="col-12">
+                             <h2 class="mb-4">Upgrade Your Membership</h2>
+                             
+                             <!-- Current Membership Info -->
+                             <div class="card mb-4">
+                                 <div class="card-header">
+                                     <h5 class="mb-0">
+                                         <i class="fa fa-info-circle me-2"></i>
+                                         Current Membership
+                                     </h5>
+                                 </div>
+                                 <div class="card-body">
+                                     <div class="row">
+                                         <div class="col-md-6">
+                                             <h6><t t-esc="membership.membership_plan_id.name"/></h6>
+                                             <p class="text-muted mb-2">
+                                                 <i class="fa fa-calendar"></i> 
+                                                 Activated: <t t-esc="membership.activation_date" t-options="{'widget': 'date'}"/>
+                                             </p>
+                                             <p class="text-muted mb-2">
+                                                 <i class="fa fa-clock-o"></i> 
+                                                 Days since activation: <t t-esc="max(0, (current_date - membership.activation_date).days)"/>
+                                             </p>
+                                         </div>
+                                         <div class="col-md-6">
+                                             <h6>Remaining Usage:</h6>
+                                             <t t-if="membership.plan_quota_mode == 'unlimited'">
+                                                 <span class="badge bg-success">Unlimited</span>
+                                             </t>
+                                             <t t-elif="membership.plan_quota_mode == 'bucket_counts'">
+                                                 <div>
+                                                     <span t-if="membership.remaining_offline > 0">
+                                                         <i class="fa fa-building"></i> <t t-esc="membership.remaining_offline"/> offline
+                                                     </span>
+                                                     <span t-if="membership.remaining_online > 0">
+                                                         <i class="fa fa-globe"></i> <t t-esc="membership.remaining_online"/> online
+                                                     </span>
+                                                     <span t-if="membership.remaining_sp > 0">
+                                                         <i class="fa fa-star"></i> <t t-esc="membership.remaining_sp"/> special
+                                                     </span>
+                                                 </div>
+                                             </t>
+                                             <t t-elif="membership.plan_quota_mode == 'points'">
+                                                 <span class="badge bg-info">
+                                                     <i class="fa fa-coins"></i> <t t-esc="membership.points_remaining"/> points
+                                                 </span>
+                                             </t>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
+
+                             <!-- Upgrade Options -->
+                             <div class="card">
+                                 <div class="card-header">
+                                     <h5 class="mb-0">
+                                         <i class="fa fa-arrow-up me-2"></i>
+                                         Available Upgrades
+                                     </h5>
+                                 </div>
+                                 <div class="card-body">
+                                     <t t-if="upgrade_options">
+                                         <div class="row">
+                                             <t t-foreach="upgrade_options" t-as="option">
+                                                 <div class="col-md-6 col-lg-4 mb-3">
+                                                     <div class="card h-100 border-primary">
+                                                         <div class="card-header bg-primary text-white">
+                                                             <h6 class="mb-0">
+                                                                 <i class="fa fa-star me-2"></i>
+                                                                 <t t-esc="option['plan'].name"/>
+                                                             </h6>
+                                                         </div>
+                                                         <div class="card-body">
+                                                             <div class="mb-3">
+                                                                 <h5 class="text-primary">
+                                                                     <t t-esc="option['plan'].currency_id.symbol"/><t t-esc="'%.2f' % option['upgrade_price']"/>
+                                                                 </h5>
+                                                                                                                                   <t t-if="option['savings'] > 0">
+                                                                     <small class="text-success">
+                                                                         <i class="fa fa-save"></i> Save <t t-esc="option['plan'].currency_id.symbol"/><t t-esc="'%.2f' % option['savings']"/>
+                                                                     </small>
+                                                                 </t>
+                                                             </div>
+                                                             
+                                                             <div class="mb-3">
+                                                                 <h6>Plan Features:</h6>
+                                                                 <ul class="list-unstyled">
+                                                                     <li>
+                                                                         <i class="fa fa-calendar"></i> 
+                                                                         <t t-esc="option['plan'].duration_days"/> days
+                                                                     </li>
+                                                                     <t t-if="option['plan'].quota_mode == 'unlimited'">
+                                                                         <li><i class="fa fa-infinity"></i> Unlimited access</li>
+                                                                     </t>
+                                                                     <t t-elif="option['plan'].quota_mode == 'bucket_counts'">
+                                                                         <t t-if="option['plan'].quota_offline">
+                                                                             <li><i class="fa fa-building"></i> <t t-esc="option['plan'].quota_offline"/> offline sessions</li>
+                                                                         </t>
+                                                                         <t t-if="option['plan'].quota_online">
+                                                                             <li><i class="fa fa-globe"></i> <t t-esc="option['plan'].quota_online"/> online sessions</li>
+                                                                         </t>
+                                                                         <t t-if="option['plan'].quota_sp">
+                                                                             <li><i class="fa fa-star"></i> <t t-esc="option['plan'].quota_sp"/> special club sessions</li>
+                                                                         </t>
+                                                                     </t>
+                                                                     <t t-elif="option['plan'].quota_mode == 'points'">
+                                                                         <li><i class="fa fa-coins"></i> <t t-esc="option['plan'].points_start"/> points</li>
+                                                                     </t>
+                                                                     <t t-if="option['plan'].allowed_regular_offline">
+                                                                         <li><i class="fa fa-check text-success"></i> Regular offline access</li>
+                                                                     </t>
+                                                                     <t t-if="option['plan'].allowed_regular_online">
+                                                                         <li><i class="fa fa-check text-success"></i> Regular online access</li>
+                                                                     </t>
+                                                                     <t t-if="option['plan'].allowed_spclub">
+                                                                         <li><i class="fa fa-check text-success"></i> Special club access</li>
+                                                                     </t>
+                                                                     <t t-if="option['plan'].freeze_allowed">
+                                                                         <li><i class="fa fa-pause text-info"></i> Freeze available</li>
+                                                                     </t>
+                                                                 </ul>
+                                                             </div>
+                                                             
+                                                             <form t-attf-action="/my/cards/#{membership.id}/upgrade/process" method="post">
+                                                                 <input type="hidden" name="target_plan_id" t-att-value="option['plan'].id"/>
+                                                                 <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                                                 <button type="submit" class="btn btn-primary w-100">
+                                                                     <i class="fa fa-arrow-up me-2"></i>
+                                                                     Upgrade Now
+                                                                 </button>
+                                                             </form>
+                                                         </div>
+                                                     </div>
+                                                 </div>
+                                             </t>
+                                         </div>
+                                     </t>
+                                     <t t-else="">
+                                         <div class="text-center py-4">
+                                             <i class="fa fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                                             <h5>No Upgrade Options Available</h5>
+                                             <p class="text-muted">
+                                                 This membership cannot be upgraded at this time. 
+                                                 <t t-if="not membership.upgrade_discount_allowed">
+                                                     Upgrade discount is not available for this membership.
+                                                 </t>
+                                                 <t t-elif="not membership.activation_date">
+                                                     Membership has not been activated yet.
+                                                 </t>
+                                                 <t t-else="">
+                                                     Upgrade window has expired (<t t-esc="membership.membership_plan_id.upgrade_window_days"/> days from activation).
+                                                 </t>
+                                             </p>
+                                             <a href="/my/cards" class="btn btn-secondary">
+                                                 <i class="fa fa-arrow-left me-2"></i>
+                                                 Back to My Cards
+                                             </a>
+                                         </div>
+                                     </t>
+                                 </div>
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+         </t>
+     </template>
+
+     <!-- Membership Upgrade Success Page -->
+     <template id="portal_membership_upgrade_success_page" name="Membership Upgrade Success Page">
+         <t t-call="portal.portal_layout">
+             <t t-set="breadcrumbs_searchbar" t-value="True"/>
+             
+             <div class="o_portal_membership_upgrade_success">
+                 <div class="container">
+                     <div class="row justify-content-center">
+                         <div class="col-md-8">
+                             <div class="card text-center">
+                                 <div class="card-body py-5">
+                                     <div class="mb-4">
+                                         <i class="fa fa-check-circle fa-5x text-success"></i>
+                                     </div>
+                                     <h2 class="card-title mb-3">Upgrade Successful!</h2>
+                                     <p class="card-text text-muted mb-4">
+                                         Your membership has been successfully upgraded. 
+                                         The new membership will be activated on your next club booking.
+                                     </p>
+                                     
+                                     <t t-if="membership">
+                                         <div class="alert alert-info">
+                                             <h5>New Membership Details:</h5>
+                                             <p class="mb-2">
+                                                 <strong><t t-esc="membership.membership_plan_id.name"/></strong>
+                                             </p>
+                                             <p class="mb-2">
+                                                 <i class="fa fa-calendar"></i> 
+                                                 Duration: <t t-esc="membership.membership_plan_id.duration_days"/> days
+                                             </p>
+                                             <p class="mb-0">
+                                                 <i class="fa fa-money"></i> 
+                                                 Upgrade Price: <t t-esc="membership.currency_id.symbol"/><t t-esc="membership.purchase_price_paid"/>
+                                             </p>
+                                         </div>
+                                     </t>
+                                     
+                                     <div class="mt-4">
+                                         <a href="/my/cards" class="btn btn-primary me-3">
+                                             <i class="fa fa-id-card me-2"></i>
+                                             View My Cards
+                                         </a>
+                                         <a href="/event" class="btn btn-outline-primary">
+                                             <i class="fa fa-calendar me-2"></i>
+                                             Browse Clubs
+                                         </a>
+                                     </div>
+                                 </div>
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+         </t>
+     </template>
+
+           <!-- Freeze Membership Modal -->
+      <template id="freeze_membership_modal" name="Freeze Membership Modal">
+          <div class="modal fade" id="freezeModal" tabindex="-1" role="dialog" aria-labelledby="freezeModalLabel" aria-hidden="true">
+              <div class="modal-dialog" role="document">
+                  <div class="modal-content">
+                      <div class="modal-header">
+                          <h5 class="modal-title" id="freezeModalLabel">
+                              <i class="fa fa-pause me-2"></i>Freeze Membership
+                          </h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <form id="freezeForm" method="post">
+                          <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                          <div class="modal-body">
+                              <div class="alert alert-info">
+                                  <i class="fa fa-info-circle me-2"></i>
+                                  <strong>Freeze Information:</strong>
+                                  <ul class="mb-0 mt-2">
+                                      <li>During the freeze period, you cannot book any events</li>
+                                      <li>Your membership duration will be extended by the freeze days</li>
+                                      <li>You can unfreeze early if needed</li>
+                                  </ul>
+                              </div>
+                              
+                              <div class="mb-3">
+                                  <label for="freezeDays" class="form-label">Freeze Duration (Days)</label>
+                                  <input type="number" class="form-control" id="freezeDays" name="freeze_days" 
+                                         min="7" max="30" required="required"/>
+                                  <div class="form-text">
+                                      Minimum: <span id="minDays">7</span> days | 
+                                      Maximum: <span id="maxDays">30</span> days
+                                  </div>
+                              </div>
+                              
+                              <div class="mb-3">
+                                  <label class="form-label">Freeze Period</label>
+                                  <div class="form-control-plaintext">
+                                      <span id="freezeStartDate"></span> to <span id="freezeEndDate"></span>
+                                  </div>
+                              </div>
+                          </div>
+                          <div class="modal-footer">
+                              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                              <button type="submit" class="btn btn-warning">
+                                  <i class="fa fa-pause me-2"></i>Freeze Membership
+                              </button>
+                          </div>
+                      </form>
+                  </div>
+              </div>
+          </div>
+      </template>
+
+      <!-- Cancel Registration Modal -->
+      <template id="cancel_registration_modal" name="Cancel Registration Modal">
+          <div class="modal fade" id="cancelModal" tabindex="-1" role="dialog" aria-labelledby="cancelModalLabel" aria-hidden="true">
+              <div class="modal-dialog" role="document">
+                  <div class="modal-content">
+                      <div class="modal-header">
+                          <h5 class="modal-title" id="cancelModalLabel">
+                              <i class="fa fa-times me-2"></i>Cancel Registration
+                          </h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <form id="cancelForm" method="post">
+                          <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                          <div class="modal-body">
+                              <div class="alert alert-warning">
+                                  <i class="fa fa-exclamation-triangle me-2"></i>
+                                  <strong>Cancel Registration:</strong>
+                                  <ul class="mb-0 mt-2">
+                                      <li>This action cannot be undone</li>
+                                      <li>Your membership quota will be restored if applicable</li>
+                                      <li>You will no longer be registered for this event</li>
+                                  </ul>
+                              </div>
+                              
+                              <div class="mb-3">
+                                  <label class="form-label">Event Details</label>
+                                  <div class="form-control-plaintext">
+                                      <strong id="cancelEventName"></strong>
+                                  </div>
+                              </div>
+                              
+                              <div class="mb-3">
+                                  <label class="form-label">Confirmation</label>
+                                  <div class="form-check">
+                                      <input class="form-check-input" type="checkbox" id="confirmCancel" required="required"/>
+                                      <label class="form-check-label" for="confirmCancel">
+                                          I understand that this action cannot be undone and I want to cancel my registration
+                                      </label>
+                                  </div>
+                              </div>
+                          </div>
+                          <div class="modal-footer">
+                              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Registration</button>
+                              <button type="submit" class="btn btn-danger" id="confirmCancelBtn" disabled="disabled">
+                                  <i class="fa fa-times me-2"></i>Cancel Registration
+                              </button>
+                          </div>
+                      </form>
+                  </div>
+              </div>
+          </div>
+      </template>
+</odoo>

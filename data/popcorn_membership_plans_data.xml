@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Experience Card -->
+        <record id="membership_plan_experience" model="popcorn.membership.plan">
+            <field name="name">Experience Card</field>
+            <field name="sequence">10</field>
+            <field name="quota_mode">bucket_counts</field>
+            <field name="duration_days">90</field>
+            <field name="activation_policy">first_attendance</field>
+            <field name="allowed_regular_offline">True</field>
+            <field name="allowed_regular_online">False</field>
+            <field name="allowed_spclub">False</field>
+            <field name="quota_offline">6</field>
+            <field name="quota_online">0</field>
+            <field name="quota_sp">0</field>
+            <field name="freeze_allowed">False</field>
+            <field name="freeze_min_days">0</field>
+            <field name="freeze_max_total_days">0</field>
+            <field name="price_normal">1398.00</field>
+            <field name="price_first_timer">1398.00</field>
+            <field name="early_renew_window_days">15</field>
+            <field name="upgrade_window_days">30</field>
+            <field name="first_timer_default_upgrade_ability">no</field>
+            <field name="unit_base_count">6</field>
+        </record>
+        
+        <!-- 90 Day Gold Card Regular -->
+        <record id="membership_plan_90_gr" model="popcorn.membership.plan">
+            <field name="name">90 Day Gold Card Regular</field>
+            <field name="sequence">20</field>
+            <field name="quota_mode">unlimited</field>
+            <field name="duration_days">90</field>
+            <field name="activation_policy">first_attendance</field>
+            <field name="allowed_regular_offline">True</field>
+            <field name="allowed_regular_online">True</field>
+            <field name="allowed_spclub">False</field>
+            <field name="freeze_allowed">True</field>
+            <field name="freeze_min_days">7</field>
+            <field name="freeze_max_total_days">15</field>
+            <field name="price_normal">5988.00</field>
+            <field name="price_first_timer">5388.00</field>
+            <field name="early_renew_window_days">30</field>
+            <field name="upgrade_window_days">30</field>
+            <field name="first_timer_default_upgrade_ability">no</field>
+        </record>
+        
+        <!-- 90 Day Gold Card VIP -->
+        <record id="membership_plan_90_gv" model="popcorn.membership.plan">
+            <field name="name">90 Day Gold Card VIP</field>
+            <field name="sequence">25</field>
+            <field name="quota_mode">unlimited</field>
+            <field name="duration_days">90</field>
+            <field name="activation_policy">first_attendance</field>
+            <field name="allowed_regular_offline">True</field>
+            <field name="allowed_regular_online">True</field>
+            <field name="allowed_spclub">True</field>
+            <field name="freeze_allowed">True</field>
+            <field name="freeze_min_days">7</field>
+            <field name="freeze_max_total_days">15</field>
+            <field name="price_normal">7777.00</field>
+            <field name="price_first_timer">6999.00</field>
+            <field name="early_renew_window_days">30</field>
+            <field name="upgrade_window_days">30</field>
+            <field name="first_timer_default_upgrade_ability">no</field>
+        </record>
+        
+        <!-- 180 Day Gold Card Regular -->
+        <record id="membership_plan_180_gr" model="popcorn.membership.plan">
+            <field name="name">180 Day Gold Card Regular</field>
+            <field name="sequence">30</field>
+            <field name="quota_mode">unlimited</field>
+            <field name="duration_days">180</field>
+            <field name="activation_policy">first_attendance</field>
+            <field name="allowed_regular_offline">True</field>
+            <field name="allowed_regular_online">True</field>
+            <field name="allowed_spclub">False</field>
+            <field name="freeze_allowed">True</field>
+            <field name="freeze_min_days">7</field>
+            <field name="freeze_max_total_days">30</field>
+            <field name="price_normal">8788.00</field>
+            <field name="price_first_timer">7888.00</field>
+            <field name="early_renew_window_days">30</field>
+            <field name="upgrade_window_days">30</field>
+            <field name="first_timer_default_upgrade_ability">no</field>
+        </record>
+        
+        <!-- 180 Day Gold Card VIP -->
+        <record id="membership_plan_180_gv" model="popcorn.membership.plan">
+            <field name="name">180 Day Gold Card VIP</field>
+            <field name="sequence">35</field>
+            <field name="quota_mode">unlimited</field>
+            <field name="duration_days">180</field>
+            <field name="activation_policy">first_attendance</field>
+            <field name="allowed_regular_offline">True</field>
+            <field name="allowed_regular_online">True</field>
+            <field name="allowed_spclub">True</field>
+            <field name="freeze_allowed">True</field>
+            <field name="freeze_min_days">7</field>
+            <field name="freeze_max_total_days">30</field>
+            <field name="price_normal">10988.00</field>
+            <field name="price_first_timer">9888.00</field>
+            <field name="early_renew_window_days">30</field>
+            <field name="upgrade_window_days">30</field>
+            <field name="first_timer_default_upgrade_ability">no</field>
+        </record>
+        
+        <!-- 365 Day Gold Card Regular -->
+        <record id="membership_plan_365_gr" model="popcorn.membership.plan">
+            <field name="name">365 Day Gold Card Regular</field>
+            <field name="sequence">40</field>
+            <field name="quota_mode">unlimited</field>
+            <field name="duration_days">365</field>
+            <field name="activation_policy">first_attendance</field>
+            <field name="allowed_regular_offline">True</field>
+            <field name="allowed_regular_online">True</field>
+            <field name="allowed_spclub">False</field>
+            <field name="freeze_allowed">True</field>
+            <field name="freeze_min_days">7</field>
+            <field name="freeze_max_total_days">75</field>
+            <field name="price_normal">13988.00</field>
+            <field name="price_first_timer">12588.00</field>
+            <field name="early_renew_window_days">30</field>
+            <field name="upgrade_window_days">0</field>
+            <field name="first_timer_default_upgrade_ability">no</field>
+        </record>
+        
+        <!-- 365 Day Gold Card VIP -->
+        <record id="membership_plan_365_gv" model="popcorn.membership.plan">
+            <field name="name">365 Day Gold Card VIP</field>
+            <field name="sequence">45</field>
+            <field name="quota_mode">unlimited</field>
+            <field name="duration_days">365</field>
+            <field name="activation_policy">first_attendance</field>
+            <field name="allowed_regular_offline">True</field>
+            <field name="allowed_regular_online">True</field>
+            <field name="allowed_spclub">True</field>
+            <field name="freeze_allowed">True</field>
+            <field name="freeze_min_days">7</field>
+            <field name="freeze_max_total_days">75</field>
+            <field name="price_normal">16988.00</field>
+            <field name="price_first_timer">15288.00</field>
+            <field name="early_renew_window_days">30</field>
+            <field name="upgrade_window_days">0</field>
+            <field name="first_timer_default_upgrade_ability">no</field>
+        </record>
+        
+        <!-- Freedom Card -->
+        <record id="membership_plan_freedom" model="popcorn.membership.plan">
+            <field name="name">Freedom Card</field>
+            <field name="sequence">50</field>
+            <field name="quota_mode">points</field>
+            <field name="duration_days">36500</field>
+            <field name="activation_policy">immediate</field>
+            <field name="allowed_regular_offline">True</field>
+            <field name="allowed_regular_online">True</field>
+            <field name="allowed_spclub">True</field>
+            <field name="points_start">108</field>
+            <field name="points_per_offline">3</field>
+            <field name="points_per_online">2</field>
+            <field name="points_per_sp">6</field>
+            <field name="freeze_allowed">False</field>
+            <field name="freeze_min_days">0</field>
+            <field name="freeze_max_total_days">0</field>
+            <field name="price_normal">7388.00</field>
+            <field name="price_first_timer">6666.00</field>
+            <field name="early_renew_window_days">15</field>
+            <field name="upgrade_window_days">30</field>
+            <field name="first_timer_default_upgrade_ability">no</field>
+            <field name="unit_base_count">108</field>
+        </record>
+        
+        <!-- Online MiniPass -->
+        <record id="membership_plan_online_minipass" model="popcorn.membership.plan">
+            <field name="name">Online MiniPass</field>
+            <field name="sequence">60</field>
+            <field name="quota_mode">bucket_counts</field>
+            <field name="duration_days">90</field>
+            <field name="activation_policy">first_attendance</field>
+            <field name="allowed_regular_offline">False</field>
+            <field name="allowed_regular_online">True</field>
+            <field name="allowed_spclub">False</field>
+            <field name="quota_offline">0</field>
+            <field name="quota_online">6</field>
+            <field name="quota_sp">0</field>
+            <field name="freeze_allowed">False</field>
+            <field name="freeze_min_days">0</field>
+            <field name="freeze_max_total_days">0</field>
+            <field name="price_normal">1200.00</field>
+            <field name="price_first_timer">1200.00</field>
+            <field name="early_renew_window_days">0</field>
+            <field name="upgrade_window_days">30</field>
+            <field name="first_timer_default_upgrade_ability">no</field>
+            <field name="unit_base_count">6</field>
+        </record>
+        
+        <!-- Online MegaPass -->
+        <record id="membership_plan_online_megapass" model="popcorn.membership.plan">
+            <field name="name">Online MegaPass</field>
+            <field name="sequence">70</field>
+            <field name="quota_mode">bucket_counts</field>
+            <field name="duration_days">270</field>
+            <field name="activation_policy">first_attendance</field>
+            <field name="allowed_regular_offline">False</field>
+            <field name="allowed_regular_online">True</field>
+            <field name="allowed_spclub">False</field>
+            <field name="quota_offline">0</field>
+            <field name="quota_online">18</field>
+            <field name="quota_sp">0</field>
+            <field name="freeze_allowed">False</field>
+            <field name="freeze_min_days">0</field>
+            <field name="freeze_max_total_days">0</field>
+            <field name="price_normal">3000.00</field>
+            <field name="price_first_timer">3000.00</field>
+            <field name="early_renew_window_days">0</field>
+            <field name="upgrade_window_days">30</field>
+            <field name="first_timer_default_upgrade_ability">no</field>
+            <field name="unit_base_count">18</field>
+        </record>
+        
+        <!-- Upgrade relationships -->
+        <!-- Experience Card can upgrade to all Gold Cards and Freedom Card -->
+        <record id="membership_plan_experience" model="popcorn.membership.plan">
+            <field name="can_upgrade_to_ids" eval="[
+                (4, ref('membership_plan_90_gr')),
+                (4, ref('membership_plan_90_gv')),
+                (4, ref('membership_plan_180_gr')),
+                (4, ref('membership_plan_180_gv')),
+                (4, ref('membership_plan_365_gr')),
+                (4, ref('membership_plan_365_gv')),
+                (4, ref('membership_plan_freedom'))
+            ]"/>
+        </record>
+        
+        <!-- 90 GR can upgrade to higher Gold Cards -->
+        <record id="membership_plan_90_gr" model="popcorn.membership.plan">
+            <field name="can_upgrade_to_ids" eval="[
+                (4, ref('membership_plan_90_gv')),
+                (4, ref('membership_plan_180_gr')),
+                (4, ref('membership_plan_180_gv')),
+                (4, ref('membership_plan_365_gr')),
+                (4, ref('membership_plan_365_gv'))
+            ]"/>
+        </record>
+        
+        <!-- 90 GV can upgrade to higher Gold Cards -->
+        <record id="membership_plan_90_gv" model="popcorn.membership.plan">
+            <field name="can_upgrade_to_ids" eval="[
+                (4, ref('membership_plan_180_gr')),
+                (4, ref('membership_plan_180_gv')),
+                (4, ref('membership_plan_365_gr')),
+                (4, ref('membership_plan_365_gv'))
+            ]"/>
+        </record>
+        
+        <!-- 180 GR can upgrade to higher Gold Cards -->
+        <record id="membership_plan_180_gr" model="popcorn.membership.plan">
+            <field name="can_upgrade_to_ids" eval="[
+                (4, ref('membership_plan_180_gv')),
+                (4, ref('membership_plan_365_gr')),
+                (4, ref('membership_plan_365_gv'))
+            ]"/>
+        </record>
+        
+        <!-- 180 GV can upgrade to higher Gold Cards -->
+        <record id="membership_plan_180_gv" model="popcorn.membership.plan">
+            <field name="can_upgrade_to_ids" eval="[
+                (4, ref('membership_plan_365_gr')),
+                (4, ref('membership_plan_365_gv'))
+            ]"/>
+        </record>
+        
+        <!-- 365 GR can upgrade to 365 GV -->
+        <record id="membership_plan_365_gr" model="popcorn.membership.plan">
+            <field name="can_upgrade_to_ids" eval="[
+                (4, ref('membership_plan_365_gv'))
+            ]"/>
+        </record>
+        
+        <!-- Freedom Card can upgrade to specific Gold Cards (not 90 GR) -->
+        <record id="membership_plan_freedom" model="popcorn.membership.plan">
+            <field name="can_upgrade_to_ids" eval="[
+                (4, ref('membership_plan_90_gv')),
+                (4, ref('membership_plan_180_gr')),
+                (4, ref('membership_plan_180_gv')),
+                (4, ref('membership_plan_365_gr')),
+                (4, ref('membership_plan_365_gv'))
+            ]"/>
+        </record>
+        
+        <!-- Online MiniPass can upgrade to Gold Cards and Freedom Card -->
+        <record id="membership_plan_online_minipass" model="popcorn.membership.plan">
+            <field name="can_upgrade_to_ids" eval="[
+                (4, ref('membership_plan_90_gr')),
+                (4, ref('membership_plan_90_gv')),
+                (4, ref('membership_plan_180_gr')),
+                (4, ref('membership_plan_180_gv')),
+                (4, ref('membership_plan_365_gr')),
+                (4, ref('membership_plan_365_gv')),
+                (4, ref('membership_plan_freedom'))
+            ]"/>
+        </record>
+        
+        <!-- Online MegaPass can upgrade to Gold Cards and Freedom Card -->
+        <record id="membership_plan_online_megapass" model="popcorn.membership.plan">
+            <field name="can_upgrade_to_ids" eval="[
+                (4, ref('membership_plan_90_gr')),
+                (4, ref('membership_plan_90_gv')),
+                (4, ref('membership_plan_180_gr')),
+                (4, ref('membership_plan_180_gv')),
+                (4, ref('membership_plan_365_gr')),
+                (4, ref('membership_plan_365_gv')),
+                (4, ref('membership_plan_freedom'))
+            ]"/>
+        </record>
+    </data>
+</odoo>
+

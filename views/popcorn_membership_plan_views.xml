@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Membership Plan List View -->
+        <record id="view_popcorn_membership_plan_list" model="ir.ui.view">
+            <field name="name">popcorn.membership.plan.list</field>
+            <field name="model">popcorn.membership.plan</field>
+            <field name="arch" type="xml">
+                <list string="Membership Plans">
+                    <field name="sequence" widget="handle"/>
+                    <field name="name"/>
+                    <field name="quota_mode"/>
+                    <field name="duration_days"/>
+                    <field name="price_normal"/>
+                    <field name="price_first_timer"/>
+                    <field name="unit_base_count"/>
+                    <field name="active"/>
+                </list>
+            </field>
+        </record>
+        
+        <!-- Membership Plan Form View -->
+        <record id="view_popcorn_membership_plan_form" model="ir.ui.view">
+            <field name="name">popcorn.membership.plan.form</field>
+            <field name="model">popcorn.membership.plan</field>
+            <field name="arch" type="xml">
+                <form string="Membership Plan">
+                    <sheet>
+                        <div class="oe_title">
+                            <h1>
+                                <field name="name" placeholder="Plan Name"/>
+                            </h1>
+                        </div>
+                        
+                        <group>
+                            <group string="Cover Image">
+                                <field name="cover_image" widget="image" class="oe_avatar"/>
+                            </group>
+                        </group>
+                        
+                        <group>
+                            <group string="Basic Information">
+                                <field name="sequence"/>
+                                <field name="active"/>
+                                <field name="quota_mode"/>
+                                <field name="duration_days"/>
+                                <field name="activation_policy"/>
+                            </group>
+                            
+                            <group string="Club Access">
+                                <field name="allowed_regular_offline"/>
+                                <field name="allowed_regular_online"/>
+                                <field name="allowed_spclub"/>
+                            </group>
+                        </group>
+                        
+                        <group>
+                            <group string="Session Quotas" invisible="quota_mode != 'bucket_counts'">
+                                <field name="quota_offline"/>
+                                <field name="quota_online"/>
+                                <field name="quota_sp"/>
+                            </group>
+                            
+                            <group string="Points Configuration" invisible="quota_mode != 'points'">
+                                <field name="points_start"/>
+                                <field name="points_per_offline"/>
+                                <field name="points_per_online"/>
+                                <field name="points_per_sp"/>
+                            </group>
+                        </group>
+                        
+                        <group>
+                            <group string="Freeze Settings">
+                                <field name="freeze_allowed"/>
+                                <field name="freeze_min_days" invisible="not freeze_allowed"/>
+                                <field name="freeze_max_total_days" invisible="not freeze_allowed"/>
+                            </group>
+                            
+                            <group string="Pricing">
+                                <field name="price_normal"/>
+                                <field name="price_first_timer"/>
+                                <field name="currency_id"/>
+                            </group>
+                        </group>
+                        
+                        <group>
+                            <group string="Upgrade Windows">
+                                <field name="early_renew_window_days"/>
+                                <field name="upgrade_window_days"/>
+                                <field name="first_timer_default_upgrade_ability"/>
+                            </group>
+                            
+                            <group string="Upgrade Configuration">
+                                <field name="can_upgrade_to_ids" widget="many2many_tags"/>
+                                <field name="unit_base_count"/>
+                                <field name="unit_value_fixed"/>
+                            </group>
+                        </group>
+                        
+                        <group>
+                            <group string="Computed Fields">
+                                <field name="display_name" readonly="1"/>
+                                <field name="plan_summary" readonly="1"/>
+                            </group>
+                        </group>
+                    </sheet>
+                    
+                    <chatter/>
+                </form>
+            </field>
+        </record>
+        
+        <!-- Membership Plan Search View -->
+        <record id="view_popcorn_membership_plan_search" model="ir.ui.view">
+            <field name="name">popcorn.membership.plan.search</field>
+            <field name="model">popcorn.membership.plan</field>
+            <field name="arch" type="xml">
+                <search string="Search Membership Plans">
+                    <field name="name"/>
+                    <field name="quota_mode"/>
+                    <filter string="Active" name="active" domain="[('active', '=', True)]"/>
+                    <filter string="Inactive" name="inactive" domain="[('active', '=', False)]"/>
+                    <group expand="0" string="Group By">
+                        <filter string="Quota Mode" name="quota_mode" context="{'group_by': 'quota_mode'}"/>
+                        <filter string="Duration" name="duration" context="{'group_by': 'duration_days'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+        
+        <!-- Membership Plan Action -->
+        <record id="action_popcorn_membership_plan" model="ir.actions.act_window">
+            <field name="name">Membership Plans</field>
+            <field name="res_model">popcorn.membership.plan</field>
+            <field name="view_mode">list,form</field>
+            <field name="context">{'search_default_active': 1}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Create your first membership plan!
+                </p>
+                <p>
+                    Define different membership tiers with various access levels, quotas, and pricing.
+                </p>
+            </field>
+        </record>
+        
+        <!-- Membership Plan Menu -->
+        <menuitem id="menu_popcorn_membership_plan"
+                  name="Membership Plans"
+                  parent="menu_popcorn_root"
+                  action="action_popcorn_membership_plan"
+                  sequence="20"/>
+    </data>
+</odoo>
+

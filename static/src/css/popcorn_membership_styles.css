@@ -1,0 +1,1429 @@
+/* Popcorn Membership Styles */
+/* Following the same design principles as popcorn_event_styles.css */
+
+/* Error Banner Styles */
+.popcorn-error-banner {
+    background: linear-gradient(135deg, var(--popcorn-danger), #c82333);
+    color: var(--popcorn-white);
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+    border-left: 4px solid var(--popcorn-danger);
+    animation: slideInDown 0.5s ease-out;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.popcorn-error-banner.hidden {
+    opacity: 0;
+    transform: translateY(-100%);
+    pointer-events: none;
+}
+
+.popcorn-error-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.popcorn-error-icon {
+    font-size: 20px;
+    color: var(--popcorn-white);
+    flex-shrink: 0;
+}
+
+.popcorn-error-text {
+    flex: 1;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.popcorn-error-close {
+    background: none;
+    border: none;
+    color: var(--popcorn-white);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.popcorn-error-close:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+@keyframes slideInDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Popup Styles */
+.popcorn-popup {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    background: var(--popcorn-white);
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    border-left: 4px solid var(--popcorn-info);
+    animation: slideInRight 0.3s ease-out;
+    max-width: 400px;
+}
+
+.popcorn-popup-warning {
+    border-left-color: var(--popcorn-warning);
+}
+
+.popcorn-popup-error {
+    border-left-color: var(--popcorn-danger);
+}
+
+.popcorn-popup-success {
+    border-left-color: var(--popcorn-success);
+}
+
+.popcorn-popup-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    gap: 15px;
+}
+
+.popcorn-popup-message {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--popcorn-dark);
+}
+
+.popcorn-popup-close {
+    background: none;
+    border: none;
+    color: var(--popcorn-gray);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.popcorn-popup-close:hover {
+    background-color: var(--popcorn-border-light);
+    color: var(--popcorn-dark);
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Additional utility classes for JavaScript interactions */
+.popcorn-popup.hidden {
+    opacity: 0;
+    transform: translateX(100%);
+    pointer-events: none;
+}
+
+/* Theme Colors - Using your brand colors */
+:root {
+    --popcorn-primary: #e60000; /* Your brand red */
+    --popcorn-primary-dark: #cc0000; /* Darker red for hover */
+    --popcorn-secondary: #6c757d;
+    --popcorn-secondary-dark: #545b62;
+    --popcorn-success: #28a745;
+    --popcorn-info: #17a2b8;
+    --popcorn-warning: #ffc107;
+    --popcorn-danger: #dc3545;
+    --popcorn-light: #f8f9fa;
+    --popcorn-dark: #101010; /* Your brand black */
+    --popcorn-gray: #6c757d;
+    --popcorn-gray-dark: #495057;
+    --popcorn-white: #ffffff;
+    --popcorn-black: #000000;
+    --popcorn-border: #dee2e6;
+    --popcorn-border-light: #e9ecef;
+}
+
+/* Bootstrap-like Grid System */
+.popcorn-container {
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+@media (min-width: 576px) {
+    .popcorn-container {
+        max-width: 540px;
+    }
+}
+
+@media (min-width: 768px) {
+    .popcorn-container {
+        max-width: 720px;
+    }
+}
+
+@media (min-width: 992px) {
+    .popcorn-container {
+        max-width: 960px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .popcorn-container {
+        max-width: 1140px;
+    }
+}
+
+.popcorn-row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: -15px;
+    margin-left: -15px;
+    margin-bottom: 1rem;
+}
+
+.popcorn-col-12 {
+    flex: 0 0 100%;
+    max-width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.popcorn-col-md-4 {
+    flex: 0 0 33.333333%;
+    max-width: 33.333333%;
+    padding-right: 15px;
+    padding-left: 15px;
+    margin-bottom: 20px;
+}
+
+.popcorn-col-md-6 {
+    flex: 0 0 50%;
+    max-width: 50%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.popcorn-col-md-8 {
+    flex: 0 0 66.666667%;
+    max-width: 66.666667%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.popcorn-justify-content-center {
+    justify-content: center;
+}
+
+.popcorn-d-grid {
+    display: grid;
+}
+
+/* Form Elements */
+.popcorn-form-label {
+    display: inline-block;
+    margin-bottom: 0.5rem;
+    color: var(--popcorn-gray-dark);
+    font-weight: 500;
+}
+
+.popcorn-form-control {
+    display: block;
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--popcorn-gray-dark);
+    background-color: var(--popcorn-white);
+    background-clip: padding-box;
+    border: 1px solid var(--popcorn-border);
+    border-radius: 0.25rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.popcorn-form-control:focus {
+    color: var(--popcorn-gray-dark);
+    background-color: var(--popcorn-white);
+    border-color: var(--popcorn-primary);
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(230, 0, 0, 0.25);
+}
+
+textarea.popcorn-form-control {
+    min-height: 100px;
+    resize: vertical;
+}
+
+/* Button Styles */
+.popcorn-btn {
+    display: inline-block;
+    font-weight: 400;
+    text-align: center;
+    vertical-align: middle;
+    user-select: none;
+    border: 1px solid transparent;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    border-radius: 0.25rem;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.popcorn-btn-primary {
+    color: var(--popcorn-white);
+    background-color: var(--popcorn-primary);
+    border-color: var(--popcorn-primary);
+}
+
+.popcorn-btn-primary:hover {
+    color: var(--popcorn-white);
+    background-color: var(--popcorn-primary-dark);
+    border-color: var(--popcorn-primary-dark);
+}
+
+.popcorn-btn-lg {
+    padding: 0.5rem 1rem;
+    font-size: 1.25rem;
+    border-radius: 0.3rem;
+}
+
+/* Typography */
+.popcorn-h3 {
+    font-size: 1.75rem;
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--popcorn-dark);
+}
+
+.popcorn-h4 {
+    font-size: 1.5rem;
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--popcorn-dark);
+}
+
+.popcorn-h5 {
+    font-size: 1.25rem;
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--popcorn-dark);
+}
+
+/* Utility Classes */
+.popcorn-text-muted {
+    color: var(--popcorn-gray) !important;
+}
+
+.popcorn-mb-0 {
+    margin-bottom: 0 !important;
+}
+
+.popcorn-mb-3 {
+    margin-bottom: 1rem !important;
+}
+
+.popcorn-mb-4 {
+    margin-bottom: 1.5rem !important;
+}
+
+/* Membership Plans List Page */
+.popcorn-membership-plans-page {
+    background: var(--popcorn-light);
+    min-height: 100vh;
+    padding: 1.5rem 0;
+}
+
+.popcorn-page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--popcorn-dark);
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+/* Membership Plan Cards with Cover Images */
+.popcorn-membership-plan-card {
+    background: var(--popcorn-white);
+    border: 1px solid var(--popcorn-border);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    margin-top: 1.25rem;
+    margin-bottom: 2.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.popcorn-membership-plan-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    border-color: var(--popcorn-primary);
+}
+
+/* Cover Image Section */
+.popcorn-plan-cover {
+    position: relative;
+    height: 200px;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--popcorn-light) 0%, var(--popcorn-border-light) 100%);
+}
+
+.popcorn-plan-cover-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.popcorn-plan-cover-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--popcorn-light) 0%, var(--popcorn-border-light) 100%);
+    color: var(--popcorn-gray);
+    font-size: 3rem;
+}
+
+/* Price Badge */
+.popcorn-price-badge {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: var(--popcorn-white);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    text-align: center;
+    min-width: 80px;
+}
+
+.popcorn-original-price {
+    font-size: 0.875rem;
+    color: var(--popcorn-gray);
+    text-decoration: line-through;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.popcorn-discount-price {
+    font-size: 1.25rem;
+    color: var(--popcorn-primary);
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.popcorn-discount-label {
+    font-size: 0.75rem;
+    color: var(--popcorn-primary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.popcorn-normal-price {
+    font-size: 1.25rem;
+    color: var(--popcorn-dark);
+    font-weight: 700;
+}
+
+/* Plan Content */
+.popcorn-plan-content {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.popcorn-plan-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--popcorn-primary);
+    margin-bottom: 1rem;
+    line-height: 1.3;
+}
+
+/* Plan Features with Icons */
+.popcorn-plan-features {
+    margin-bottom: 1.5rem;
+    flex-grow: 1;
+}
+
+.popcorn-feature-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--popcorn-border-light);
+}
+
+.popcorn-feature-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.popcorn-feature-icon {
+    color: var(--popcorn-primary);
+    margin-right: 0.75rem;
+    font-size: 1rem;
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.popcorn-feature-text {
+    color: var(--popcorn-gray-dark);
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.popcorn-plan-action {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    width: 100%;
+    background: var(--popcorn-primary);
+    color: var(--popcorn-white);
+    box-shadow: 0 2px 8px rgba(230, 0, 0, 0.3);
+    text-align: center;
+}
+
+.popcorn-plan-action:hover {
+    background: var(--popcorn-primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(230, 0, 0, 0.4);
+    color: var(--popcorn-white);
+    text-decoration: none;
+}
+
+/* Membership Plan Detail Page */
+.popcorn-membership-detail-page {
+    background: var(--popcorn-light);
+    min-height: 100vh;
+    padding: 1.5rem 0;
+}
+
+.popcorn-membership-detail-header {
+    margin-bottom: 1.5rem;
+}
+
+.popcorn-membership-detail-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--popcorn-dark);
+    margin-bottom: 0.5rem;
+}
+
+/* Detail Cards */
+.popcorn-membership-detail-card {
+    border: 1px solid var(--popcorn-border);
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 1.5rem;
+    background: var(--popcorn-white);
+}
+
+.popcorn-membership-detail-card .card-header {
+    background: var(--popcorn-primary);
+    color: var(--popcorn-white);
+    border-radius: 0.75rem 0.75rem 0 0;
+    border: none;
+    padding: 1rem;
+}
+
+.popcorn-membership-detail-card .card-header h5 {
+    margin: 0;
+    font-weight: 600;
+    font-size: 1.125rem;
+}
+
+.popcorn-membership-detail-card .card-body {
+    padding: 1rem;
+}
+
+/* Benefits List */
+.popcorn-benefits-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.popcorn-benefits-list li {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--popcorn-border-light);
+}
+
+.popcorn-benefits-list li:last-child {
+    border-bottom: none;
+}
+
+.popcorn-benefits-list .popcorn-benefit-icon {
+    color: var(--popcorn-success);
+    margin-right: 0.75rem;
+    font-size: 1rem;
+    width: 16px;
+    text-align: center;
+}
+
+.popcorn-benefits-list .popcorn-benefit-title {
+    font-weight: 600;
+    color: var(--popcorn-dark);
+    margin-right: 0.5rem;
+}
+
+.popcorn-benefits-list .popcorn-benefit-description {
+    color: var(--popcorn-gray);
+}
+
+/* Sticky Pricing Card */
+.popcorn-sticky-pricing-card {
+    position: sticky;
+    top: 2rem;
+    border: 1px solid var(--popcorn-border);
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    background: var(--popcorn-white);
+}
+
+.popcorn-sticky-pricing-card .card-body {
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.popcorn-sticky-pricing-card .card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--popcorn-dark);
+    margin-bottom: 1rem;
+}
+
+/* First Timer Price */
+.popcorn-first-timer-price {
+    padding: 0.75rem;
+    background: linear-gradient(135deg, #ffe6e6 0%, #ffcccc 100%);
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    border: 2px solid var(--popcorn-primary);
+}
+
+.popcorn-first-timer-price small {
+    font-size: 0.8rem;
+    color: var(--popcorn-primary);
+    font-weight: 500;
+}
+
+.popcorn-first-timer-price .popcorn-h4 {
+    color: var(--popcorn-primary);
+    font-weight: 700;
+    margin: 0.25rem 0 0 0;
+}
+
+/* Purchase Form */
+.popcorn-purchase-form {
+    margin-top: 1.5rem;
+}
+
+.popcorn-purchase-form .popcorn-form-label {
+    font-weight: 600;
+    color: var(--popcorn-gray-dark);
+    margin-bottom: 0.5rem;
+}
+
+.popcorn-purchase-form .popcorn-form-control {
+    border: 2px solid var(--popcorn-border-light);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.popcorn-purchase-form .popcorn-form-control:focus {
+    border-color: var(--popcorn-primary);
+    box-shadow: 0 0 0 0.2rem rgba(230, 0, 0, 0.25);
+    outline: none;
+}
+
+.popcorn-purchase-form .popcorn-btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.popcorn-purchase-form .popcorn-btn-primary {
+    background: var(--popcorn-primary);
+    color: var(--popcorn-white);
+    box-shadow: 0 2px 8px rgba(230, 0, 0, 0.3);
+}
+
+.popcorn-purchase-form .popcorn-btn-primary:hover {
+    background: var(--popcorn-primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(230, 0, 0, 0.4);
+}
+
+/* Plan Summary in Purchase */
+.popcorn-plan-summary-purchase {
+    background: var(--popcorn-light);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+    border: 2px solid var(--popcorn-border);
+}
+
+.popcorn-plan-summary-purchase h5 {
+    color: var(--popcorn-dark);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.popcorn-plan-summary-purchase p {
+    color: var(--popcorn-gray);
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.popcorn-price-display {
+    text-align: center;
+}
+
+.popcorn-price-display .popcorn-h3 {
+    color: var(--popcorn-success);
+    font-weight: 800;
+    margin-bottom: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .popcorn-page-title {
+        font-size: 1.75rem;
+    }
+    
+    .popcorn-plan-title {
+        font-size: 1.125rem;
+    }
+    
+    .popcorn-membership-detail-header h1 {
+        font-size: 1.75rem;
+    }
+    
+    .popcorn-sticky-pricing-card {
+        position: static;
+        margin-top: 1.5rem;
+    }
+    
+    .popcorn-plan-content {
+        padding: 1rem;
+    }
+    
+    .popcorn-plan-action {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .popcorn-plan-cover {
+        height: 150px;
+    }
+    
+    .popcorn-feature-item {
+        margin-bottom: 0.5rem;
+        padding: 0.375rem 0;
+    }
+    
+    .popcorn-feature-icon {
+        font-size: 0.875rem;
+        margin-right: 0.5rem;
+    }
+    
+    .popcorn-feature-text {
+        font-size: 0.8rem;
+    }
+    
+    .popcorn-price-badge {
+        padding: 0.5rem;
+        min-width: 70px;
+    }
+    
+    .popcorn-discount-price,
+    .popcorn-normal-price {
+        font-size: 1rem;
+    }
+    
+    .popcorn-original-price {
+        font-size: 0.75rem;
+    }
+    
+    .popcorn-discount-label {
+        font-size: 0.625rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .popcorn-membership-plans-page,
+    .popcorn-membership-detail-page {
+        padding: 1rem 0;
+    }
+    
+    .popcorn-page-title {
+        font-size: 1.5rem;
+    }
+    
+    .popcorn-purchase-form .popcorn-btn {
+        width: 100%;
+    }
+    
+    .popcorn-col-md-4 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    
+    .popcorn-membership-plan-card {
+        margin-top: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .popcorn-plan-cover {
+        height: 120px;
+    }
+    
+    .popcorn-price-badge {
+        top: 0.5rem;
+        right: 0.5rem;
+        padding: 0.375rem;
+        min-width: 60px;
+    }
+    
+    .popcorn-discount-price,
+    .popcorn-normal-price {
+        font-size: 0.875rem;
+    }
+    
+    .popcorn-original-price {
+        font-size: 0.625rem;
+    }
+    
+    .popcorn-discount-label {
+        font-size: 0.5rem;
+    }
+    
+    .popcorn-feature-item {
+        padding: 0.25rem 0;
+    }
+    
+    .popcorn-feature-icon {
+        font-size: 0.75rem;
+        margin-right: 0.375rem;
+    }
+    
+    .popcorn-feature-text {
+        font-size: 0.75rem;
+    }
+    
+    .popcorn-membership-plan-card {
+        margin-top: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+}
+
+/* Loading States */
+.popcorn-membership-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+}
+
+.popcorn-membership-loading .spinner-border {
+    width: 3rem;
+    height: 3rem;
+    color: var(--popcorn-primary);
+}
+
+/* Empty States */
+.popcorn-membership-empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--popcorn-gray);
+}
+
+.popcorn-membership-empty-state .popcorn-empty-icon {
+    font-size: 3rem;
+    color: var(--popcorn-border);
+    margin-bottom: 1rem;
+}
+
+.popcorn-membership-empty-state h3 {
+    color: var(--popcorn-gray-dark);
+    margin-bottom: 1rem;
+}
+
+.popcorn-membership-empty-state p {
+    margin-bottom: 1.5rem;
+}
+
+/* Status Indicators */
+.popcorn-membership-status {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.popcorn-membership-status.active {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.popcorn-membership-status.pending {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.popcorn-membership-status.expired {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.popcorn-membership-status.frozen {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.popcorn-features-list li::before {
+    content: "✓";
+    color: var(--popcorn-success);
+    font-weight: bold;
+    margin-right: 0.5rem;
+    font-size: 1rem;
+}
+
+/* Checkbox Styles */
+.popcorn-checkbox-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.popcorn-checkbox {
+    margin: 0;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--popcorn-primary);
+    cursor: pointer;
+}
+
+.popcorn-checkbox-label {
+    font-size: 0.9rem;
+    color: var(--popcorn-gray-dark);
+    line-height: 1.4;
+    cursor: pointer;
+    margin: 0;
+}
+
+.popcorn-checkbox-label a {
+    color: var(--popcorn-primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.popcorn-checkbox-label a:hover {
+    text-decoration: underline;
+}
+
+/* Payment Methods */
+.popcorn-payment-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.popcorn-payment-method-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border: 2px solid var(--popcorn-border-light);
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.popcorn-payment-method-item:hover {
+    border-color: var(--popcorn-primary);
+    background: var(--popcorn-light);
+}
+
+.popcorn-payment-method-item input[type="radio"]:checked + label {
+    color: var(--popcorn-primary);
+    font-weight: 600;
+}
+
+.popcorn-payment-method-item input[type="radio"]:checked ~ .popcorn-payment-method-item {
+    border-color: var(--popcorn-primary);
+    background: var(--popcorn-light);
+}
+
+.popcorn-radio {
+    margin: 0;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--popcorn-primary);
+    cursor: pointer;
+    margin-right: 0.75rem;
+}
+
+.popcorn-radio-label {
+    font-size: 1rem;
+    color: var(--popcorn-gray-dark);
+    cursor: pointer;
+    margin: 0;
+    flex-grow: 1;
+}
+
+.popcorn-payment-method-name {
+    font-weight: 500;
+}
+
+/* Responsive Checkout Design */
+
+/* Checkout Page Styles */
+.popcorn-membership-checkout-page {
+    background: var(--popcorn-light);
+    min-height: 100vh;
+    padding: 1.5rem 0;
+}
+
+.popcorn-checkout-form {
+    background: var(--popcorn-white);
+    border: 1px solid var(--popcorn-border);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.popcorn-checkout-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--popcorn-dark);
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.popcorn-checkout-form-content {
+    margin-top: 1rem;
+}
+
+/* Form Sections */
+.popcorn-form-section {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--popcorn-border-light);
+}
+
+.popcorn-form-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.popcorn-section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--popcorn-dark);
+    margin-bottom: 1rem;
+}
+
+.popcorn-form-group {
+    margin-bottom: 1rem;
+}
+
+.popcorn-form-group:last-child {
+    margin-bottom: 0;
+}
+
+.popcorn-form-input {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--popcorn-gray-dark);
+    background-color: var(--popcorn-white);
+    background-clip: padding-box;
+    border: 2px solid var(--popcorn-border-light);
+    border-radius: 0.5rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.popcorn-form-input:focus {
+    color: var(--popcorn-gray-dark);
+    background-color: var(--popcorn-white);
+    border-color: var(--popcorn-primary);
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(230, 0, 0, 0.25);
+}
+
+/* Submit Button */
+.popcorn-checkout-submit-btn {
+    width: 100%;
+    padding: 1rem 2rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    background: var(--popcorn-primary);
+    color: var(--popcorn-white);
+    box-shadow: 0 2px 8px rgba(230, 0, 0, 0.3);
+}
+
+.popcorn-checkout-submit-btn:hover {
+    background: var(--popcorn-primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(230, 0, 0, 0.4);
+}
+
+.popcorn-checkout-submit-btn i {
+    margin-right: 0.5rem;
+}
+
+/* Order Summary */
+.popcorn-order-summary {
+    background: var(--popcorn-white);
+    border: 1px solid var(--popcorn-border);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    position: sticky;
+    top: 2rem;
+}
+
+.popcorn-summary-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--popcorn-dark);
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.popcorn-summary-item {
+    margin-bottom: 1.5rem;
+}
+
+.popcorn-summary-plan {
+    text-align: center;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--popcorn-border-light);
+}
+
+.popcorn-plan-name {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--popcorn-primary);
+    margin-bottom: 0.5rem;
+}
+
+.popcorn-plan-duration {
+    color: var(--popcorn-gray);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* Pricing Summary */
+.popcorn-summary-pricing {
+    margin-bottom: 1.5rem;
+}
+
+.popcorn-price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--popcorn-border-light);
+}
+
+.popcorn-price-row:last-child {
+    border-bottom: none;
+}
+
+.popcorn-price-label {
+    font-weight: 500;
+    color: var(--popcorn-gray-dark);
+}
+
+.popcorn-price-value {
+    font-weight: 600;
+    color: var(--popcorn-dark);
+}
+
+.popcorn-discount-row {
+    background: var(--popcorn-light);
+    border-radius: 0.25rem;
+    padding: 0.5rem;
+    margin: 0.5rem 0;
+}
+
+.popcorn-discount {
+    color: var(--popcorn-success);
+}
+
+.popcorn-total-row {
+    border-top: 2px solid var(--popcorn-primary);
+    padding-top: 1rem;
+    margin-top: 1rem;
+    font-size: 1.125rem;
+}
+
+.popcorn-total {
+    color: var(--popcorn-primary);
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+/* Features Summary */
+.popcorn-summary-features {
+    border-top: 1px solid var(--popcorn-border-light);
+    padding-top: 1.5rem;
+}
+
+.popcorn-features-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--popcorn-dark);
+    margin-bottom: 1rem;
+}
+
+.popcorn-features-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.popcorn-features-list li {
+    padding: 0.25rem 0;
+    color: var(--popcorn-gray-dark);
+    font-size: 0.9rem;
+}
+
+/* Success Page Styles */
+.popcorn-membership-success-page {
+    background: var(--popcorn-light);
+    min-height: 100vh;
+    padding: 2rem 0;
+}
+
+.popcorn-success-content {
+    background: var(--popcorn-white);
+    border: 1px solid var(--popcorn-border);
+    border-radius: 0.75rem;
+    padding: 3rem 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.popcorn-success-icon {
+    font-size: 4rem;
+    color: var(--popcorn-success);
+    margin-bottom: 1.5rem;
+}
+
+.popcorn-success-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--popcorn-dark);
+    margin-bottom: 1rem;
+}
+
+.popcorn-success-message {
+    margin-bottom: 2rem;
+}
+
+.popcorn-success-message p {
+    font-size: 1.125rem;
+    color: var(--popcorn-gray-dark);
+    line-height: 1.6;
+}
+
+/* Membership Details */
+.popcorn-membership-details {
+    background: var(--popcorn-light);
+    border: 1px solid var(--popcorn-border-light);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    text-align: left;
+}
+
+.popcorn-membership-details h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--popcorn-dark);
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.popcorn-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--popcorn-border-light);
+}
+
+.popcorn-detail-row:last-child {
+    border-bottom: none;
+}
+
+.popcorn-detail-label {
+    font-weight: 600;
+    color: var(--popcorn-gray-dark);
+}
+
+.popcorn-detail-value {
+    color: var(--popcorn-dark);
+    font-weight: 500;
+}
+
+/* Status Badge */
+.popcorn-status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.popcorn-status-active {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.popcorn-status-pending {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.popcorn-status-expired {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.popcorn-status-frozen {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+/* Success Actions */
+.popcorn-success-actions {
+    margin: 2rem 0;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.popcorn-btn-secondary {
+    color: var(--popcorn-gray-dark);
+    background-color: var(--popcorn-white);
+    border-color: var(--popcorn-border);
+}
+
+.popcorn-btn-secondary:hover {
+    color: var(--popcorn-gray-dark);
+    background-color: var(--popcorn-light);
+    border-color: var(--popcorn-gray);
+}
+
+/* Success Note */
+.popcorn-success-note {
+    background: linear-gradient(135deg, #e6f3ff 0%, #f0f8ff 100%);
+    border: 1px solid #b3d9ff;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-top: 2rem;
+    text-align: left;
+}
+
+.popcorn-success-note p {
+    font-weight: 600;
+    color: var(--popcorn-dark);
+    margin-bottom: 1rem;
+}
+
+.popcorn-success-note ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.popcorn-success-note li {
+    padding: 0.5rem 0;
+    color: var(--popcorn-gray-dark);
+    position: relative;
+    padding-left: 1.5rem;
+}
+
+.popcorn-success-note li::before {
+    content: "✓";
+    color: var(--popcorn-success);
+    font-weight: bold;
+    position: absolute;
+    left: 0;
+    font-size: 1rem;
+}
+
+/* Responsive Design */
