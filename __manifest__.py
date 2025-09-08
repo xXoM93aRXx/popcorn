@@ -28,6 +28,7 @@
         'views/popcorn_partner_views.xml',
         'views/popcorn_registration_button_override.xml',
         'views/popcorn_website_event_templates.xml',
+        'views/popcorn_event_description_templates.xml',
         'views/popcorn_membership_website_templates.xml',
         'views/popcorn_event_registration_templates.xml',
         'views/popcorn_portal_templates.xml',

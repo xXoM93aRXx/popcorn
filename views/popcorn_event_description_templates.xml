@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Inherit the event description template to add host bio -->
+        <template id="popcorn_event_description_full" inherit_id="website_event.event_description_full" name="Popcorn Event Description Full">
+            <xpath expr="//div[@class='o_wevent_event_main_dates_mobile d-lg-none mt-3']" position="after">
+                <!-- Host Bio -->
+                <div t-if="event.host_id and event.host_id.host_bio" class="mt-3 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">About the Host</h5>
+                            <div class="d-flex align-items-start">
+                                <img t-if="event.host_image" t-att-src="'/web/image/event.event/' + str(event.id) + '/host_image'" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;" t-att-alt="event.host_name"/>
+                                <div t-else="" class="rounded-circle me-3 d-flex align-items-center justify-content-center bg-light" style="width: 60px; height: 60px;">
+                                    <i class="fa fa-user text-muted fa-2x"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1" t-out="event.host_name"/>
+                                    <small class="text-muted mb-2 d-block" t-out="event.host_function"/>
+                                    <div class="mb-0" t-field="event.host_id.host_bio" t-options="{'widget': 'text'}"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+        </template>
+    </data>
+</odoo>

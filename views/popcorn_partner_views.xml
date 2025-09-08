@@ -10,6 +10,9 @@
                 <field name="is_host" widget="boolean_toggle"/>
                 <field name="is_first_timer" widget="boolean_toggle"/>
             </xpath>
+            <xpath expr="//field[@name='is_first_timer']" position="after">
+                <field name="host_bio" placeholder="Enter host biography or description" invisible="not is_host"/>
+            </xpath>
         </field>
     </record>
 

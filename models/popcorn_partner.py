@@ -13,6 +13,11 @@ class ResPartner(models.Model):
         help='Indicates if this contact is a host for events'
     )
     
+    host_bio = fields.Text(
+        string='Host Bio',
+        help='Biography or description of the host for events'
+    )
+    
     # Computed field to show events hosted by this partner
     hosted_events_count = fields.Integer(
         string='Hosted Events Count',
