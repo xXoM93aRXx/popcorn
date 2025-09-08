@@ -1,6 +1,6 @@
 {
     'name': 'Popcorn Club',
-    'version': '18.0.1.0.0',
+    'version': '18.0.1.0.2',
     'category': 'Customizations',
     'summary': 'A generic Odoo 18 module for Popcorn Club',
     'description': """
@@ -11,6 +11,8 @@
         - Security configurations
         - Data files
         - Event host field customization
+        - Contact host boolean field with automatic setting
+        - First timer logic migrated to contact model
     """,
     'author': 'Your Company',
     'website': 'https://www.yourcompany.com',
@@ -23,6 +25,7 @@
         'views/popcorn_event_views.xml',
         'views/popcorn_membership_views.xml',
         'views/popcorn_membership_plan_views.xml',
+        'views/popcorn_partner_views.xml',
         'views/popcorn_registration_button_override.xml',
         'views/popcorn_website_event_templates.xml',
         'views/popcorn_membership_website_templates.xml',

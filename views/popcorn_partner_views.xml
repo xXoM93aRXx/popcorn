@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Partner Form View -->
+    <record id="popcorn_partner_view_form" model="ir.ui.view">
+        <field name="name">popcorn.partner.form</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='category_id']" position="after">
+                <field name="is_host" widget="boolean_toggle"/>
+                <field name="is_first_timer" widget="boolean_toggle"/>
+            </xpath>
+        </field>
+    </record>
+
+
+
+    <!-- Partner Search View -->
+    <record id="popcorn_partner_view_search" model="ir.ui.view">
+        <field name="name">popcorn.partner.search</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_res_partner_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='email']" position="after">
+                <field name="is_host"/>
+                <field name="is_first_timer"/>
+            </xpath>
+            <xpath expr="//filter[@name='supplier']" position="after">
+                <filter string="Hosts" name="hosts" domain="[('is_host', '=', True)]"/>
+            </xpath>
+            <xpath expr="//filter[@name='hosts']" position="after">
+                <filter string="Host Status" name="groupby_host" context="{'group_by': 'is_host'}"/>
+                <filter string="First Timers" name="first_timers" domain="[('is_first_timer', '=', True)]"/>
+            </xpath>
+        </field>
+    </record>
+
+
+</odoo>

@@ -168,15 +168,17 @@
                                             <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'dd'}" class="popcorn-event-day oe_hide_on_date_edit"/>
                                         </div>
                                         
-                                        <!-- Host Overlay -->
-                                        <div t-if="event.host_name" class="popcorn-event-host-overlay">
-                                            <div class="d-flex align-items-center">
-                                                <img t-if="event.host_image" t-att-src="'/web/image/event.event/' + str(event.id) + '/host_image'" class="popcorn-event-host-avatar" t-att-alt="event.host_name"/>
-                                                <i t-else="" class="fa fa-user popcorn-event-host-fallback"/>
-                                                <div>
-                                                    <div class="popcorn-event-host-name" t-out="event.host_name"/>
-                                                    <div class="popcorn-event-host-label" t-out="event.host_function"/>
+                                        <!-- Host Section - Left Third -->
+                                        <div t-if="event.host_name" class="popcorn-event-host-section">
+                                            <div class="popcorn-event-host-image-container">
+                                                <img t-if="event.host_image" t-att-src="'/web/image/event.event/' + str(event.id) + '/host_image'" class="popcorn-event-host-image" t-att-alt="event.host_name"/>
+                                                <div t-else="" class="popcorn-event-host-placeholder">
+                                                    <i class="fa fa-user popcorn-event-host-fallback-icon"/>
                                                 </div>
+                                            </div>
+                                            <div class="popcorn-event-host-info">
+                                                <div class="popcorn-event-host-name" t-out="event.host_name"/>
+                                                <div class="popcorn-event-host-label" t-out="event.host_function"/>
                                             </div>
                                         </div>
                                         

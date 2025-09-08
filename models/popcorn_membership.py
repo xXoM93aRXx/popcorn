@@ -92,20 +92,11 @@ class PopcornMembership(models.Model):
             else:
                 membership.effective_end_date = False
     
-    @api.depends('partner_id')
+    @api.depends('partner_id.is_first_timer')
     def _compute_first_timer_customer(self):
         for membership in self:
-            # Check if customer has any prior attended registrations
-            try:
-                prior_registrations = self.env['event.registration'].sudo().search([
-                    ('partner_id', '=', membership.partner_id.id),
-                    ('state', '=', 'done'),  # Attended
-                    ('create_date', '<', membership.create_date)
-                ], limit=1)
-                membership.first_timer_customer = not bool(prior_registrations)
-            except Exception:
-                # If access denied, assume first timer
-                membership.first_timer_customer = True
+            # Use the contact's first timer status
+            membership.first_timer_customer = membership.partner_id.is_first_timer if membership.partner_id else False
     
     @api.depends('adj_offline', 'adj_online', 'adj_sp', 'adj_points', 'membership_plan_id.quota_mode', 'membership_plan_id.quota_offline', 'membership_plan_id.quota_online', 'membership_plan_id.quota_sp', 'membership_plan_id.points_start')
     def _compute_remaining_usage(self):
@@ -229,31 +220,18 @@ class PopcornMembership(models.Model):
         # First-timers get upgrade discount ability by default
         vals['upgrade_discount_allowed'] = is_first_timer
         
-        return super().create(vals)
+        membership = super().create(vals)
+        
+        # Update partner's first timer status after creating membership
+        if partner_id:
+            self.env['res.partner']._update_first_timer_status(partner_id)
+        
+        return membership
     
     @api.model
     def _is_first_timer_customer(self, partner_id):
-        """Check if customer is a first-timer (never joined a club before AND never had a membership)"""
-        if not partner_id:
-            return False
-            
-        try:
-            # Check if customer has any prior attended registrations
-            prior_registrations = self.env['event.registration'].sudo().search([
-                ('partner_id', '=', partner_id),
-                ('state', '=', 'done'),  # Attended
-            ], limit=1)
-            
-            # Check if customer has any prior memberships (including expired)
-            prior_memberships = self.env['popcorn.membership'].sudo().search([
-                ('partner_id', '=', partner_id),
-            ], limit=1)
-            
-            # If no prior registrations AND no prior memberships, they are a first-timer
-            return not bool(prior_registrations) and not bool(prior_memberships)
-        except Exception:
-            # If access denied or error, assume not first-timer for safety
-            return False
+        """Check if customer is a first-timer (delegates to partner model)"""
+        return self.env['res.partner']._is_first_timer_customer(partner_id)
     
     def action_activate(self):
         """Activate a pending membership"""

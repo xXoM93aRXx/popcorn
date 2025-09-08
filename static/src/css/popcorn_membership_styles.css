@@ -738,6 +738,117 @@ textarea.popcorn-form-control {
     margin-bottom: 0;
 }
 
+/* Host Section Styles - Left Third Layout */
+.popcorn-event-host-section {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 33.333333%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    z-index: 2;
+}
+
+.popcorn-event-host-image-container {
+    height: 66.66%;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    overflow: hidden;
+}
+
+.popcorn-event-host-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+.popcorn-event-host-placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, var(--popcorn-light) 0%, var(--popcorn-border-light) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popcorn-event-host-fallback-icon {
+    font-size: 3rem;
+    color: var(--popcorn-gray);
+}
+
+.popcorn-event-host-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 0.75rem;
+    color: white;
+}
+
+.popcorn-event-host-name {
+    font-weight: 700;
+    font-size: 0.875rem;
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.popcorn-event-host-label {
+    font-size: 0.75rem;
+    opacity: 0.9;
+    line-height: 1.2;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Responsive adjustments for host section */
+@media (max-width: 768px) {
+    .popcorn-event-host-section {
+        width: 40%;
+    }
+    
+    .popcorn-event-host-fallback-icon {
+        font-size: 2rem;
+    }
+    
+    .popcorn-event-host-info {
+        padding: 0.75rem 0.5rem 0.5rem;
+    }
+    
+    .popcorn-event-host-name {
+        font-size: 0.8rem;
+    }
+    
+    .popcorn-event-host-label {
+        font-size: 0.7rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .popcorn-event-host-section {
+        width: 45%;
+    }
+    
+    .popcorn-event-host-fallback-icon {
+        font-size: 1.5rem;
+    }
+    
+    .popcorn-event-host-info {
+        padding: 0.5rem;
+    }
+    
+    .popcorn-event-host-name {
+        font-size: 0.75rem;
+    }
+    
+    .popcorn-event-host-label {
+        font-size: 0.65rem;
+    }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .popcorn-page-title {
@@ -1522,6 +1633,117 @@ textarea.popcorn-form-control {
     position: absolute;
     left: 0;
     font-size: 1rem;
+}
+
+/* Host Section Styles - Left Third Layout */
+.popcorn-event-host-section {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 33.333333%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    z-index: 2;
+}
+
+.popcorn-event-host-image-container {
+    height: 66.66%;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    overflow: hidden;
+}
+
+.popcorn-event-host-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+.popcorn-event-host-placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, var(--popcorn-light) 0%, var(--popcorn-border-light) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popcorn-event-host-fallback-icon {
+    font-size: 3rem;
+    color: var(--popcorn-gray);
+}
+
+.popcorn-event-host-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 0.75rem;
+    color: white;
+}
+
+.popcorn-event-host-name {
+    font-weight: 700;
+    font-size: 0.875rem;
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.popcorn-event-host-label {
+    font-size: 0.75rem;
+    opacity: 0.9;
+    line-height: 1.2;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Responsive adjustments for host section */
+@media (max-width: 768px) {
+    .popcorn-event-host-section {
+        width: 40%;
+    }
+    
+    .popcorn-event-host-fallback-icon {
+        font-size: 2rem;
+    }
+    
+    .popcorn-event-host-info {
+        padding: 0.75rem 0.5rem 0.5rem;
+    }
+    
+    .popcorn-event-host-name {
+        font-size: 0.8rem;
+    }
+    
+    .popcorn-event-host-label {
+        font-size: 0.7rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .popcorn-event-host-section {
+        width: 45%;
+    }
+    
+    .popcorn-event-host-fallback-icon {
+        font-size: 1.5rem;
+    }
+    
+    .popcorn-event-host-info {
+        padding: 0.5rem;
+    }
+    
+    .popcorn-event-host-name {
+        font-size: 0.75rem;
+    }
+    
+    .popcorn-event-host-label {
+        font-size: 0.65rem;
+    }
 }
 
 /* Responsive Design */

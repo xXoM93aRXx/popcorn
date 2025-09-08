@@ -271,91 +271,100 @@
                                  <div class="card-header">
                                      <h5 class="mb-0">
                                          <i class="fa fa-check-circle me-2 text-success"></i>
-                                         Active Cards
+                                         Active Card
                                      </h5>
                                  </div>
                                  <div class="card-body">
                                      <t t-if="active_memberships">
-                                         <div class="table-responsive">
-                                             <table class="table table-hover">
-                                                 <thead>
-                                                     <tr>
-                                                         <th>Card Name</th>
-                                                         <th>Valid Until</th>
-                                                         <th>Remaining</th>
-                                                         <th>Actions</th>
-                                                     </tr>
-                                                 </thead>
-                                                 <tbody>
-                                                     <t t-foreach="active_memberships" t-as="membership">
-                                                                                                                   <tr>
-                                                              <td>
-                                                                  <strong t-field="membership.membership_plan_id.name"/>
-                                                                  <t t-if="membership.freeze_active">
-                                                                      <br/>
-                                                                      <small class="text-warning">
-                                                                          <i class="fa fa-pause"></i> Frozen until <t t-esc="membership.freeze_end"/>
-                                                                      </small>
-                                                                  </t>
-                                                              </td>
-                                                              <td>
-                                                                  <span t-field="membership.effective_end_date" t-options="{'widget': 'date'}"/>
-                                                              </td>
-                                                             <td>
+                                         <t t-foreach="active_memberships" t-as="membership">
+                                             <div class="card border-success mb-3">
+                                                 <div class="card-header bg-success text-white">
+                                                     <div class="row align-items-center">
+                                                         <div class="col">
+                                                             <h5 class="mb-0">
+                                                                 <i class="fa fa-id-card me-2"></i>
+                                                                 <span t-field="membership.membership_plan_id.name"/>
+                                                             </h5>
+                                                         </div>
+                                                         <div class="col-auto">
+                                                             <t t-if="membership.freeze_active">
+                                                                 <span class="badge bg-warning">
+                                                                     <i class="fa fa-pause"></i> Frozen until <span t-esc="membership.freeze_end"/>
+                                                                 </span>
+                                                             </t>
+                                                             <t t-else="">
+                                                                 <span class="badge bg-light text-success">
+                                                                     <i class="fa fa-check"></i> Active
+                                                                 </span>
+                                                             </t>
+                                                         </div>
+                                                     </div>
+                                                 </div>
+                                                 <div class="card-body">
+                                                     <div class="row">
+                                                         <div class="col-md-6">
+                                                             <h6 class="text-muted mb-2">Valid Until</h6>
+                                                             <p class="mb-3">
+                                                                 <i class="fa fa-calendar text-primary me-2"></i>
+                                                                 <span t-field="membership.effective_end_date" t-options="{'widget': 'date'}"/>
+                                                             </p>
+                                                             
+                                                             <h6 class="text-muted mb-2">Remaining Usage</h6>
+                                                             <div class="mb-3">
                                                                  <t t-if="membership.plan_quota_mode == 'unlimited'">
-                                                                     <span class="text-success">Unlimited</span>
+                                                                     <span class="badge bg-success fs-6">
+                                                                         <i class="fa fa-infinity"></i> Unlimited
+                                                                     </span>
                                                                  </t>
                                                                  <t t-elif="membership.plan_quota_mode == 'bucket_counts'">
-                                                                     <span t-if="membership.remaining_offline > 0">
-                                                                         <i class="fa fa-building"></i> <t t-esc="membership.remaining_offline"/> offline
-                                                                     </span>
-                                                                     <span t-if="membership.remaining_online > 0">
-                                                                         <i class="fa fa-globe"></i> <t t-esc="membership.remaining_online"/> online
-                                                                     </span>
-                                                                     <span t-if="membership.remaining_sp > 0">
-                                                                         <i class="fa fa-star"></i> <t t-esc="membership.remaining_sp"/> special
-                                                                     </span>
+                                                                     <div class="d-flex flex-wrap gap-2">
+                                                                         <span t-if="membership.remaining_offline > 0" class="badge bg-primary">
+                                                                             <i class="fa fa-building"></i> <span t-esc="membership.remaining_offline"/> offline
+                                                                         </span>
+                                                                         <span t-if="membership.remaining_online > 0" class="badge bg-info">
+                                                                             <i class="fa fa-globe"></i> <span t-esc="membership.remaining_online"/> online
+                                                                         </span>
+                                                                         <span t-if="membership.remaining_sp > 0" class="badge bg-warning">
+                                                                             <i class="fa fa-star"></i> <span t-esc="membership.remaining_sp"/> special
+                                                                         </span>
+                                                                     </div>
                                                                  </t>
                                                                  <t t-elif="membership.plan_quota_mode == 'points'">
-                                                                     <span class="text-info">
-                                                                         <i class="fa fa-coins"></i> <t t-esc="membership.points_remaining"/> points
+                                                                     <span class="badge bg-info fs-6">
+                                                                         <i class="fa fa-coins"></i> <span t-esc="membership.points_remaining"/> points
                                                                      </span>
                                                                  </t>
-                                                             </td>
-                                                             <td>
-                                                                 <div class="btn-group" role="group">
-                                                                     <a t-attf-href="/my/cards/#{membership.id}" 
-                                                                        class="btn btn-sm btn-outline-primary">
-                                                                         <i class="fa fa-eye"></i> View Details
+                                                             </div>
+                                                         </div>
+                                                         <div class="col-md-6">
+                                                             <h6 class="text-muted mb-2">Actions</h6>
+                                                             <div class="d-flex flex-wrap gap-2">
+                                                                 <t t-if="membership.upgrade_discount_allowed and membership.activation_date and (current_date - membership.activation_date).days &lt;= membership.membership_plan_id.upgrade_window_days">
+                                                                     <a t-attf-href="/my/cards/#{membership.id}/upgrade" 
+                                                                        class="btn btn-outline-success btn-sm">
+                                                                         <i class="fa fa-arrow-up"></i> Upgrade
                                                                      </a>
-                                                                     <t t-if="membership.upgrade_discount_allowed and membership.activation_date and (current_date - membership.activation_date).days &lt;= membership.membership_plan_id.upgrade_window_days">
-                                                                         <a t-attf-href="/my/cards/#{membership.id}/upgrade" 
-                                                                            class="btn btn-sm btn-outline-success">
-                                                                             <i class="fa fa-arrow-up"></i> Upgrade
-                                                                         </a>
-                                                                     </t>
-                                                                                                                                           <t t-if="membership.membership_plan_id.freeze_allowed and membership.state == 'active' and not membership.freeze_active">
-                                                                          <button type="button" class="btn btn-sm btn-outline-warning popcorn-freeze-btn" 
-                                                                                  t-att-data-membership-id="membership.id"
-                                                                                  t-att-data-min-days="membership.membership_plan_id.freeze_min_days"
-                                                                                  t-att-data-max-days="membership.membership_plan_id.freeze_max_total_days">
-                                                                              <i class="fa fa-pause"></i> Freeze
-                                                                          </button>
-
-                                                                      </t>
-                                                                                                                                           <t t-if="membership.freeze_active">
-                                                                          <button type="button" class="btn btn-sm btn-outline-warning popcorn-unfreeze-btn" 
-                                                                                  t-att-data-membership-id="membership.id">
-                                                                              <i class="fa fa-play"></i> Unfreeze
-                                                                          </button>
-                                                                      </t>
-                                                                 </div>
-                                                             </td>
-                                                         </tr>
-                                                     </t>
-                                                 </tbody>
-                                             </table>
-                                         </div>
+                                                                 </t>
+                                                                 <t t-if="membership.membership_plan_id.freeze_allowed and membership.state == 'active' and not membership.freeze_active">
+                                                                     <button type="button" class="btn btn-outline-warning btn-sm popcorn-freeze-btn" 
+                                                                             t-att-data-membership-id="membership.id"
+                                                                             t-att-data-min-days="membership.membership_plan_id.freeze_min_days"
+                                                                             t-att-data-max-days="membership.membership_plan_id.freeze_max_total_days">
+                                                                         <i class="fa fa-pause"></i> Freeze
+                                                                     </button>
+                                                                 </t>
+                                                                 <t t-if="membership.freeze_active">
+                                                                     <button type="button" class="btn btn-outline-warning btn-sm popcorn-unfreeze-btn" 
+                                                                             t-att-data-membership-id="membership.id">
+                                                                         <i class="fa fa-play"></i> Unfreeze
+                                                                     </button>
+                                                                 </t>
+                                                             </div>
+                                                         </div>
+                                                     </div>
+                                                 </div>
+                                             </div>
+                                         </t>
                                      </t>
                                      <t t-else="">
                                          <div class="text-center py-4">
@@ -398,10 +407,7 @@
                                                                   <span t-field="membership.membership_plan_id.activation_policy"/>
                                                               </td>
                                                              <td>
-                                                                 <a t-attf-href="/my/cards/#{membership.id}" 
-                                                                    class="btn btn-sm btn-outline-warning">
-                                                                     <i class="fa fa-eye"></i> View Details
-                                                                 </a>
+                                                                 <span class="text-muted">No actions available</span>
                                                              </td>
                                                          </tr>
                                                      </t>
@@ -447,10 +453,7 @@
                                                                   <span t-field="membership.effective_end_date" t-options="{'widget': 'date'}"/>
                                                               </td>
                                                              <td>
-                                                                 <a t-attf-href="/my/cards/#{membership.id}" 
-                                                                    class="btn btn-sm btn-outline-secondary">
-                                                                     <i class="fa fa-eye"></i> View Details
-                                                                 </a>
+                                                                 <span class="text-muted">No actions available</span>
                                                              </td>
                                                          </tr>
                                                      </t>
@@ -498,14 +501,14 @@
                                  <div class="card-body">
                                      <div class="row">
                                          <div class="col-md-6">
-                                             <h6><t t-esc="membership.membership_plan_id.name"/></h6>
+                                             <h6><span t-esc="membership.membership_plan_id.name"/></h6>
                                              <p class="text-muted mb-2">
                                                  <i class="fa fa-calendar"></i> 
-                                                 Activated: <t t-esc="membership.activation_date" t-options="{'widget': 'date'}"/>
+                                                 Activated: <span t-esc="membership.activation_date" t-options="{'widget': 'date'}"/>
                                              </p>
                                              <p class="text-muted mb-2">
                                                  <i class="fa fa-clock-o"></i> 
-                                                 Days since activation: <t t-esc="max(0, (current_date - membership.activation_date).days)"/>
+                                                 Days since activation: <span t-esc="max(0, (current_date - membership.activation_date).days)"/>
                                              </p>
                                          </div>
                                          <div class="col-md-6">
@@ -516,19 +519,19 @@
                                              <t t-elif="membership.plan_quota_mode == 'bucket_counts'">
                                                  <div>
                                                      <span t-if="membership.remaining_offline > 0">
-                                                         <i class="fa fa-building"></i> <t t-esc="membership.remaining_offline"/> offline
+                                                         <i class="fa fa-building"></i> <span t-esc="membership.remaining_offline"/> offline
                                                      </span>
                                                      <span t-if="membership.remaining_online > 0">
-                                                         <i class="fa fa-globe"></i> <t t-esc="membership.remaining_online"/> online
+                                                         <i class="fa fa-globe"></i> <span t-esc="membership.remaining_online"/> online
                                                      </span>
                                                      <span t-if="membership.remaining_sp > 0">
-                                                         <i class="fa fa-star"></i> <t t-esc="membership.remaining_sp"/> special
+                                                         <i class="fa fa-star"></i> <span t-esc="membership.remaining_sp"/> special
                                                      </span>
                                                  </div>
                                              </t>
                                              <t t-elif="membership.plan_quota_mode == 'points'">
                                                  <span class="badge bg-info">
-                                                     <i class="fa fa-coins"></i> <t t-esc="membership.points_remaining"/> points
+                                                     <i class="fa fa-coins"></i> <span t-esc="membership.points_remaining"/> points
                                                  </span>
                                              </t>
                                          </div>
@@ -553,17 +556,17 @@
                                                          <div class="card-header bg-primary text-white">
                                                              <h6 class="mb-0">
                                                                  <i class="fa fa-star me-2"></i>
-                                                                 <t t-esc="option['plan'].name"/>
+                                                                 <span t-esc="option['plan'].name"/>
                                                              </h6>
                                                          </div>
                                                          <div class="card-body">
                                                              <div class="mb-3">
                                                                  <h5 class="text-primary">
-                                                                     <t t-esc="option['plan'].currency_id.symbol"/><t t-esc="'%.2f' % option['upgrade_price']"/>
+                                                                     <span t-esc="option['plan'].currency_id.symbol"/><span t-esc="'%.2f' % option['upgrade_price']"/>
                                                                  </h5>
                                                                                                                                    <t t-if="option['savings'] > 0">
                                                                      <small class="text-success">
-                                                                         <i class="fa fa-save"></i> Save <t t-esc="option['plan'].currency_id.symbol"/><t t-esc="'%.2f' % option['savings']"/>
+                                                                         <i class="fa fa-save"></i> Save <span t-esc="option['plan'].currency_id.symbol"/><span t-esc="'%.2f' % option['savings']"/>
                                                                      </small>
                                                                  </t>
                                                              </div>
@@ -573,24 +576,24 @@
                                                                  <ul class="list-unstyled">
                                                                      <li>
                                                                          <i class="fa fa-calendar"></i> 
-                                                                         <t t-esc="option['plan'].duration_days"/> days
+                                                                         <span t-esc="option['plan'].duration_days"/> days
                                                                      </li>
                                                                      <t t-if="option['plan'].quota_mode == 'unlimited'">
                                                                          <li><i class="fa fa-infinity"></i> Unlimited access</li>
                                                                      </t>
                                                                      <t t-elif="option['plan'].quota_mode == 'bucket_counts'">
                                                                          <t t-if="option['plan'].quota_offline">
-                                                                             <li><i class="fa fa-building"></i> <t t-esc="option['plan'].quota_offline"/> offline sessions</li>
+                                                                             <li><i class="fa fa-building"></i> <span t-esc="option['plan'].quota_offline"/> offline sessions</li>
                                                                          </t>
                                                                          <t t-if="option['plan'].quota_online">
-                                                                             <li><i class="fa fa-globe"></i> <t t-esc="option['plan'].quota_online"/> online sessions</li>
+                                                                             <li><i class="fa fa-globe"></i> <span t-esc="option['plan'].quota_online"/> online sessions</li>
                                                                          </t>
                                                                          <t t-if="option['plan'].quota_sp">
-                                                                             <li><i class="fa fa-star"></i> <t t-esc="option['plan'].quota_sp"/> special club sessions</li>
+                                                                             <li><i class="fa fa-star"></i> <span t-esc="option['plan'].quota_sp"/> special club sessions</li>
                                                                          </t>
                                                                      </t>
                                                                      <t t-elif="option['plan'].quota_mode == 'points'">
-                                                                         <li><i class="fa fa-coins"></i> <t t-esc="option['plan'].points_start"/> points</li>
+                                                                         <li><i class="fa fa-coins"></i> <span t-esc="option['plan'].points_start"/> points</li>
                                                                      </t>
                                                                      <t t-if="option['plan'].allowed_regular_offline">
                                                                          <li><i class="fa fa-check text-success"></i> Regular offline access</li>
@@ -634,7 +637,7 @@
                                                      Membership has not been activated yet.
                                                  </t>
                                                  <t t-else="">
-                                                     Upgrade window has expired (<t t-esc="membership.membership_plan_id.upgrade_window_days"/> days from activation).
+                                                     Upgrade window has expired (<span t-esc="membership.membership_plan_id.upgrade_window_days"/> days from activation).
                                                  </t>
                                              </p>
                                              <a href="/my/cards" class="btn btn-secondary">
@@ -676,15 +679,15 @@
                                          <div class="alert alert-info">
                                              <h5>New Membership Details:</h5>
                                              <p class="mb-2">
-                                                 <strong><t t-esc="membership.membership_plan_id.name"/></strong>
+                                                 <strong><span t-esc="membership.membership_plan_id.name"/></strong>
                                              </p>
                                              <p class="mb-2">
                                                  <i class="fa fa-calendar"></i> 
-                                                 Duration: <t t-esc="membership.membership_plan_id.duration_days"/> days
+                                                 Duration: <span t-esc="membership.membership_plan_id.duration_days"/> days
                                              </p>
                                              <p class="mb-0">
                                                  <i class="fa fa-money"></i> 
-                                                 Upgrade Price: <t t-esc="membership.currency_id.symbol"/><t t-esc="membership.purchase_price_paid"/>
+                                                 Upgrade Price: <span t-esc="membership.currency_id.symbol"/><span t-esc="membership.purchase_price_paid"/>
                                              </p>
                                          </div>
                                      </t>

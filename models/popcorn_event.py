@@ -191,6 +191,28 @@ class EventEvent(models.Model):
                 event.event_country_flag = ''
                 event.is_online_event = True
 
+    @api.model
+    def create(self, vals):
+        """Override create to automatically set is_host field when host is assigned"""
+        event = super().create(vals)
+        
+        # If a host is assigned, mark them as a host
+        if event.host_id:
+            event.host_id.is_host = True
+            
+        return event
+    
+    def write(self, vals):
+        """Override write to automatically set is_host field when host is assigned"""
+        result = super().write(vals)
+        
+        # If host_id is being set, mark the partner as a host
+        if 'host_id' in vals and vals['host_id']:
+            host_partner = self.env['res.partner'].browse(vals['host_id'])
+            host_partner.is_host = True
+            
+        return result
+    
     @api.depends('tag_ids', 'tag_ids.category_id.controls_card_color')
     def _compute_background_color(self):
         for event in self:

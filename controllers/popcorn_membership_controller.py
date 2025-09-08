@@ -38,7 +38,7 @@ class PopcornMembershipController(http.Controller):
             del request.session['error_message']
         
         # Check if user is a first-timer
-        is_first_timer = request.env['popcorn.membership']._is_first_timer_customer(request.env.user.partner_id.id)
+        is_first_timer = request.env.user.partner_id.is_first_timer
         
         values = {
             'membership_plans': membership_plans,
@@ -88,7 +88,7 @@ class PopcornMembershipController(http.Controller):
                 return request.redirect('/my/cards')
         
         # Check if user is a first-timer
-        is_first_timer = request.env['popcorn.membership']._is_first_timer_customer(request.env.user.partner_id.id)
+        is_first_timer = request.env.user.partner_id.is_first_timer
         
         values = {
             'plan': plan,

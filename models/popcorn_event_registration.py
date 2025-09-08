@@ -390,6 +390,10 @@ class PopcornEventRegistration(models.Model):
         if registration.partner_id and registration.event_id:
             registration._post_create_validation()
         
+        # Update partner's first timer status after creating registration
+        if registration.partner_id:
+            self.env['res.partner']._update_first_timer_status(registration.partner_id.id)
+        
         # Clear UI caches to ensure fresh data
         registration.env['ir.ui.view'].clear_caches()
         
@@ -454,6 +458,12 @@ class PopcornEventRegistration(models.Model):
         for registration in self:
             if registration.partner_id and registration.event_id:
                 registration._validate_registration()
+        
+        # Update first timer status if registration state changed to 'done' (attended)
+        if vals.get('state') == 'done':
+            for registration in self:
+                if registration.partner_id:
+                    self.env['res.partner']._update_first_timer_status(registration.partner_id.id)
         
         # Clear UI caches to ensure fresh data
         self.env['ir.ui.view'].clear_caches()
