@@ -122,6 +122,12 @@
                                                     <i class="fa fa-pause popcorn-feature-icon"></i>
                                                     <span class="popcorn-feature-text" t-translation="on">Freeze Available</span>
                                                 </div>
+                                                <div class="popcorn-feature-item">
+                                                    <i class="fa fa-calendar-check-o popcorn-feature-icon"></i>
+                                                    <span class="popcorn-feature-text">
+                                                        <t t-translation="on">Max Freeze Days:</t> <t t-esc="plan.freeze_max_total_days"/> <span t-translation="on">days</span>
+                                                    </span>
+                                                </div>
                                             </t>
                                         </div>
                                         

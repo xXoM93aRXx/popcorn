@@ -248,6 +248,16 @@ msgstr "可暂停"
 
 #. module: popcorn
 #: model_terms:ir.ui.view,arch_db:popcorn.membership_plans_website_page
+msgid "Max Freeze Days:"
+msgstr "最大暂停天数："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_plans_website_page
+msgid "days"
+msgstr "天"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_plans_website_page
 msgid "Choose This Plan"
 msgstr "选择此计划"
 
