@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        
+        <!-- Sticky Footer Navigation Template -->
+        <template id="popcorn_sticky_footer" name="Popcorn Sticky Footer">
+            <t t-call="web.layout">
+                <t t-set="title">Sticky Footer Navigation</t>
+            </t>
+        </template>
+
+        <!-- Sticky Footer Navigation Component -->
+        <template id="popcorn_sticky_footer_nav" name="Popcorn Sticky Footer Navigation">
+            <nav class="sticky-footer" role="navigation" aria-label="Main Navigation">
+                <t t-foreach="request.env['website.menu'].get_sticky_footer_menus()" t-as="menu_item">
+                    <a t-attf-class="nav-btn #{menu_item.url == '/' and request.httprequest.path == '/' and 'active' or ''}"
+                       t-att-href="menu_item.url"
+                       t-att-data-paths="menu_item.url"
+                       t-att-aria-label="menu_item.name">
+                        <i t-att-class="menu_item.fa_icon" aria-hidden="true"></i>
+                        <span t-esc="menu_item.name"/>
+                    </a>
+                </t>
+            </nav>
+        </template>
+
+        <!-- Include sticky footer in website layout -->
+        <template id="website_layout_sticky_footer" inherit_id="website.layout">
+            <xpath expr="//body" position="inside">
+                <t t-call="popcorn.popcorn_sticky_footer_nav"/>
+            </xpath>
+        </template>
+
+    </data>
+</odoo>

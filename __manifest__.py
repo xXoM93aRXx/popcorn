@@ -21,6 +21,7 @@
         'security/ir.model.access.csv',
         'views/popcorn_menus.xml',
         'data/popcorn_membership_plans_data.xml',
+        'data/popcorn_sticky_footer_data.xml',
         'views/popcorn_event_tag_category_views.xml',
         'views/popcorn_event_views.xml',
         'views/popcorn_membership_views.xml',
@@ -32,6 +33,9 @@
         'views/popcorn_membership_website_templates.xml',
         'views/popcorn_event_registration_templates.xml',
         'views/popcorn_portal_templates.xml',
+        'views/popcorn_language_switcher_templates.xml',
+        'views/popcorn_website_menu_views.xml',
+        'views/popcorn_sticky_footer_templates.xml',
     ],
     'assets': {
         'web.assets_frontend': [
@@ -40,10 +44,14 @@
             'popcorn/static/src/css/popcorn_event_registration_styles.css',
             'popcorn/static/src/css/popcorn_membership_freeze.css',
             'popcorn/static/src/css/popcorn_event_freeze_styles.css',
+            'popcorn/static/src/css/popcorn_language_switcher.css',
+            'popcorn/static/src/css/popcorn_sticky_footer.css',
             'popcorn/static/src/js/popcorn_membership_popup.js',
             'popcorn/static/src/js/popcorn_event_registration.js',
             'popcorn/static/src/js/popcorn_membership_freeze.js',
             'popcorn/static/src/js/popcorn_registration_cancellation.js',
+            'popcorn/static/src/js/popcorn_language_switcher.js',
+            'popcorn/static/src/js/popcorn_sticky_footer.js',
         ],
     
     },

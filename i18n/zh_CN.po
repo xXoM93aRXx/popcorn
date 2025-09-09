@@ -1,0 +1,2478 @@
+# Chinese (Simplified) translation for Popcorn Club
+# Copyright (C) 2024 Your Company
+# This file is distributed under the same license as the Popcorn Club package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Popcorn Club 18.0.1.0.2\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-01-01 12:00+0000\n"
+"PO-Revision-Date: 2024-01-01 12:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: Chinese (Simplified)\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_event_description_full
+msgid "About the Host"
+msgstr "关于主持人"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_event_description_full
+msgid "Host biography not available"
+msgstr "主持人简介不可用"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.event_registration_access_page
+msgid "Confirm Registration"
+msgstr "确认注册"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.event_registration_access_page
+msgid "Back to Events"
+msgstr "返回活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.event_registration_success_page
+msgid "🎉 Registration Successful!"
+msgstr "🎉 注册成功！"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.event_registration_success_page
+msgid "Congratulations! You have been successfully registered for"
+msgstr "恭喜！您已成功注册"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.event_registration_success_page
+msgid "Registration Details:"
+msgstr "注册详情："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.event_registration_success_page
+msgid "Event:"
+msgstr "活动："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.event_registration_success_page
+msgid "Member:"
+msgstr "会员："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.event_registration_success_page
+msgid "Membership Used:"
+msgstr "使用的会员资格："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.event_registration_success_page
+msgid "Registration ID:"
+msgstr "注册ID："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.event_registration_success_page
+msgid "Event Type:"
+msgstr "活动类型："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.event_registration_success_page
+msgid "Consumption:"
+msgstr "消费："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.event_registration_success_page
+msgid "View Event"
+msgstr "查看活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.event_registration_success_page
+msgid "My Memberships"
+msgstr "我的会员资格"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.event_registration_success_page
+msgid "What's Next?"
+msgstr "接下来做什么？"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.event_registration_success_page
+msgid "You will receive a confirmation email shortly"
+msgstr "您将很快收到确认邮件"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.event_registration_success_page
+msgid "Check your email for event details and reminders"
+msgstr "请查看您的邮件获取活动详情和提醒"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.event_registration_success_page
+msgid "You can view your registration in your membership dashboard"
+msgstr "您可以在会员仪表板中查看您的注册信息"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.event_registration_success_page
+msgid "For any questions, please contact our support team"
+msgstr "如有任何问题，请联系我们的支持团队"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "🚫 Membership Required"
+msgstr "🚫 需要会员资格"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Access Restricted:"
+msgstr "访问受限："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "This feature is exclusive to Popcorn Club members."
+msgstr "此功能仅限爆米花俱乐部会员使用。"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Our events are exclusive to active Popcorn Club members. Join us to access:"
+msgstr "我们的活动仅限活跃的爆米花俱乐部会员参加。加入我们以享受："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Regular Events"
+msgstr "常规活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Offline & Online sessions"
+msgstr "线下和线上活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Special Club"
+msgstr "特殊俱乐部"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Exclusive events"
+msgstr "专属活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Community"
+msgstr "社区"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Member network"
+msgstr "会员网络"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Log In"
+msgstr "登录"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "View Plans"
+msgstr "查看计划"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Already have an account?"
+msgstr "已有账户？"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Log in here"
+msgstr "在此登录"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_plans_website_page
+msgid "Choose Your Membership Plan"
+msgstr "选择您的会员计划"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_plans_website_page
+msgid "First Timer"
+msgstr "首次用户"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_plans_website_page
+msgid "days"
+msgstr "天"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_plans_website_page
+msgid "Unlimited Access"
+msgstr "无限访问"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_plans_website_page
+msgid "Offline Sessions"
+msgstr "线下活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_plans_website_page
+msgid "Online Sessions"
+msgstr "线上活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_plans_website_page
+msgid "Special Club Sessions"
+msgstr "特殊俱乐部活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_plans_website_page
+msgid "Points"
+msgstr "积分"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_plans_website_page
+msgid "Regular Offline Access"
+msgstr "常规线下访问"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_plans_website_page
+msgid "Regular Online Access"
+msgstr "常规线上访问"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_plans_website_page
+msgid "Special Club Access"
+msgstr "特殊俱乐部访问"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_plans_website_page
+msgid "Freeze Available"
+msgstr "可暂停"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_plans_website_page
+msgid "Choose This Plan"
+msgstr "选择此计划"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "Complete Your Membership Upgrade"
+msgstr "完成您的会员升级"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "Complete Your Membership Purchase"
+msgstr "完成您的会员购买"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "Personal Information"
+msgstr "个人信息"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "Full Name *"
+msgstr "姓名 *"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "Phone Number *"
+msgstr "电话号码 *"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "Payment Method"
+msgstr "支付方式"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "Select Payment Method *"
+msgstr "选择支付方式 *"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "I agree to the"
+msgstr "我同意"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "Terms and Conditions"
+msgstr "条款和条件"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "Complete Upgrade"
+msgstr "完成升级"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "Complete Purchase"
+msgstr "完成购买"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "Order Summary"
+msgstr "订单摘要"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "days"
+msgstr "天"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "Upgrade Price:"
+msgstr "升级价格："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "Total:"
+msgstr "总计："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "Membership Fee:"
+msgstr "会员费用："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "First Timer Discount:"
+msgstr "首次用户折扣："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "What's Included:"
+msgstr "包含内容："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "Unlimited access to all sessions"
+msgstr "无限访问所有活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "offline sessions"
+msgstr "线下活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "online sessions"
+msgstr "线上活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "special club sessions"
+msgstr "特殊俱乐部活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "points to spend"
+msgstr "可消费积分"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_checkout_page
+msgid "Freeze option available"
+msgstr "可暂停选项"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_success_page
+msgid "Membership Plans"
+msgstr "会员计划"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_success_page
+msgid "Membership Purchase Successful!"
+msgstr "会员购买成功！"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_success_page
+msgid "Thank you for your purchase! Your membership has been successfully created."
+msgstr "感谢您的购买！您的会员资格已成功创建。"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_success_page
+msgid "Membership Details"
+msgstr "会员详情"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_success_page
+msgid "Plan:"
+msgstr "计划："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_success_page
+msgid "Status:"
+msgstr "状态："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_success_page
+msgid "Purchase Price:"
+msgstr "购买价格："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_success_page
+msgid "Activation Date:"
+msgstr "激活日期："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_success_page
+msgid "Expiry Date:"
+msgstr "到期日期："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_success_page
+msgid "Back to Memberships"
+msgstr "返回会员"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_success_page
+msgid "Go to Homepage"
+msgstr "返回首页"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_success_page
+msgid "What's Next?"
+msgstr "接下来做什么？"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_success_page
+msgid "You will receive a confirmation email shortly"
+msgstr "您将很快收到确认邮件"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_success_page
+msgid "Your membership card will be available at our facilities"
+msgstr "您的会员卡将在我们的设施中提供"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_success_page
+msgid "You can start using your membership benefits immediately"
+msgstr "您可以立即开始使用您的会员权益"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_success_page
+msgid "For any questions, please contact our support team"
+msgstr "如有任何问题，请联系我们的支持团队"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_my_home_clubs
+msgid "Your Clubs"
+msgstr "您的俱乐部"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_my_home_clubs
+msgid "View your registered clubs and upcoming events"
+msgstr "查看您注册的俱乐部和即将举行的活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_my_home_clubs
+msgid "Your Cards"
+msgstr "您的会员"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_my_home_clubs
+msgid "View your membership cards and their status"
+msgstr "查看您的会员卡及其状态"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_my_clubs
+msgid "Your Clubs"
+msgstr "您的俱乐部"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_my_clubs
+msgid "View your registered clubs and upcoming events"
+msgstr "查看您注册的俱乐部和即将举行的活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards
+msgid "Your Cards"
+msgstr "您的会员"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards
+msgid "View your membership cards and their status"
+msgstr "查看您的会员卡及其状态"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_my_clubs_page
+msgid "My Clubs"
+msgstr "我的俱乐部"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_my_clubs_page
+msgid "Upcoming Clubs"
+msgstr "即将举行的俱乐部"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_my_clubs_page
+msgid "Host"
+msgstr "主持人"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_my_clubs_page
+msgid "Club Name"
+msgstr "俱乐部名称"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_my_clubs_page
+msgid "Date &amp; Time"
+msgstr "日期和时间"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_my_clubs_page
+msgid "Location"
+msgstr "地点"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_my_clubs_page
+msgid "Actions"
+msgstr "操作"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "Actions"
+msgstr "操作"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_my_clubs_page
+msgid "View Details"
+msgstr "查看详情"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_my_clubs_page
+msgid "Cancel"
+msgstr "取消"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_my_clubs_page
+msgid "Online"
+msgstr "线上"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_my_clubs_page
+msgid "No upcoming clubs found."
+msgstr "未找到即将举行的俱乐部。"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_my_clubs_page
+msgid "Browse Clubs"
+msgstr "浏览俱乐部"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_my_clubs_page
+msgid "Past Clubs"
+msgstr "过去的俱乐部"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_my_clubs_page
+msgid "No past clubs found."
+msgstr "未找到过去的俱乐部。"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "Your Cards"
+msgstr "您的会员"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "Active Card"
+msgstr "活跃会员"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "Frozen until"
+msgstr "冻结至"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "Active"
+msgstr "活跃"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "Valid Until"
+msgstr "有效期至"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "Remaining Usage"
+msgstr "剩余使用量"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "Unlimited"
+msgstr "无限"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "offline"
+msgstr "线下"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "online"
+msgstr "线上"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "special"
+msgstr "特殊"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "points"
+msgstr "积分"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "Upgrade"
+msgstr "升级"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "Freeze"
+msgstr "冻结"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "Unfreeze"
+msgstr "解冻"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "No active cards found."
+msgstr "未找到活跃会员。"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "Get a Card"
+msgstr "获取会员"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "Unactivated Cards"
+msgstr "未激活会员"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "Card Name"
+msgstr "会员名称"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "Activation Policy"
+msgstr "激活政策"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "No actions available"
+msgstr "无可用操作"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "No unactivated cards found."
+msgstr "未找到未激活会员。"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "Expired Cards"
+msgstr "过期会员"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "Expired On"
+msgstr "过期日期"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_your_cards_page
+msgid "No expired cards found."
+msgstr "未找到过期会员。"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "Upgrade Your Membership"
+msgstr "升级您的会员资格"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "Current Membership"
+msgstr "当前会员资格"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "Activated:"
+msgstr "激活日期："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "Days since activation:"
+msgstr "激活后天数："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "Available Upgrades"
+msgstr "可用升级"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "Save"
+msgstr "节省"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "Plan Features:"
+msgstr "计划功能："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "days"
+msgstr "天"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "Unlimited access"
+msgstr "无限访问"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "offline sessions"
+msgstr "线下活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "online sessions"
+msgstr "线上活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "special club sessions"
+msgstr "特殊俱乐部活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "Regular offline access"
+msgstr "常规线下访问"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "Regular online access"
+msgstr "常规线上访问"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "Special club access"
+msgstr "特殊俱乐部访问"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "Freeze available"
+msgstr "可冻结"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "Upgrade Now"
+msgstr "立即升级"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "No Upgrade Options Available"
+msgstr "无可用升级选项"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "This membership cannot be upgraded at this time."
+msgstr "此会员资格目前无法升级。"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "Upgrade discount is not available for this membership."
+msgstr "此会员资格不提供升级折扣。"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "Membership has not been activated yet."
+msgstr "会员资格尚未激活。"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "Upgrade window has expired ("
+msgstr "升级窗口已过期（"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid " days from activation)."
+msgstr "天从激活开始）。"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "Back to My Cards"
+msgstr "返回我的会员"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_success_page
+msgid "Upgrade Successful!"
+msgstr "升级成功！"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_success_page
+msgid "Your membership has been successfully upgraded. The new membership will be activated on your next club booking."
+msgstr "您的会员资格已成功升级。新会员资格将在您下次俱乐部预订时激活。"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_success_page
+msgid "New Membership Details:"
+msgstr "新会员资格详情："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_success_page
+msgid "Duration:"
+msgstr "持续时间："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_success_page
+msgid "Upgrade Price:"
+msgstr "升级价格："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_success_page
+msgid "View My Cards"
+msgstr "查看我的会员"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_success_page
+msgid "Browse Clubs"
+msgstr "浏览俱乐部"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "Freeze Membership"
+msgstr "冻结会员资格"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "Freeze Information:"
+msgstr "冻结信息："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "During the freeze period, you cannot book any events"
+msgstr "在冻结期间，您无法预订任何活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "Your membership duration will be extended by the freeze days"
+msgstr "您的会员资格期限将延长冻结天数"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "You can unfreeze early if needed"
+msgstr "如有需要，您可以提前解冻"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "Freeze Duration (Days)"
+msgstr "冻结持续时间（天）"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "Minimum:"
+msgstr "最少："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "days"
+msgstr "天"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "Maximum:"
+msgstr "最多："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "Freeze Period"
+msgstr "冻结期间"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "to"
+msgstr "至"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "Cancel"
+msgstr "取消"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "Freeze Information:"
+msgstr "冻结信息："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "During the freeze period, you cannot book any events"
+msgstr "在冻结期间，您无法预订任何活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "Your membership duration will be extended by the freeze days"
+msgstr "您的会员资格期限将延长冻结天数"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "You can unfreeze early if needed"
+msgstr "如有需要，您可以提前解冻"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "Freeze Duration (Days)"
+msgstr "冻结持续时间（天）"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "Minimum:"
+msgstr "最少："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "days |"
+msgstr "天 |"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "Maximum:"
+msgstr "最多："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "Freeze Period"
+msgstr "冻结期间"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "to"
+msgstr "至"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "Cancel"
+msgstr "取消"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.cancel_registration_modal
+msgid "Cancel Registration"
+msgstr "取消注册"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.cancel_registration_modal
+msgid "Cancel Registration:"
+msgstr "取消注册："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.cancel_registration_modal
+msgid "This action cannot be undone"
+msgstr "此操作无法撤销"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.cancel_registration_modal
+msgid "Your membership quota will be restored if applicable"
+msgstr "如适用，您的会员配额将被恢复"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.cancel_registration_modal
+msgid "You will no longer be registered for this event"
+msgstr "您将不再注册此活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.cancel_registration_modal
+msgid "Event Details"
+msgstr "活动详情"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.cancel_registration_modal
+msgid "Confirmation"
+msgstr "确认"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.cancel_registration_modal
+msgid "I understand that this action cannot be undone and I want to cancel my registration"
+msgstr "我理解此操作无法撤销，我想取消我的注册"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.cancel_registration_modal
+msgid "Keep Registration"
+msgstr "保留注册"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_custom_registration_button
+msgid "Register Now"
+msgstr "立即注册"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_custom_registration_button
+msgid "Register for this event"
+msgstr "注册此活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_custom_registration_button
+msgid "Already Registered"
+msgstr "已注册"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_custom_registration_button
+msgid "Already registered for this event"
+msgstr "已注册此活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_custom_registration_button
+msgid "Membership Frozen"
+msgstr "会员资格已冻结"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_custom_registration_button
+msgid "Membership is frozen during this event period"
+msgstr "在此活动期间会员资格已冻结"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_custom_registration_button
+msgid "Until"
+msgstr "至"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_custom_registration_button
+msgid "Registrations Closed"
+msgstr "注册已关闭"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_custom_registration_button
+msgid "Registrations are closed"
+msgstr "注册已关闭"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Membership Required"
+msgstr "需要会员资格"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "You need an active membership to access this feature."
+msgstr "您需要有效的会员资格才能访问此功能。"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Log In"
+msgstr "登录"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "View Membership Plans"
+msgstr "查看会员计划"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Why Membership?"
+msgstr "为什么需要会员资格？"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Our events are exclusive to Popcorn Club members. Join us to access regular offline and online events, special club sessions, and more!"
+msgstr "我们的活动专为爆米花俱乐部会员提供。加入我们，享受常规线下和线上活动、特殊俱乐部活动等！"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Regular Events"
+msgstr "常规活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Access to offline and online club sessions"
+msgstr "访问线下和线上俱乐部活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Special Club"
+msgstr "特殊俱乐部"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Exclusive special club events"
+msgstr "专属特殊俱乐部活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Community"
+msgstr "社区"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.membership_required_page
+msgid "Join our exclusive community"
+msgstr "加入我们的专属社区"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_website_event_events_list
+msgid "No events scheduled yet"
+msgstr "暂无安排的活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_website_event_events_list
+msgid "We couldn't find any event matching your search for:"
+msgstr "我们找不到与您搜索匹配的活动："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_website_event_events_list
+msgid "No event matching your search criteria could be found."
+msgstr "找不到符合您搜索条件的活动。"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_website_event_events_list
+msgid "We couldn't find any event scheduled at this moment."
+msgstr "目前没有安排任何活动。"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_website_event_events_list
+msgid "Create an Event"
+msgstr "创建活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_website_event_events_list
+msgid "No results found for"
+msgstr "未找到结果"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_website_event_events_list
+msgid "Showing results for"
+msgstr "显示结果"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_website_event_events_list
+msgid "Not Open"
+msgstr "未开放"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_website_event_events_list
+msgid "Sold Out"
+msgstr "已售罄"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_website_event_events_list
+msgid "Closed"
+msgstr "已关闭"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_website_event_events_list
+msgid "Membership Frozen"
+msgstr "会员资格已冻结"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_website_event_events_list
+msgid "Until"
+msgstr "至"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_website_event_events_list
+msgid "Registered"
+msgstr "已注册"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_website_event_events_list
+msgid "Unpublished"
+msgstr "未发布"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_website_event_events_list
+msgid "Location"
+msgstr "地点"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_website_event_events_list
+msgid "Online event"
+msgstr "线上活动"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_event_tag_category__controls_card_color
+msgid "Controls Card Color"
+msgstr "控制卡片颜色"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_event_tag_category__controls_card_color
+msgid "If checked, this category will control the background color of event cards in the website view"
+msgstr "如果选中，此类别将控制网站视图中活动卡片的背景颜色"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_event_registration.py:0
+msgid "Membership must belong to the registration partner"
+msgstr "会员资格必须属于注册合作伙伴"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_event_registration.py:0
+msgid "This membership plan does not allow regular offline events"
+msgstr "此会员计划不允许常规线下活动"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_event_registration.py:0
+msgid "This membership plan does not allow regular online events"
+msgstr "此会员计划不允许常规线上活动"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_event_registration.py:0
+msgid "This membership plan does not allow special club events"
+msgstr "此会员计划不允许特殊俱乐部活动"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_event_registration.py:0
+msgid "No membership selected for consumption"
+msgstr "未选择用于消费的会员资格"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_event_registration.py:0
+msgid "Registration is not in pending state for consumption"
+msgstr "注册未处于待消费状态"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_event_registration.py:0
+msgid "Insufficient membership quota for this event"
+msgstr "此活动的会员配额不足"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_event_registration.py:0
+msgid "Registration is not in consumed state"
+msgstr "注册未处于已消费状态"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_event_registration.py:0
+msgid ""
+"Cancellation is not allowed at this time. Please check the event "
+"cancellation deadline."
+msgstr "此时不允许取消。请检查活动取消截止时间。"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_event_registration.py:0
+msgid "Registration cannot be cancelled in its current state"
+msgstr "注册在当前状态下无法取消"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_event_registration.py:0
+msgid "Registration cancelled by portal user"
+msgstr "注册已被门户用户取消"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_event_registration.py:0
+msgid "Quota restored due to cancellation of event: %s"
+msgstr "由于活动取消，配额已恢复：%s"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_event_registration.py:0
+msgid ""
+"Cannot book this event: Your membership is frozen from %s to %s. Event date:"
+" %s"
+msgstr "无法预订此活动：您的会员资格从 %s 到 %s 被冻结。活动日期：%s"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_event_registration.py:0
+msgid "Selected membership is not compatible with this event"
+msgstr "所选会员资格与此活动不兼容"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_event_registration.py:0
+msgid "Cannot consume membership: insufficient quota"
+msgstr "无法消费会员资格：配额不足"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_event_event__host_id
+msgid "Host"
+msgstr "主持人"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_event_event__host_id
+msgid "Select the host for this event"
+msgstr "为此活动选择主持人"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_event_event__cancellation_deadline_hours
+msgid "Cancellation Deadline (Hours)"
+msgstr "取消截止时间（小时）"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_event_event__cancellation_deadline_hours
+msgid "Number of hours before the event start time when users can cancel their registration"
+msgstr "用户可以在活动开始前取消注册的小时数"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_event_event__club_type
+msgid "Club Type"
+msgstr "俱乐部类型"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_event_event__club_type
+msgid "Automatically determined club type for membership validation"
+msgstr "自动确定的俱乐部类型，用于会员资格验证"
+
+#. module: popcorn
+#: model:ir.model.fields.selection,name:popcorn.selection__event_event__club_type__regular_offline
+msgid "Regular Offline"
+msgstr "常规线下"
+
+#. module: popcorn
+#: model:ir.model.fields.selection,name:popcorn.selection__event_event__club_type__regular_online
+msgid "Regular Online"
+msgstr "常规线上"
+
+#. module: popcorn
+#: model:ir.model.fields.selection,name:popcorn.selection__event_event__club_type__spclub
+msgid "Special Club"
+msgstr "特殊俱乐部"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_event_event__host_name
+msgid "Host Name"
+msgstr "主持人姓名"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_event_event__host_name
+msgid "Host name for website display"
+msgstr "网站显示的主持人姓名"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_event_event__host_image
+msgid "Host Image"
+msgstr "主持人头像"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_event_event__host_image
+msgid "Host image for website display"
+msgstr "网站显示的主持人头像"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_event_event__host_function
+msgid "Host Function"
+msgstr "主持人职能"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_event_event__host_function
+msgid "Host job title/function for website display"
+msgstr "网站显示的主持人职位/职能"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_event_event__host_bio
+msgid "Host Bio"
+msgstr "主持人简介"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_event_event__host_bio
+msgid "Host biography for website display"
+msgstr "网站显示的主持人简介"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_event_event__event_city
+msgid "Event City"
+msgstr "活动城市"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_event_event__event_city
+msgid "Event city for website display"
+msgstr "网站显示的活动城市"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_event_event__event_country_name
+msgid "Event Country"
+msgstr "活动国家"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_event_event__event_country_name
+msgid "Event country name for website display"
+msgstr "网站显示的活动国家名称"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_event_event__event_country_flag
+msgid "Event Country Flag"
+msgstr "活动国家旗帜"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_event_event__event_country_flag
+msgid "Event country flag URL for website display"
+msgstr "网站显示的活动国家旗帜URL"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_event_event__is_online_event
+msgid "Is Online Event"
+msgstr "是否线上活动"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_event_event__is_online_event
+msgid "Whether this is an online event"
+msgstr "这是否为线上活动"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_event_event__background_color
+msgid "Background Color"
+msgstr "背景颜色"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_event_event__background_color
+msgid "Background color for the event card based on tags"
+msgstr "基于标签的活动卡片背景颜色"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_event_event__text_color
+msgid "Text Color"
+msgstr "文字颜色"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_event_event__text_color
+msgid "Automatically calculated text color for optimal contrast"
+msgstr "自动计算的文字颜色，以获得最佳对比度"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__name
+msgid "Plan Name"
+msgstr "计划名称"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__sequence
+msgid "Sequence"
+msgstr "排序"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_popcorn_membership_plan__sequence
+msgid "Order of display"
+msgstr "显示顺序"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__active
+msgid "Active"
+msgstr "活跃"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__quota_mode
+msgid "Quota Mode"
+msgstr "配额模式"
+
+#. module: popcorn
+#: model:ir.model.fields.selection,name:popcorn.selection__popcorn_membership_plan__quota_mode__unlimited
+msgid "Unlimited"
+msgstr "无限"
+
+#. module: popcorn
+#: model:ir.model.fields.selection,name:popcorn.selection__popcorn_membership_plan__quota_mode__bucket_counts
+msgid "Session Buckets"
+msgstr "活动配额"
+
+#. module: popcorn
+#: model:ir.model.fields.selection,name:popcorn.selection__popcorn_membership_plan__quota_mode__points
+msgid "Points-Based"
+msgstr "积分制"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__duration_days
+msgid "Duration (Days)"
+msgstr "持续时间（天）"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__activation_policy
+msgid "Activation Policy"
+msgstr "激活政策"
+
+#. module: popcorn
+#: model:ir.model.fields.selection,name:popcorn.selection__popcorn_membership_plan__activation_policy__immediate
+msgid "Immediate"
+msgstr "立即"
+
+#. module: popcorn
+#: model:ir.model.fields.selection,name:popcorn.selection__popcorn_membership_plan__activation_policy__first_attendance
+msgid "First Attendance"
+msgstr "首次参加"
+
+#. module: popcorn
+#: model:ir.model.fields.selection,name:popcorn.selection__popcorn_membership_plan__activation_policy__manual
+msgid "Manual"
+msgstr "手动"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__allowed_regular_offline
+msgid "Allows Regular Offline"
+msgstr "允许常规线下"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__allowed_regular_online
+msgid "Allows Regular Online"
+msgstr "允许常规线上"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__allowed_spclub
+msgid "Allows Special Club"
+msgstr "允许特殊俱乐部"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__quota_offline
+msgid "Offline Sessions"
+msgstr "线下活动"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__quota_online
+msgid "Online Sessions"
+msgstr "线上活动"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__quota_sp
+msgid "Special Club Sessions"
+msgstr "特殊俱乐部活动"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__points_start
+msgid "Starting Points"
+msgstr "起始积分"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__points_per_offline
+msgid "Points per Offline Session"
+msgstr "每次线下活动积分"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__points_per_online
+msgid "Points per Online Session"
+msgstr "每次线上活动积分"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__points_per_sp
+msgid "Points per Special Club Session"
+msgstr "每次特殊俱乐部活动积分"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__freeze_allowed
+msgid "Freeze Allowed"
+msgstr "允许冻结"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__freeze_min_days
+msgid "Minimum Freeze Days"
+msgstr "最少冻结天数"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__freeze_max_total_days
+msgid "Maximum Total Freeze Days"
+msgstr "最多总冻结天数"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__price_normal
+msgid "Normal Price"
+msgstr "正常价格"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__price_first_timer
+msgid "First Timer Price"
+msgstr "首次用户价格"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__early_renew_window_days
+msgid "Early Renewal Window (Days)"
+msgstr "提前续费窗口（天）"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__upgrade_window_days
+msgid "Upgrade Window (Days)"
+msgstr "升级窗口（天）"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__first_timer_default_upgrade_ability
+msgid "First Timer Can Upgrade"
+msgstr "首次用户可升级"
+
+#. module: popcorn
+#: model:ir.model.fields.selection,name:popcorn.selection__popcorn_membership_plan__first_timer_default_upgrade_ability__yes
+msgid "Yes"
+msgstr "是"
+
+#. module: popcorn
+#: model:ir.model.fields.selection,name:popcorn.selection__popcorn_membership_plan__first_timer_default_upgrade_ability__no
+msgid "No"
+msgstr "否"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__can_upgrade_to_ids
+msgid "Can Upgrade To"
+msgstr "可升级至"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__display_name
+msgid "Display Name"
+msgstr "显示名称"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__plan_summary
+msgid "Plan Summary"
+msgstr "计划摘要"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__currency_id
+msgid "Currency"
+msgstr "货币"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__cover_image
+msgid "Cover Image"
+msgstr "封面图片"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_plan_form
+msgid "Basic Information"
+msgstr "基本信息"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_plan_form
+msgid "Club Access"
+msgstr "俱乐部访问"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_plan_form
+msgid "Session Quotas"
+msgstr "会话配额"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_plan_form
+msgid "Points Configuration"
+msgstr "积分配置"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_plan_form
+msgid "Freeze Settings"
+msgstr "冻结设置"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_plan_form
+msgid "Pricing"
+msgstr "定价"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_plan_form
+msgid "Upgrade Windows"
+msgstr "升级窗口"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_plan_form
+msgid "Upgrade Configuration"
+msgstr "升级配置"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_plan_form
+msgid "Computed Fields"
+msgstr "计算字段"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_form
+msgid "Member Information"
+msgstr "会员信息"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_form
+msgid "Membership Details"
+msgstr "会员详情"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_form
+msgid "Remaining Usage"
+msgstr "剩余使用量"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_form
+msgid "Plan Limits"
+msgstr "计划限制"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_form
+msgid "Freeze Status"
+msgstr "冻结状态"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_form
+msgid "Extensions"
+msgstr "延期"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_form
+msgid "Freeze Actions"
+msgstr "冻结操作"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_form
+msgid "Session Adjustments"
+msgstr "会话调整"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_form
+msgid "Points Adjustments"
+msgstr "积分调整"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_form
+msgid "Usage & Quota"
+msgstr "使用量 & 配额"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_form
+msgid "Freeze & Extensions"
+msgstr "冻结 & 延期"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.view_popcorn_membership_form
+msgid "Manual Adjustments"
+msgstr "手动调整"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_popcorn_membership_plan__cover_image
+msgid "Cover image for the membership plan card"
+msgstr "会员计划卡片的封面图片"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__unit_base_count
+msgid "Base Unit Count"
+msgstr "基础单位数量"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_popcorn_membership_plan__unit_base_count
+msgid "Base number of units for upgrade calculations"
+msgstr "升级计算的基础单位数量"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership_plan__unit_value_fixed
+msgid "Fixed Unit Value"
+msgstr "固定单位价值"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_popcorn_membership_plan__unit_value_fixed
+msgid "Fixed value per unit for upgrade calculations"
+msgstr "升级计算的每单位固定价值"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership_plan.py:0
+msgid "Bucket-based plans must have at least one session quota"
+msgstr "基于配额的计划必须至少有一个活动配额"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership_plan.py:0
+msgid "Points-based plans must have a positive starting points value"
+msgstr "基于积分的计划必须具有正的起始积分值"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership_plan.py:0
+msgid "Membership plans must have a positive duration"
+msgstr "会员计划必须具有正的持续时间"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership_plan.py:0
+msgid "Minimum freeze days must be positive"
+msgstr "最少冻结天数必须为正数"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership_plan.py:0
+msgid "Maximum total freeze days must be positive"
+msgstr "最多总冻结天数必须为正数"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership_plan.py:0
+msgid "Minimum freeze days cannot exceed maximum total freeze days"
+msgstr "最少冻结天数不能超过最多总冻结天数"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership_plan.py:0
+msgid "Normal price cannot be negative"
+msgstr "正常价格不能为负数"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership_plan.py:0
+msgid "First timer price cannot be negative"
+msgstr "首次用户价格不能为负数"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__partner_id
+msgid "Member"
+msgstr "会员"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__membership_plan_id
+msgid "Membership Plan"
+msgstr "会员计划"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__state
+msgid "Status"
+msgstr "状态"
+
+#. module: popcorn
+#: model:ir.model.fields,selection:popcorn.field_popcorn_membership__state
+msgid "Pending"
+msgstr "待处理"
+
+#. module: popcorn
+#: model:ir.model.fields,selection:popcorn.field_popcorn_membership__state
+msgid "Active"
+msgstr "活跃"
+
+#. module: popcorn
+#: model:ir.model.fields,selection:popcorn.field_popcorn_membership__state
+msgid "Frozen"
+msgstr "冻结"
+
+#. module: popcorn
+#: model:ir.model.fields,selection:popcorn.field_popcorn_membership__state
+msgid "Expired"
+msgstr "已过期"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__purchase_price_paid
+msgid "Purchase Price"
+msgstr "购买价格"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__price_tier
+msgid "Price Tier"
+msgstr "价格等级"
+
+#. module: popcorn
+#: model:ir.model.fields,selection:popcorn.field_popcorn_membership__price_tier
+msgid "Normal"
+msgstr "正常"
+
+#. module: popcorn
+#: model:ir.model.fields,selection:popcorn.field_popcorn_membership__price_tier
+msgid "First Timer"
+msgstr "首次用户"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__purchase_channel
+msgid "Purchase Channel"
+msgstr "购买渠道"
+
+#. module: popcorn
+#: model:ir.model.fields,selection:popcorn.field_popcorn_membership__purchase_channel
+msgid "Online"
+msgstr "线上"
+
+#. module: popcorn
+#: model:ir.model.fields,selection:popcorn.field_popcorn_membership__purchase_channel
+msgid "Pitch Day"
+msgstr "路演日"
+
+#. module: popcorn
+#: model:ir.model.fields,selection:popcorn.field_popcorn_membership__purchase_channel
+msgid "Other"
+msgstr "其他"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__activation_date
+msgid "Activation Date"
+msgstr "激活日期"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__end_date_base
+msgid "Base End Date"
+msgstr "基础结束日期"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__freeze_total_days_used
+msgid "Total Freeze Days Used"
+msgstr "已使用冻结天数总计"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__freeze_active
+msgid "Freeze Active"
+msgstr "冻结激活"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__freeze_start
+msgid "Freeze Start Date"
+msgstr "冻结开始日期"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__freeze_end
+msgid "Freeze End Date"
+msgstr "冻结结束日期"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__extra_days_extension
+msgid "Extra Days Extension"
+msgstr "额外天数延期"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__adj_offline
+msgid "Offline Adjustment"
+msgstr "线下调整"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__adj_online
+msgid "Online Adjustment"
+msgstr "线上调整"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__adj_sp
+msgid "Special Club Adjustment"
+msgstr "特殊俱乐部调整"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__adj_points
+msgid "Points Adjustment"
+msgstr "积分调整"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__upgrade_discount_allowed
+msgid "Upgrade Discount Allowed"
+msgstr "允许升级折扣"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__first_timer_customer
+msgid "First Timer Customer"
+msgstr "首次用户客户"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__remaining_offline
+msgid "Remaining Offline Sessions"
+msgstr "剩余线下活动"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__remaining_online
+msgid "Remaining Online Sessions"
+msgstr "剩余线上活动"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__remaining_sp
+msgid "Remaining Special Club Sessions"
+msgstr "剩余特殊俱乐部活动"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__points_remaining
+msgid "Points Remaining"
+msgstr "剩余积分"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__effective_end_date
+msgid "Effective End Date"
+msgstr "有效结束日期"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__display_name
+msgid "Display Name"
+msgstr "显示名称"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__currency_id
+msgid "Currency"
+msgstr "货币"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__plan_duration_days
+msgid "Plan Duration (Days)"
+msgstr "计划持续时间（天）"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__plan_quota_mode
+msgid "Quota Mode"
+msgstr "配额模式"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__plan_allowed_regular_offline
+msgid "Allows Regular Offline"
+msgstr "允许常规线下"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__plan_allowed_regular_online
+msgid "Allows Regular Online"
+msgstr "允许常规线上"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_popcorn_membership__plan_allowed_spclub
+msgid "Allows Special Club"
+msgstr "允许特殊俱乐部"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership.py:0
+msgid "Only pending memberships can be activated"
+msgstr "只有待处理的会员资格才能被激活"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership.py:0
+msgid "This plan does not allow freezing"
+msgstr "此计划不允许冻结"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership.py:0
+msgid "Minimum freeze period is %s days"
+msgstr "最短冻结期为 %s 天"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership.py:0
+msgid "Total freeze days cannot exceed %s"
+msgstr "总冻结天数不能超过 %s"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership.py:0
+msgid "Membership is already frozen"
+msgstr "会员资格已被冻结"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership.py:0
+msgid "Membership is not currently frozen"
+msgstr "会员资格当前未被冻结"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership.py:0
+msgid "Only active or frozen memberships can be expired"
+msgstr "只有活跃或冻结的会员资格才能过期"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership.py:0
+msgid "Extension days must be positive"
+msgstr "延期天数必须为正数"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership.py:0
+msgid "Membership extended by %s days by staff. New effective end date: %s"
+msgstr "员工将会员资格延期 %s 天。新的有效结束日期：%s"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership.py:0
+msgid "This membership plan does not use bucket quotas"
+msgstr "此会员计划不使用桶配额"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership.py:0
+msgid "Staff %s %s offline sessions. New remaining: %s"
+msgstr "员工%s了 %s 个线下活动。新剩余：%s"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership.py:0
+msgid "Staff %s %s online sessions. New remaining: %s"
+msgstr "员工%s了 %s 个线上活动。新剩余：%s"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership.py:0
+msgid "Staff %s %s SP club sessions. New remaining: %s"
+msgstr "员工%s了 %s 个特殊俱乐部活动。新剩余：%s"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership.py:0
+msgid "This membership plan does not use points"
+msgstr "此会员计划不使用积分"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership.py:0
+msgid "Staff %s %s points. New remaining: %s"
+msgstr "员工%s了 %s 积分。新剩余：%s"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/models/popcorn_membership.py:0
+msgid "Staff %s upgrade discount ability"
+msgstr "员工%s了升级折扣能力"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid ""
+"<i class=\"fa fa-info-circle me-2\"/>\n"
+"                                  <strong>Freeze Information:</strong>"
+msgstr ""
+"<i class=\"fa fa-info-circle me-2\"/>\n"
+"                                  <strong>冻结信息：</strong>"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "<i class=\"fa fa-pause me-2\"/>Freeze Membership"
+msgstr "<i class=\"fa fa-pause me-2\"/>冻结会员资格"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "<span id=\"freezeStartDate\"/> to <span id=\"freezeEndDate\"/>"
+msgstr "<span id=\"freezeStartDate\"/> 至 <span id=\"freezeEndDate\"/>"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "Cancel"
+msgstr "取消"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "During the freeze period, you cannot book any events"
+msgstr "在冻结期间，您无法预订任何活动"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "Freeze Duration (Days)"
+msgstr "冻结持续时间（天）"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "Freeze Period"
+msgstr "冻结期间"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid ""
+"Minimum: <span id=\"minDays\">7</span> days | \n"
+"                                      Maximum: <span id=\"maxDays\">30</span> days"
+msgstr ""
+"最少：<span id=\"minDays\">7</span> 天 | \n"
+"                                      最多：<span id=\"maxDays\">30</span> 天"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "You can unfreeze early if needed"
+msgstr "如有需要，您可以提前解冻"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
+msgid "Your membership duration will be extended by the freeze days"
+msgstr "您的会员资格期限将延长冻结天数"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_res_partner__is_host
+#: model:ir.model.fields,field_description:popcorn.field_res_users__is_host
+msgid "Is Host"
+msgstr "是主持人"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_res_partner__host_bio
+#: model:ir.model.fields,field_description:popcorn.field_res_users__host_bio
+msgid "Host Bio"
+msgstr "主持人简介"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_res_partner__hosted_events_count
+#: model:ir.model.fields,field_description:popcorn.field_res_users__hosted_events_count
+msgid "Hosted Events Count"
+msgstr "主持活动数量"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_res_partner__is_first_timer
+#: model:ir.model.fields,field_description:popcorn.field_res_users__is_first_timer
+msgid "Is First Timer"
+msgstr "是新手"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_res_partner__is_host
+#: model:ir.model.fields,help:popcorn.field_res_users__is_host
+msgid "Indicates if this contact is a host for events"
+msgstr "表示此联系人是否为活动主持人"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_res_partner__host_bio
+#: model:ir.model.fields,help:popcorn.field_res_users__host_bio
+msgid "Biography or description of the host for events"
+msgstr "活动主持人的传记或描述"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_res_partner__hosted_events_count
+#: model:ir.model.fields,help:popcorn.field_res_users__hosted_events_count
+msgid "Number of events hosted by this partner"
+msgstr "此合作伙伴主持的活动数量"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_res_partner__is_first_timer
+#: model:ir.model.fields,help:popcorn.field_res_users__is_first_timer
+msgid "Indicates if this contact is a first timer. Can be manually toggled."
+msgstr "表示此联系人是否为新手。可以手动切换。"
+
+#. module: popcorn
+#: model:ir.ui.menu,name:popcorn.menu_popcorn_root
+msgid "Popcorn"
+msgstr "Popcorn"
+
+#. module: popcorn
+#: model:ir.ui.menu,name:popcorn.menu_popcorn_membership
+msgid "Memberships"
+msgstr "会员资格"
+
+#. module: popcorn
+#: model:ir.ui.menu,name:popcorn.menu_popcorn_membership_plan
+msgid "Membership Plans"
+msgstr "会员计划"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_res_partner__is_host
+#: model:ir.model.fields,field_description:popcorn.field_res_users__is_host
+msgid "Is Host"
+msgstr "是主持人"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_res_partner__host_bio
+#: model:ir.model.fields,field_description:popcorn.field_res_users__host_bio
+msgid "Host Bio"
+msgstr "主持人简介"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_res_partner__hosted_events_count
+#: model:ir.model.fields,field_description:popcorn.field_res_users__hosted_events_count
+msgid "Hosted Events Count"
+msgstr "主持活动数量"
+
+#. module: popcorn
+#: model:ir.model.fields,field_description:popcorn.field_res_partner__is_first_timer
+#: model:ir.model.fields,field_description:popcorn.field_res_users__is_first_timer
+msgid "Is First Timer"
+msgstr "是新手"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_res_partner__is_host
+#: model:ir.model.fields,help:popcorn.field_res_users__is_host
+msgid "Indicates if this contact is a host for events"
+msgstr "表示此联系人是否为活动主持人"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_res_partner__host_bio
+#: model:ir.model.fields,help:popcorn.field_res_users__host_bio
+msgid "Biography or description of the host for events"
+msgstr "活动主持人的传记或描述"
+
+#. module: popcorn
+#: model:ir.model.fields,help:popcorn.field_res_partner__hosted_events_count
+#: model:ir.model.fields,help:popcorn.field_res_users__hosted_events_count
+msgid "Number of events hosted by this partner"
+msgstr "此合作伙伴主持的活动数量"
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "Please log in to register for events"
+msgstr "请登录以注册活动"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "User profile not found"
+msgstr "未找到用户资料"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "You need an active membership to register for events"
+msgstr "您需要有效的会员资格才能注册活动"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "Your membership does not allow %s events"
+msgstr "您的会员资格不允许参加%s活动"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "Unlimited membership - no consumption"
+msgstr "无限制会员 - 无消费"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "1 offline session consumed (remaining: %s)"
+msgstr "已消费1次线下活动（剩余：%s）"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "1 online session consumed (remaining: %s)"
+msgstr "已消费1次线上活动（剩余：%s）"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "1 special club session consumed (remaining: %s)"
+msgstr "已消费1次特殊俱乐部活动（剩余：%s）"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "%s points consumed (remaining: %s)"
+msgstr "已消费%s积分（剩余：%s）"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "Unknown consumption type"
+msgstr "未知消费类型"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "Insufficient points. You need %s points but have %s remaining"
+msgstr "积分不足。您需要%s积分，但只有%s剩余"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "No offline sessions remaining. You have %s offline sessions left"
+msgstr "没有剩余的线下活动。您还有%s次线下活动"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "No online sessions remaining. You have %s online sessions left"
+msgstr "没有剩余的线上活动。您还有%s次线上活动"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "No special club sessions remaining. You have %s special club sessions left"
+msgstr "没有剩余的特殊俱乐部活动。您还有%s次特殊俱乐部活动"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "Insufficient quota for this event"
+msgstr "此活动的配额不足"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "No suitable membership found for this event"
+msgstr "未找到适合此活动的会员资格"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "Please log in to purchase event tickets"
+msgstr "请登录以购买活动门票"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "You need an active membership to purchase event tickets"
+msgstr "您需要有效的会员资格才能购买活动门票"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "Registration has been successfully cancelled."
+msgstr "注册已成功取消。"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "Failed to cancel registration. Please try again."
+msgstr "取消注册失败。请重试。"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "Freeze duration must be at least the minimum required days."
+msgstr "冻结期限必须至少为所需的最少天数。"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "Freeze duration exceeds the maximum allowed days."
+msgstr "冻结期限超过了允许的最大天数。"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "Invalid freeze duration specified."
+msgstr "指定的冻结期限无效。"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "Failed to freeze membership. Please try again."
+msgstr "冻结会员资格失败。请重试。"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "Failed to unfreeze membership. Please try again."
+msgstr "解冻会员资格失败。请重试。"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "Membership has been successfully frozen."
+msgstr "会员资格已成功冻结。"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "Membership has been successfully unfrozen."
+msgstr "会员资格已成功解冻。"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "Registration not found"
+msgstr "未找到注册记录"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_event_controller.py:0
+msgid "Registration form available"
+msgstr "注册表单可用"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_membership_controller.py:0
+msgid "Membership automatically activated upon purchase"
+msgstr "购买后自动激活会员资格"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_membership_controller.py:0
+msgid "Membership created directly from plan %s"
+msgstr "直接从计划%s创建会员资格"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_membership_controller.py:0
+msgid "Membership purchased through checkout page. Payment method: %s"
+msgstr "通过结账页面购买会员资格。支付方式：%s"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_membership_controller.py:0
+msgid "Membership requires manual activation by staff"
+msgstr "会员资格需要工作人员手动激活"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_membership_controller.py:0
+msgid "Membership upgraded through checkout page. Payment method: %s"
+msgstr "通过结账页面升级会员资格。支付方式：%s"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_membership_controller.py:0
+msgid "Membership will be activated upon first event attendance"
+msgstr "会员资格将在首次参加活动时激活"
+
+#. module: popcorn
+#. odoo-python
+#: code:addons/popcorn/controllers/popcorn_membership_controller.py:0
+msgid "Upgraded from %s to %s. Upgrade price: %s"
+msgstr "从%s升级到%s。升级价格：%s"

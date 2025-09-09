@@ -14,7 +14,7 @@
                         </div>
                         <div>
                             <div class="mt-0 mb-1 fs-5 fw-normal lh-1 d-flex gap-2">
-                                <span>Your Clubs</span>
+                                <span t-translation="on">Your Clubs</span>
                             </div>
                             <div class="opacity-75">
                                 View your registered clubs and upcoming events
@@ -32,7 +32,7 @@
                         </div>
                         <div>
                             <div class="mt-0 mb-1 fs-5 fw-normal lh-1 d-flex gap-2">
-                                <span>Your Cards</span>
+                                <span t-translation="on">Your Cards</span>
                             </div>
                             <div class="opacity-75">
                                 View your membership cards and their status
@@ -102,7 +102,7 @@
                                 <div class="card-header">
                                     <h5 class="mb-0">
                                         <i class="fa fa-calendar-check-o me-2"></i>
-                                        Upcoming Clubs
+                                            <span t-translation="on">Upcoming Clubs</span>
                                     </h5>
                                 </div>
                                 <div class="card-body">
@@ -162,7 +162,7 @@
                                             <i class="fa fa-calendar-times-o fa-3x text-muted mb-3"></i>
                                             <p class="text-muted">No upcoming clubs found.</p>
                                             <a href="/event" class="btn btn-primary">
-                                                <i class="fa fa-search"></i> Browse Clubs
+                                                <i class="fa fa-search"></i> <span t-translation="on">Browse Clubs</span>
                                             </a>
                                         </div>
                                     </t>
@@ -174,7 +174,7 @@
                                 <div class="card-header">
                                     <h5 class="mb-0">
                                         <i class="fa fa-history me-2"></i>
-                                        Past Clubs
+                                        <span t-translation="on">Past Clubs</span>
                                     </h5>
                                 </div>
                                 <div class="card-body">
@@ -246,7 +246,7 @@
                  <div class="container">
                      <div class="row">
                          <div class="col-12">
-                             <h2 class="mb-4">Your Cards</h2>
+                             <h2 class="mb-4"><span t-translation="on">Your Cards</span></h2>
                              
                                                            <!-- Error Messages -->
                               <t t-if="error_message">
@@ -271,7 +271,7 @@
                                  <div class="card-header">
                                      <h5 class="mb-0">
                                          <i class="fa fa-check-circle me-2 text-success"></i>
-                                         Active Card
+                                         <span t-translation="on">Active Card</span>
                                      </h5>
                                  </div>
                                  <div class="card-body">
@@ -289,12 +289,12 @@
                                                          <div class="col-auto">
                                                              <t t-if="membership.freeze_active">
                                                                  <span class="badge bg-warning">
-                                                                     <i class="fa fa-pause"></i> Frozen until <span t-esc="membership.freeze_end"/>
+                                                                     <i class="fa fa-pause"></i> <span t-translation="on">Frozen until</span> <span t-esc="membership.freeze_end"/>
                                                                  </span>
                                                              </t>
                                                              <t t-else="">
                                                                  <span class="badge bg-light text-success">
-                                                                     <i class="fa fa-check"></i> Active
+                                                                     <i class="fa fa-check"></i> <span t-translation="on">Active</span>
                                                                  </span>
                                                              </t>
                                                          </div>
@@ -313,36 +313,36 @@
                                                              <div class="mb-3">
                                                                  <t t-if="membership.plan_quota_mode == 'unlimited'">
                                                                      <span class="badge bg-success fs-6">
-                                                                         <i class="fa fa-infinity"></i> Unlimited
+                                                                         <i class="fa fa-infinity"></i> <span t-translation="on">Unlimited</span>
                                                                      </span>
                                                                  </t>
                                                                  <t t-elif="membership.plan_quota_mode == 'bucket_counts'">
                                                                      <div class="d-flex flex-wrap gap-2">
                                                                          <span t-if="membership.remaining_offline > 0" class="badge bg-primary">
-                                                                             <i class="fa fa-building"></i> <span t-esc="membership.remaining_offline"/> offline
+                                                                             <i class="fa fa-building"></i> <span t-esc="membership.remaining_offline"/> <span t-translation="on">offline</span>
                                                                          </span>
                                                                          <span t-if="membership.remaining_online > 0" class="badge bg-info">
-                                                                             <i class="fa fa-globe"></i> <span t-esc="membership.remaining_online"/> online
+                                                                             <i class="fa fa-globe"></i> <span t-esc="membership.remaining_online"/> <span t-translation="on">online</span>
                                                                          </span>
                                                                          <span t-if="membership.remaining_sp > 0" class="badge bg-warning">
-                                                                             <i class="fa fa-star"></i> <span t-esc="membership.remaining_sp"/> special
+                                                                             <i class="fa fa-star"></i> <span t-esc="membership.remaining_sp"/> <span t-translation="on">special</span>
                                                                          </span>
                                                                      </div>
                                                                  </t>
                                                                  <t t-elif="membership.plan_quota_mode == 'points'">
                                                                      <span class="badge bg-info fs-6">
-                                                                         <i class="fa fa-coins"></i> <span t-esc="membership.points_remaining"/> points
+                                                                         <i class="fa fa-coins"></i> <span t-esc="membership.points_remaining"/> <span t-translation="on">points</span>
                                                                      </span>
                                                                  </t>
                                                              </div>
                                                          </div>
                                                          <div class="col-md-6">
-                                                             <h6 class="text-muted mb-2">Actions</h6>
+                                                             <h6 class="text-muted mb-2"><span t-translation="on">Actions</span></h6>
                                                              <div class="d-flex flex-wrap gap-2">
                                                                  <t t-if="membership.upgrade_discount_allowed and membership.activation_date and (current_date - membership.activation_date).days &lt;= membership.membership_plan_id.upgrade_window_days">
                                                                      <a t-attf-href="/my/cards/#{membership.id}/upgrade" 
                                                                         class="btn btn-outline-success btn-sm">
-                                                                         <i class="fa fa-arrow-up"></i> Upgrade
+                                                                         <i class="fa fa-arrow-up"></i> <span t-translation="on">Upgrade</span>
                                                                      </a>
                                                                  </t>
                                                                  <t t-if="membership.membership_plan_id.freeze_allowed and membership.state == 'active' and not membership.freeze_active">
@@ -350,13 +350,13 @@
                                                                              t-att-data-membership-id="membership.id"
                                                                              t-att-data-min-days="membership.membership_plan_id.freeze_min_days"
                                                                              t-att-data-max-days="membership.membership_plan_id.freeze_max_total_days">
-                                                                         <i class="fa fa-pause"></i> Freeze
+                                                                         <i class="fa fa-pause"></i> <span t-translation="on">Freeze</span>
                                                                      </button>
                                                                  </t>
                                                                  <t t-if="membership.freeze_active">
                                                                      <button type="button" class="btn btn-outline-warning btn-sm popcorn-unfreeze-btn" 
                                                                              t-att-data-membership-id="membership.id">
-                                                                         <i class="fa fa-play"></i> Unfreeze
+                                                                         <i class="fa fa-play"></i> <span t-translation="on">Unfreeze</span>
                                                                      </button>
                                                                  </t>
                                                              </div>
@@ -371,7 +371,7 @@
                                              <i class="fa fa-id-card fa-3x text-muted mb-3"></i>
                                              <p class="text-muted">No active cards found.</p>
                                              <a href="/memberships" class="btn btn-primary">
-                                                 <i class="fa fa-plus"></i> Get a Card
+                                                 <i class="fa fa-plus"></i> <span t-translation="on">Get a Card</span>
                                              </a>
                                          </div>
                                      </t>
@@ -383,7 +383,7 @@
                                  <div class="card-header">
                                      <h5 class="mb-0">
                                          <i class="fa fa-clock-o me-2 text-warning"></i>
-                                         Unactivated Cards
+                                         <span t-translation="on">Unactivated Cards</span>
                                      </h5>
                                  </div>
                                  <div class="card-body">
@@ -394,7 +394,7 @@
                                                      <tr>
                                                          <th>Card Name</th>
                                                          <th>Activation Policy</th>
-                                                         <th>Actions</th>
+                                                         <th t-translation="on">Actions</th>
                                                      </tr>
                                                  </thead>
                                                  <tbody>
@@ -407,7 +407,7 @@
                                                                   <span t-field="membership.membership_plan_id.activation_policy"/>
                                                               </td>
                                                              <td>
-                                                                 <span class="text-muted">No actions available</span>
+                                                                 <span class="text-muted" t-translation="on">No actions available</span>
                                                              </td>
                                                          </tr>
                                                      </t>
@@ -429,7 +429,7 @@
                                  <div class="card-header">
                                      <h5 class="mb-0">
                                          <i class="fa fa-times-circle me-2 text-danger"></i>
-                                         Expired Cards
+                                         <span t-translation="on">Expired Cards</span>
                                      </h5>
                                  </div>
                                  <div class="card-body">
@@ -440,7 +440,7 @@
                                                      <tr>
                                                          <th>Card Name</th>
                                                          <th>Expired On</th>
-                                                         <th>Actions</th>
+                                                         <th t-translation="on">Actions</th>
                                                      </tr>
                                                  </thead>
                                                  <tbody>
@@ -453,7 +453,7 @@
                                                                   <span t-field="membership.effective_end_date" t-options="{'widget': 'date'}"/>
                                                               </td>
                                                              <td>
-                                                                 <span class="text-muted">No actions available</span>
+                                                                 <span class="text-muted" t-translation="on">No actions available</span>
                                                              </td>
                                                          </tr>
                                                      </t>
@@ -718,7 +718,7 @@
                   <div class="modal-content">
                       <div class="modal-header">
                           <h5 class="modal-title" id="freezeModalLabel">
-                              <i class="fa fa-pause me-2"></i>Freeze Membership
+                              <i class="fa fa-pause me-2"></i><span t-translation="on">Freeze Membership</span>
                           </h5>
                           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                       </div>
@@ -727,35 +727,35 @@
                           <div class="modal-body">
                               <div class="alert alert-info">
                                   <i class="fa fa-info-circle me-2"></i>
-                                  <strong>Freeze Information:</strong>
+                                  <strong><span t-translation="on">Freeze Information:</span></strong>
                                   <ul class="mb-0 mt-2">
-                                      <li>During the freeze period, you cannot book any events</li>
-                                      <li>Your membership duration will be extended by the freeze days</li>
-                                      <li>You can unfreeze early if needed</li>
+                                      <li><span t-translation="on">During the freeze period, you cannot book any events</span></li>
+                                      <li><span t-translation="on">Your membership duration will be extended by the freeze days</span></li>
+                                      <li><span t-translation="on">You can unfreeze early if needed</span></li>
                                   </ul>
                               </div>
                               
                               <div class="mb-3">
-                                  <label for="freezeDays" class="form-label">Freeze Duration (Days)</label>
+                                  <label for="freezeDays" class="form-label"><span t-translation="on">Freeze Duration (Days)</span></label>
                                   <input type="number" class="form-control" id="freezeDays" name="freeze_days" 
                                          min="7" max="30" required="required"/>
                                   <div class="form-text">
-                                      Minimum: <span id="minDays">7</span> days | 
-                                      Maximum: <span id="maxDays">30</span> days
+                                      <span t-translation="on">Minimum:</span> <span id="minDays">7</span> <span t-translation="on">days</span> | 
+                                      <span t-translation="on">Maximum:</span> <span id="maxDays">30</span> <span t-translation="on">days</span>
                                   </div>
                               </div>
                               
                               <div class="mb-3">
-                                  <label class="form-label">Freeze Period</label>
+                                  <label class="form-label"><span t-translation="on">Freeze Period</span></label>
                                   <div class="form-control-plaintext">
-                                      <span id="freezeStartDate"></span> to <span id="freezeEndDate"></span>
+                                      <span id="freezeStartDate"></span> <span t-translation="on">to</span> <span id="freezeEndDate"></span>
                                   </div>
                               </div>
                           </div>
                           <div class="modal-footer">
-                              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><span t-translation="on">Cancel</span></button>
                               <button type="submit" class="btn btn-warning">
-                                  <i class="fa fa-pause me-2"></i>Freeze Membership
+                                  <i class="fa fa-pause me-2"></i><span t-translation="on">Freeze Membership</span>
                               </button>
                           </div>
                       </form>
@@ -771,7 +771,7 @@
                   <div class="modal-content">
                       <div class="modal-header">
                           <h5 class="modal-title" id="cancelModalLabel">
-                              <i class="fa fa-times me-2"></i>Cancel Registration
+                              <i class="fa fa-times me-2"></i><span t-translation="on">Cancel Registration</span>
                           </h5>
                           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                       </div>
@@ -780,7 +780,7 @@
                           <div class="modal-body">
                               <div class="alert alert-warning">
                                   <i class="fa fa-exclamation-triangle me-2"></i>
-                                  <strong>Cancel Registration:</strong>
+                                  <strong><span t-translation="on">Cancel Registration:</span></strong>
                                   <ul class="mb-0 mt-2">
                                       <li>This action cannot be undone</li>
                                       <li>Your membership quota will be restored if applicable</li>
@@ -808,7 +808,7 @@
                           <div class="modal-footer">
                               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Registration</button>
                               <button type="submit" class="btn btn-danger" id="confirmCancelBtn" disabled="disabled">
-                                  <i class="fa fa-times me-2"></i>Cancel Registration
+                                  <i class="fa fa-times me-2"></i><span t-translation="on">Cancel Registration</span>
                               </button>
                           </div>
                       </form>

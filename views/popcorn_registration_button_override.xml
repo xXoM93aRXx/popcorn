@@ -15,7 +15,7 @@
                 <a t-att-href="'/popcorn/event/' + slug(event) + '/register'" 
                    t-att-class="'btn btn-primary ' + (cta_additional_classes or '')"
                    t-att-title="'Register for this event'">
-                    <i class="fa fa-ticket me-2"/>Register Now
+                    <i class="fa fa-ticket me-2"/> <span t-translation="on">Register Now</span>
                 </a>
             </t>
             <t t-elif="event.is_participating">
@@ -23,7 +23,7 @@
                         t-att-class="'btn btn-secondary ' + (cta_additional_classes or '')"
                         disabled="disabled"
                         t-att-title="'Already registered for this event'">
-                    <i class="fa fa-check me-2"/>Already Registered
+                    <i class="fa fa-check me-2"/> <span t-translation="on">Already Registered</span>
                 </button>
             </t>
             <t t-elif="is_frozen">
@@ -31,9 +31,9 @@
                         t-att-class="'btn btn-warning ' + (cta_additional_classes or '')"
                         disabled="disabled"
                         t-att-title="'Membership is frozen during this event period'">
-                    <i class="fa fa-pause me-2"/>Membership Frozen
+                    <i class="fa fa-pause me-2"/> <span t-translation="on">Membership Frozen</span>
                     <t t-if="frozen_membership">
-                        <br/><small>Until <t t-esc="frozen_membership.freeze_end"/></small>
+                        <br/><small><span t-translation="on">Until</span> <t t-esc="frozen_membership.freeze_end"/></small>
                     </t>
                 </button>
             </t>
@@ -42,7 +42,7 @@
                         t-att-class="'btn btn-secondary ' + (cta_additional_classes or '')"
                         disabled="disabled"
                         t-att-title="'Registrations are closed'">
-                    <i class="fa fa-ban me-2"/>Registrations Closed
+                    <i class="fa fa-ban me-2"/> <span t-translation="on">Registrations Closed</span>
                 </button>
             </t>
         </template>

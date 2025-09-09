@@ -48,6 +48,13 @@ class EventEvent(models.Model):
         help='Host job title/function for website display'
     )
     
+    host_bio = fields.Text(
+        string='Host Bio',
+        compute='_compute_host_info',
+        store=False,
+        help='Host biography for website display'
+    )
+    
     # Location computed fields to avoid res.partner access
     event_city = fields.Char(
         string='Event City',
@@ -143,7 +150,7 @@ class EventEvent(models.Model):
     
     @api.depends('host_id')
     def _compute_host_info(self):
-        """Compute host name, image, and function from host_id"""
+        """Compute host name, image, function, and bio from host_id"""
         for event in self:
             try:
                 if event.host_id:
@@ -152,15 +159,18 @@ class EventEvent(models.Model):
                     event.host_name = host.name or ''
                     event.host_image = host.image_128 or False
                     event.host_function = host.function or 'Host'
+                    event.host_bio = host.host_bio or ''
                 else:
                     event.host_name = ''
                     event.host_image = False
                     event.host_function = ''
+                    event.host_bio = ''
             except:
                 # If there's any access issue, set default values
                 event.host_name = ''
                 event.host_image = False
                 event.host_function = ''
+                event.host_bio = ''
     
     @api.depends('address_id')
     def _compute_location_info(self):

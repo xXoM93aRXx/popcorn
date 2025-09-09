@@ -22,12 +22,12 @@ class PopcornEventController(http.Controller):
         """
         # Check if user is logged in (public user means not logged in)
         if request.env.user.id == request.env.ref('base.public_user').id:
-            return False, None, 'Please log in to register for events'
+            return False, None, _('Please log in to register for events')
         
         # Get the partner for the current user
         partner = request.env.user.sudo().partner_id
         if not partner:
-            return False, None, 'User profile not found'
+            return False, None, _('User profile not found')
         
         # Check if user has any active memberships or pending memberships with first_attendance policy
         active_memberships = request.env['popcorn.membership'].sudo().search([
@@ -46,7 +46,7 @@ class PopcornEventController(http.Controller):
         all_usable_memberships = active_memberships | pending_first_attendance
         
         if not all_usable_memberships:
-            return False, '/memberships', 'You need an active membership to register for events'
+            return False, '/memberships', _('You need an active membership to register for events')
         
         # Check if any membership allows this event type
         event_club_type = self._get_event_club_type(event)
@@ -58,7 +58,7 @@ class PopcornEventController(http.Controller):
             if self._can_membership_attend_event(membership, event_club_type):
                 return True, None, None
         
-        return False, '/memberships', f'Your membership does not allow {event_club_type.replace("_", " ").title()} events'
+        return False, '/memberships', _('Your membership does not allow %s events') % event_club_type.replace("_", " ").title()
     
     def _get_event_club_type(self, event):
         """Determine the club type for an event based on its tags"""
@@ -173,10 +173,10 @@ class PopcornEventController(http.Controller):
     def _get_consumption_text(self, membership, club_type):
         """Get human-readable text for membership consumption"""
         if membership.plan_quota_mode == 'unlimited':
-            return "Unlimited membership - no consumption"
+            return _("Unlimited membership - no consumption")
         elif membership.plan_quota_mode == 'bucket_counts':
             if club_type == 'regular_offline':
-                return f"1 offline session consumed (remaining: {membership.remaining_offline})"
+                return _("1 offline session consumed (remaining: %s)") % membership.remaining_offline
     
     def _is_event_in_freeze_period(self, event, partner):
         """Check if an event falls within any of the user's freeze periods"""
@@ -205,21 +205,21 @@ class PopcornEventController(http.Controller):
     def _get_consumption_text(self, membership, club_type):
         """Get human-readable text for membership consumption"""
         if membership.plan_quota_mode == 'unlimited':
-            return "Unlimited membership - no consumption"
+            return _("Unlimited membership - no consumption")
         elif membership.plan_quota_mode == 'bucket_counts':
             if club_type == 'regular_offline':
-                return f"1 offline session consumed (remaining: {membership.remaining_offline})"
+                return _("1 offline session consumed (remaining: %s)") % membership.remaining_offline
             elif club_type == 'regular_online':
-                return f"1 online session consumed (remaining: {membership.remaining_online})"
+                return _("1 online session consumed (remaining: %s)") % membership.remaining_online
             elif club_type == 'spclub':
-                return f"1 special club session consumed (remaining: {membership.remaining_sp})"
+                return _("1 special club session consumed (remaining: %s)") % membership.remaining_sp
         elif membership.plan_quota_mode == 'points':
             plan = membership.membership_plan_id
             points_needed = (plan.points_per_offline if club_type == 'regular_offline' 
                            else plan.points_per_online if club_type == 'regular_online' 
                            else plan.points_per_sp)
-            return f"{points_needed} points consumed (remaining: {membership.points_remaining})"
-        return "Unknown consumption type"
+            return _("%s points consumed (remaining: %s)") % (points_needed, membership.points_remaining)
+        return _("Unknown consumption type")
     
     @http.route(['/membership'], type='http', auth="public", website=True)
     def membership_required(self, **kwargs):
@@ -282,7 +282,7 @@ class PopcornEventController(http.Controller):
         # User has access, proceed with normal registration form
         # Since we're not inheriting, we'll need to handle this differently
         # For now, return a simple response
-        return {'status': 'success', 'message': 'Registration form available'}
+        return {'status': 'success', 'message': _('Registration form available')}
     
     @http.route(['/popcorn/event/<model("event.event"):event>/registration/confirm'], type='http', auth="public", website=True, methods=['POST'])
     def event_registration_confirm(self, event, **kwargs):
@@ -338,20 +338,20 @@ class PopcornEventController(http.Controller):
                                        else plan.points_per_online if event_club_type == 'regular_online' 
                                        else plan.points_per_sp)
                         if membership.points_remaining < points_needed:
-                            error_message = f'Insufficient points. You need {points_needed} points but have {membership.points_remaining} remaining'
+                            error_message = _('Insufficient points. You need %s points but have %s remaining') % (points_needed, membership.points_remaining)
                             quota_issue_found = True
                             break
                     elif membership.plan_quota_mode == 'bucket_counts':
                         if event_club_type == 'regular_offline' and membership.remaining_offline < 1:
-                            error_message = f'No offline sessions remaining. You have {membership.remaining_offline} offline sessions left'
+                            error_message = _('No offline sessions remaining. You have %s offline sessions left') % membership.remaining_offline
                             quota_issue_found = True
                             break
                         elif event_club_type == 'regular_online' and membership.remaining_online < 1:
-                            error_message = f'No online sessions remaining. You have {membership.remaining_online} online sessions left'
+                            error_message = _('No online sessions remaining. You have %s online sessions left') % membership.remaining_online
                             quota_issue_found = True
                             break
                         elif event_club_type == 'spclub' and membership.remaining_sp < 1:
-                            error_message = f'No special club sessions remaining. You have {membership.remaining_sp} special club sessions left'
+                            error_message = _('No special club sessions remaining. You have %s special club sessions left') % membership.remaining_sp
                             quota_issue_found = True
                             break
                 
@@ -375,12 +375,12 @@ class PopcornEventController(http.Controller):
                             club_type_issue_found = True
                     
                     if club_type_issue_found:
-                        error_message = f'Your membership does not allow {event_club_type.replace("_", " ").title()} events'
+                        error_message = _('Your membership does not allow %s events') % event_club_type.replace("_", " ").title()
                     else:
                         # All checks passed but something else is wrong
-                        error_message = 'Insufficient quota for this event'
+                        error_message = _('Insufficient quota for this event')
             else:
-                error_message = 'No suitable membership found for this event'
+                error_message = _('No suitable membership found for this event')
             
             error_param = url_quote(error_message)
             return werkzeug.utils.redirect('/memberships?error=' + error_param)
@@ -449,12 +449,12 @@ class PopcornEventController(http.Controller):
         """Check membership access for a specific product"""
         # Check if user is logged in (public user means not logged in)
         if request.env.user.id == request.env.ref('base.public_user').id:
-            return False, '/web/login?redirect=' + request.httprequest.url, 'Please log in to purchase event tickets'
+            return False, '/web/login?redirect=' + request.httprequest.url, _('Please log in to purchase event tickets')
         
         # Get the partner for the current user
         partner = request.env.user.sudo().partner_id
         if not partner:
-            return False, '/web/login?redirect=' + request.httprequest.url, 'User profile not found'
+            return False, '/web/login?redirect=' + request.httprequest.url, _('User profile not found')
         
         # Check if user has any active memberships
         active_memberships = request.env['popcorn.membership'].sudo().search([
@@ -463,7 +463,7 @@ class PopcornEventController(http.Controller):
         ])
         
         if not active_memberships:
-            return False, '/memberships', 'You need an active membership to purchase event tickets'
+            return False, '/memberships', _('You need an active membership to purchase event tickets')
         
         # For now, allow purchase if user has any active membership
         # You could add more specific logic here based on the product/event type
@@ -506,9 +506,9 @@ class PopcornPortalController(CustomerPortal):
         error_message = None
         
         if kwargs.get('success') == 'registration_cancelled':
-            success_message = 'Registration has been successfully cancelled.'
+            success_message = _('Registration has been successfully cancelled.')
         elif kwargs.get('error') == 'cancellation_failed':
-            error_message = kwargs.get('message', 'Failed to cancel registration. Please try again.')
+            error_message = kwargs.get('message', _('Failed to cancel registration. Please try again.'))
         
         values = {
             'registrations': upcoming_registrations,
@@ -549,23 +549,23 @@ class PopcornPortalController(CustomerPortal):
         success_message = None
         
         if kwargs.get('error') == 'freeze_min_days':
-            error_message = 'Freeze duration must be at least the minimum required days.'
+            error_message = _('Freeze duration must be at least the minimum required days.')
         elif kwargs.get('error') == 'freeze_max_days':
-            error_message = 'Freeze duration exceeds the maximum allowed days.'
+            error_message = _('Freeze duration exceeds the maximum allowed days.')
         elif kwargs.get('error') == 'invalid_freeze_days':
-            error_message = 'Invalid freeze duration specified.'
+            error_message = _('Invalid freeze duration specified.')
         elif kwargs.get('error') == 'freeze_failed':
-            error_message = 'Failed to freeze membership. Please try again.'
+            error_message = _('Failed to freeze membership. Please try again.')
         elif kwargs.get('error') == 'unfreeze_failed':
-            error_message = 'Failed to unfreeze membership. Please try again.'
+            error_message = _('Failed to unfreeze membership. Please try again.')
         elif kwargs.get('error') == 'cancellation_failed':
-            error_message = kwargs.get('message', 'Failed to cancel registration. Please try again.')
+            error_message = kwargs.get('message', _('Failed to cancel registration. Please try again.'))
         elif kwargs.get('success') == 'freeze_applied':
-            success_message = 'Membership has been successfully frozen.'
+            success_message = _('Membership has been successfully frozen.')
         elif kwargs.get('success') == 'unfreeze_applied':
-            success_message = 'Membership has been successfully unfrozen.'
+            success_message = _('Membership has been successfully unfrozen.')
         elif kwargs.get('success') == 'registration_cancelled':
-            success_message = 'Registration has been successfully cancelled.'
+            success_message = _('Registration has been successfully cancelled.')
         
         values = {
             'active_memberships': active_memberships,
@@ -946,7 +946,7 @@ class PopcornPortalController(CustomerPortal):
             ])
             
             if not registration:
-                return request.redirect('/my/clubs?error=cancellation_failed&message=Registration not found')
+                return request.redirect('/my/clubs?error=cancellation_failed&message=' + url_quote(_('Registration not found')))
             
             # Cancel the registration
             registration.action_cancel_registration()

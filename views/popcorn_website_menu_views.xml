@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        
+
+        <!-- Inherit from the actual website menu form view -->
+        <record id="website_menu_form_view_popcorn" model="ir.ui.view">
+            <field name="name">website.menu.form.popcorn</field>
+            <field name="model">website.menu</field>
+            <field name="inherit_id" ref="website.website_menus_form_view"/>
+            <field name="arch" type="xml">
+                <!-- Add FontAwesome icon field to the first group -->
+                <xpath expr="//group/group[1]/field[@name='is_mega_menu']" position="after">
+                    <field name="fa_icon" placeholder="e.g., fa-home, fa-calendar-check, fa-user"/>
+                </xpath>
+                
+            </field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <!-- 
+        Note: This file is intentionally empty. 
+        The sticky footer navigation will dynamically show whatever menu items 
+        are configured in the website menu system with "Show in Sticky Footer" enabled.
+        
+        To configure sticky footer menus:
+        1. Go to Website > Configuration > Website Menus
+        2. Edit existing menu items or create new ones
+        3. Check "Show in Sticky Footer" for items you want in the footer
+        4. Set FontAwesome icon and footer order
+        5. Save and refresh your website
+        -->
+
+    </data>
+</odoo>

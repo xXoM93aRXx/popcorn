@@ -18,7 +18,7 @@
                         </div>
                     </t>
                     
-                    <h1 class="popcorn-page-title">Choose Your Membership Plan</h1>
+                    <h1 class="popcorn-page-title" t-translation="on">Choose Your Membership Plan</h1>
                     <div class="popcorn-row">
                         <t t-foreach="request.env['popcorn.membership.plan'].search([('active','=', True)], order='sequence, name')" t-as="plan">
                             <div class="popcorn-col-md-4">
@@ -66,7 +66,7 @@
                                             <t t-if="plan.quota_mode == 'unlimited'">
                                                 <div class="popcorn-feature-item">
                                                     <i class="fa fa-refresh popcorn-feature-icon"></i>
-                                                    <span class="popcorn-feature-text">Unlimited Access</span>
+                                                    <span class="popcorn-feature-text" t-translation="on">Unlimited Access</span>
                                                 </div>
                                             </t>
                                             <t t-elif="plan.quota_mode == 'bucket_counts'">
@@ -100,19 +100,19 @@
                                             <t t-if="plan.allowed_regular_offline">
                                                 <div class="popcorn-feature-item">
                                                     <i class="fa fa-check-circle popcorn-feature-icon"></i>
-                                                    <span class="popcorn-feature-text">Regular Offline Access</span>
+                                                    <span class="popcorn-feature-text" t-translation="on">Regular Offline Access</span>
                                                 </div>
                                             </t>
                                             <t t-if="plan.allowed_regular_online">
                                                 <div class="popcorn-feature-item">
                                                     <i class="fa fa-check-circle popcorn-feature-icon"></i>
-                                                    <span class="popcorn-feature-text">Regular Online Access</span>
+                                                    <span class="popcorn-feature-text" t-translation="on">Regular Online Access</span>
                                                 </div>
                                             </t>
                                             <t t-if="plan.allowed_spclub">
                                                 <div class="popcorn-feature-item">
                                                     <i class="fa fa-check-circle popcorn-feature-icon"></i>
-                                                    <span class="popcorn-feature-text">Special Club Access</span>
+                                                    <span class="popcorn-feature-text" t-translation="on">Special Club Access</span>
                                                 </div>
                                             </t>
                                             
@@ -120,7 +120,7 @@
                                             <t t-if="plan.freeze_allowed">
                                                 <div class="popcorn-feature-item">
                                                     <i class="fa fa-pause popcorn-feature-icon"></i>
-                                                    <span class="popcorn-feature-text">Freeze Available</span>
+                                                    <span class="popcorn-feature-text" t-translation="on">Freeze Available</span>
                                                 </div>
                                             </t>
                                         </div>
@@ -218,7 +218,7 @@
                                 <div class="popcorn-summary-item">
                                     <div class="popcorn-summary-plan">
                                         <h4 class="popcorn-plan-name"><t t-esc="plan.display_name"/></h4>
-                                        <p class="popcorn-plan-duration"><t t-esc="plan.duration_days"/> days</p>
+                                        <p class="popcorn-plan-duration"><t t-esc="plan.duration_days"/> <span t-translation="on">days</span></p>
                                     </div>
                                 </div>
                                 
@@ -243,21 +243,21 @@
                                         <!-- Use first-timer status from controller -->
                                         
                                         <div class="popcorn-price-row">
-                                            <span class="popcorn-price-label">Membership Fee:</span>
+                                            <span class="popcorn-price-label" t-translation="on">Membership Fee:</span>
                                             <span class="popcorn-price-value">
                                                 <t t-esc="plan.currency_id.symbol"/><t t-esc="plan.price_normal"/>
                                             </span>
                                         </div>
                                         <t t-if="plan.price_first_timer and plan.price_first_timer != plan.price_normal and is_first_timer">
                                             <div class="popcorn-price-row popcorn-discount-row">
-                                                <span class="popcorn-price-label">First Timer Discount:</span>
+                                                <span class="popcorn-price-label" t-translation="on">First Timer Discount:</span>
                                                 <span class="popcorn-price-value popcorn-discount">
                                                     -<t t-esc="plan.currency_id.symbol"/><t t-esc="plan.price_normal - plan.price_first_timer"/>
                                                 </span>
                                             </div>
                                         </t>
                                         <div class="popcorn-price-row popcorn-total-row">
-                                            <span class="popcorn-price-label">Total:</span>
+                                            <span class="popcorn-price-label" t-translation="on">Total:</span>
                                             <span class="popcorn-price-value popcorn-total">
                                                 <t t-esc="plan.currency_id.symbol"/>
                                                 <t t-if="plan.price_first_timer and plan.price_first_timer != plan.price_normal and is_first_timer">
@@ -275,7 +275,7 @@
                                     <h4 class="popcorn-features-title">What's Included:</h4>
                                     <ul class="popcorn-features-list">
                                         <t t-if="plan.quota_mode == 'unlimited'">
-                                            <li>Unlimited access to all sessions</li>
+                                            <li t-translation="on">Unlimited access to all sessions</li>
                                         </t>
                                         <t t-elif="plan.quota_mode == 'bucket_counts'">
                                             <t t-if="plan.quota_offline">
@@ -333,11 +333,11 @@
                                 <div class="popcorn-membership-details">
                                     <h3>Membership Details</h3>
                                     <div class="popcorn-detail-row">
-                                        <span class="popcorn-detail-label">Plan:</span>
+                                        <span class="popcorn-detail-label"  t-translation="on">Plan:</span>
                                         <span class="popcorn-detail-value"><t t-esc="membership.membership_plan_id.display_name"/></span>
                                     </div>
                                     <div class="popcorn-detail-row">
-                                        <span class="popcorn-detail-label">Status:</span>
+                                        <span class="popcorn-detail-label"  t-translation="on">Status:</span>
                                         <span class="popcorn-detail-value">
                                             <span class="popcorn-status-badge popcorn-status-{membership.state}">
                                                 <t t-esc="membership.state.title()"/>
@@ -345,7 +345,7 @@
                                         </span>
                                     </div>
                                     <div class="popcorn-detail-row">
-                                        <span class="popcorn-detail-label">Purchase Price:</span>
+                                        <span class="popcorn-detail-label"  t-translation="on">Purchase Price:</span>
                                         <span class="popcorn-detail-value">
                                             <t t-esc="membership.membership_plan_id.currency_id.symbol"/><t t-esc="membership.purchase_price_paid"/>
                                         </span>
@@ -372,15 +372,15 @@
                         
                         <div class="popcorn-success-actions">
                             <a href="/memberships" class="popcorn-btn popcorn-btn-primary">
-                                <i class="fa fa-arrow-left"></i> Back to Memberships
+                                <i class="fa fa-arrow-left"></i> <span t-translation="on">Back to Memberships</span>
                             </a>
                             <a href="/" class="popcorn-btn popcorn-btn-secondary">
-                                <i class="fa fa-home"></i> Go to Homepage
+                                <i class="fa fa-home"></i> <span t-translation="on">Go to Homepage</span>
                             </a>
                         </div>
                         
                         <div class="popcorn-success-note">
-                            <p><strong>What's Next?</strong></p>
+                            <p><strong><span t-translation="on">What's Next?</span></strong></p>
                             <ul>
                                 <li>You will receive a confirmation email shortly</li>
                                 <li>Your membership card will be available at our facilities</li>

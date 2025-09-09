@@ -4,7 +4,8 @@
         <!-- Root Popcorn Menu -->
         <menuitem id="menu_popcorn_root"
                   name="Popcorn"
-                  sequence="50"/>
+                  sequence="50"
+                  web_icon="popcorn,static/description/icon.png"/>
         
 
     </data>
