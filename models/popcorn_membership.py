@@ -17,6 +17,7 @@ class PopcornMembership(models.Model):
     membership_plan_id = fields.Many2one('popcorn.membership.plan', string='Membership Plan', required=True)
     state = fields.Selection([
         ('pending', 'Pending'),
+        ('pending_payment', 'Pending Payment'),
         ('active', 'Active'),
         ('frozen', 'Frozen'),
         ('expired', 'Expired')

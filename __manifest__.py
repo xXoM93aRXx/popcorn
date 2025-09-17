@@ -16,7 +16,7 @@
     """,
     'author': 'Your Company',
     'website': 'https://www.yourcompany.com',
-    'depends': ['base', 'event', 'website', 'website_event', 'website_sale', 'delivery', 'mail','web'],
+    'depends': ['base', 'event', 'website', 'website_event', 'website_sale', 'payment', 'delivery', 'mail','web'],
     'data': [
         'security/ir.model.access.csv',
         'views/popcorn_menus.xml',

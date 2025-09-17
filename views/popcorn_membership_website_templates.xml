@@ -180,12 +180,33 @@
                                         <div class="popcorn-form-group">
                                             <label class="popcorn-form-label">Select Payment Method *</label>
                                             <div class="popcorn-payment-methods">
-                                                <t t-foreach="request.env['payment.method'].search([])" t-as="payment_method">
+                                                <!-- Dynamic Payment Methods from Active Providers -->
+                                                <t t-set="payment_providers" t-value="request.env['payment.provider'].search([('state', '=', 'enabled')])"/>
+                                                
+                                                
+                                                <t t-if="payment_providers">
+                                                    <t t-foreach="payment_providers" t-as="provider">
+                                                        <div class="popcorn-payment-method-item">
+                                                            <input type="radio" t-att-id="'payment_method_' + str(provider.id)" name="payment_method_id" 
+                                                                   t-att-value="provider.id" class="popcorn-radio" required="required"/>
+                                                            <label t-att-for="'payment_method_' + str(provider.id)" class="popcorn-radio-label">
+                                                                <span class="popcorn-payment-method-name">
+                                                                    <t t-if="provider.name == 'Stripe'">Credit Card (Stripe)</t>
+                                                                    <t t-elif="provider.name == 'PayPal'">PayPal</t>
+                                                                    <t t-elif="provider.name == 'Bank Transfer'">Bank Transfer</t>
+                                                                    <t t-else=""><t t-esc="provider.name"/></t>
+                                                                </span>
+                                                            </label>
+                                                        </div>
+                                                    </t>
+                                                </t>
+                                                <t t-else="">
+                                                    <!-- Fallback if no payment providers are configured -->
                                                     <div class="popcorn-payment-method-item">
-                                                        <input type="radio" t-att-id="'payment_method_' + str(payment_method.id)" name="payment_method_id" 
-                                                               t-att-value="payment_method.id" class="popcorn-radio" required="required"/>
-                                                        <label t-att-for="'payment_method_' + str(payment_method.id)" class="popcorn-radio-label">
-                                                            <span class="popcorn-payment-method-name"><t t-esc="payment_method.name"/></span>
+                                                        <input type="radio" id="payment_method_manual" name="payment_method_id" 
+                                                               value="manual" class="popcorn-radio" required="required"/>
+                                                        <label for="payment_method_manual" class="popcorn-radio-label">
+                                                            <span class="popcorn-payment-method-name">Manual Payment</span>
                                                         </label>
                                                     </div>
                                                 </t>
@@ -330,10 +351,24 @@
                             <i class="fa fa-check-circle"></i>
                         </div>
                         
-                        <h1 class="popcorn-success-title">Membership Purchase Successful!</h1>
+                        <h1 class="popcorn-success-title">
+                            <t t-if="request.params.get('payment_pending') == 'true'">Payment Request Submitted!</t>
+                            <t t-else="">Membership Purchase Successful!</t>
+                        </h1>
                         
                         <div class="popcorn-success-message">
-                            <p>Thank you for your purchase! Your membership has been successfully created.</p>
+                            <t t-if="request.params.get('payment_pending') == 'true'">
+                                <p>Thank you for your request! Your membership has been created and is pending payment confirmation.</p>
+                                <p><strong>Next Steps:</strong></p>
+                                <ul>
+                                    <li>Complete your payment using the method you selected</li>
+                                    <li>Your membership will be activated once payment is confirmed</li>
+                                    <li>You will receive a confirmation email once payment is processed</li>
+                                </ul>
+                            </t>
+                            <t t-else="">
+                                <p>Thank you for your purchase! Your membership has been successfully created.</p>
+                            </t>
                             
                             <t t-if="membership">
                                 <div class="popcorn-membership-details">
@@ -399,4 +434,6 @@
             </div>
         </t>
     </template>
+
+
 </odoo>

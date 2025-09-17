@@ -630,10 +630,7 @@
                                              <h5>No Upgrade Options Available</h5>
                                              <p class="text-muted">
                                                  This membership cannot be upgraded at this time. 
-                                                 <t t-if="not membership.upgrade_discount_allowed">
-                                                     Upgrade discount is not available for this membership.
-                                                 </t>
-                                                 <t t-elif="not membership.activation_date">
+                                                 <t t-if="not membership.activation_date">
                                                      Membership has not been activated yet.
                                                  </t>
                                                  <t t-else="">

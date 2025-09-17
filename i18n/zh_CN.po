@@ -852,6 +852,145 @@ msgid "Browse Clubs"
 msgstr "浏览俱乐部"
 
 #. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "Remaining Usage:"
+msgstr "剩余使用量："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "Upgrade window has expired ("
+msgstr "升级窗口已过期（"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "days from activation)."
+msgstr "天从激活开始）。"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_success_page
+msgid ""
+"Your membership has been successfully upgraded. \n"
+"                                         The new membership will be activated on your next club booking."
+msgstr ""
+"您的会员资格已成功升级。\n"
+"                                         新会员资格将在您下次预订俱乐部时激活。"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid ""
+"<i class=\"fa fa-arrow-left me-2\"/>\n"
+"                                                 Back to My Cards"
+msgstr ""
+"<i class=\"fa fa-arrow-left me-2\"/>\n"
+"                                                 返回我的会员"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid ""
+"<i class=\"fa fa-arrow-up me-2\"/>\n"
+"                                                                     Upgrade Now"
+msgstr ""
+"<i class=\"fa fa-arrow-up me-2\"/>\n"
+"                                                                     立即升级"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid ""
+"<i class=\"fa fa-arrow-up me-2\"/>\n"
+"                                         Available Upgrades"
+msgstr ""
+"<i class=\"fa fa-arrow-up me-2\"/>\n"
+"                                         可用升级"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_success_page
+msgid ""
+"<i class=\"fa fa-calendar me-2\"/>\n"
+"                                             Browse Clubs"
+msgstr ""
+"<i class=\"fa fa-calendar me-2\"/>\n"
+"                                             浏览俱乐部"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid ""
+"<i class=\"fa fa-calendar\"/> \n"
+"                                                 Activated:"
+msgstr ""
+"<i class=\"fa fa-calendar\"/> \n"
+"                                                 激活日期："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_success_page
+msgid ""
+"<i class=\"fa fa-calendar\"/> \n"
+"                                                 Duration:"
+msgstr ""
+"<i class=\"fa fa-calendar\"/> \n"
+"                                                 持续时间："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid ""
+"<i class=\"fa fa-clock-o\"/> \n"
+"                                                 Days since activation:"
+msgstr ""
+"<i class=\"fa fa-clock-o\"/> \n"
+"                                                 激活后天数："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid ""
+"<i class=\"fa fa-info-circle me-2\"/>\n"
+"                                         Current Membership"
+msgstr ""
+"<i class=\"fa fa-info-circle me-2\"/>\n"
+"                                         当前会员资格"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_success_page
+msgid ""
+"<i class=\"fa fa-id-card me-2\"/>\n"
+"                                             View My Cards"
+msgstr ""
+"<i class=\"fa fa-id-card me-2\"/>\n"
+"                                             查看我的会员"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_success_page
+msgid ""
+"<i class=\"fa fa-money\"/> \n"
+"                                                 Upgrade Price:"
+msgstr ""
+"<i class=\"fa fa-money\"/> \n"
+"                                                 升级价格："
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "<i class=\"fa fa-check text-success\"/> Regular offline access"
+msgstr "<i class=\"fa fa-check text-success\"/> 常规线下访问"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "<i class=\"fa fa-check text-success\"/> Regular online access"
+msgstr "<i class=\"fa fa-check text-success\"/> 常规线上访问"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "<i class=\"fa fa-infinity\"/> Unlimited access"
+msgstr "<i class=\"fa fa-infinity\"/> 无限制访问"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "<i class=\"fa fa-pause text-info\"/> Freeze available"
+msgstr "<i class=\"fa fa-pause text-info\"/> 可暂停"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.portal_membership_upgrade_page
+msgid "<i class=\"fa fa-check text-success\"/> Special club access"
+msgstr "<i class=\"fa fa-check text-success\"/> 特殊俱乐部访问"
+
+#. module: popcorn
 #: model_terms:ir.ui.view,arch_db:popcorn.freeze_membership_modal
 msgid "Freeze Membership"
 msgstr "冻结会员资格"

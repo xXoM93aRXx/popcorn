@@ -11,4 +11,8 @@ access_res_partner_portal,res.partner.portal,base.model_res_partner,base.group_p
 access_res_partner_portal_read_all,res.partner.portal.read.all,base.model_res_partner,base.group_portal,1,0,0,0
 access_website_menu_user,website.menu.user,website.model_website_menu,base.group_user,1,1,1,1
 access_website_menu_portal,website.menu.portal,website.model_website_menu,base.group_portal,1,0,0,0
+access_payment_provider_portal,payment.provider.portal,payment.model_payment_provider,base.group_portal,1,0,0,0
+access_payment_transaction_portal,payment.transaction.portal,payment.model_payment_transaction,base.group_portal,1,0,0,0
+access_payment_provider_public,payment.provider.public,payment.model_payment_provider,base.group_public,1,0,0,0
+access_payment_provider_user,payment.provider.user,payment.model_payment_provider,base.group_user,1,0,0,0
 

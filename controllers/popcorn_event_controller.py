@@ -669,10 +669,6 @@ class PopcornPortalController(CustomerPortal):
         if not self._is_within_upgrade_window(membership):
             return False
         
-        # Check if user has upgrade discount ability
-        if not membership.upgrade_discount_allowed:
-            return False
-        
         # Apply specific upgrade rules based on current plan type
         if current_plan.quota_mode == 'bucket_counts':
             # Experience/Online cards can upgrade to Gold or Freedom
