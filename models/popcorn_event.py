@@ -27,6 +27,12 @@ class EventEvent(models.Model):
         help='Price for attending this event'
     )
     
+    hide_after_minutes = fields.Integer(
+        string='Hide After Minutes',
+        default=15,
+        help='Number of minutes after event start when the event should disappear from the website. Set to 0 to never hide.'
+    )
+    
     # Club type classification (computed, not stored in UI)
     club_type = fields.Selection([
         ('regular_offline', 'Regular Offline'),

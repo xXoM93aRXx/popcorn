@@ -10,6 +10,7 @@
                 <field name="host_id" placeholder="Select host for this event" widget="many2one_avatar"/>
                 <field name="cancellation_deadline_hours" placeholder="24"/>
                 <field name="event_price" placeholder="0.00"/>
+                <field name="hide_after_minutes" placeholder="15"/>
             </xpath>
         </field>
     </record>

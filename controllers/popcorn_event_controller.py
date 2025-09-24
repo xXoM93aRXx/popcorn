@@ -7,6 +7,7 @@ from odoo.osv import expression
 import json
 import werkzeug
 import logging
+from datetime import timedelta
 from werkzeug.utils import redirect
 from werkzeug.urls import url_quote
 from odoo.addons.portal.controllers.portal import CustomerPortal
@@ -60,11 +61,31 @@ class PopcornEventController(http.Controller):
                 event_details = details[0]
                 events = event_details.get('results', Event)
             else:
-                # Fallback to direct search
-                events = Event.search([('website_published', '=', True)], order=order)
+                # Fallback to direct search - exclude events based on their hide_after_minutes setting
+                domain = [
+                    ('website_published', '=', True)
+                ]
+                events = Event.search(domain, order=order)
                 event_count = len(events)
                 fuzzy_search_term = search
                 event_details = {'results': events}
+            
+            # Filter events based on their hide_after_minutes setting
+            current_time = fields.Datetime.now()
+            filtered_events = []
+            
+            for event in events:
+                # If hide_after_minutes is 0, never hide the event
+                if event.hide_after_minutes == 0:
+                    filtered_events.append(event)
+                else:
+                    # Calculate cutoff time based on event's hide_after_minutes setting
+                    cutoff_time = current_time - timedelta(minutes=event.hide_after_minutes)
+                    if event.date_begin > cutoff_time:
+                        filtered_events.append(event)
+            
+            events = Event.browse([e.id for e in filtered_events])
+            event_count = len(events)
             
             # Remove pagination slicing - show all events
             # events = events[(page - 1) * step:page * step]  # Commented out to show all events
