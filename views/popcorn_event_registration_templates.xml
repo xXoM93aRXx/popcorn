@@ -20,11 +20,11 @@
                             <div class="popcorn-event-info">
                                 <div class="popcorn-event-info-item" t-if="event.date_begin">
                                     <i class="fa fa-calendar"></i>
-                                    <span t-esc="event.date_begin.strftime('%B %d, %Y')"/>
+                                    <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'dd MMM yyyy'}"/>
                                 </div>
                                 <div class="popcorn-event-info-item" t-if="event.date_begin">
                                     <i class="fa fa-clock-o"></i>
-                                    <span t-esc="event.date_begin.strftime('%I:%M %p')"/>
+                                    <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
                                 </div>
                                 <div class="popcorn-event-info-item" t-if="event.host_name">
                                     <i class="fa fa-user"></i>
@@ -35,14 +35,72 @@
                         
                         <!-- Action Buttons -->
                         <div class="popcorn-event-registration-actions">
-                            <form t-attf-action="/popcorn/event/#{event.id}/registration/confirm" method="POST" style="display: inline;">
-                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                                <button type="submit" class="popcorn-event-btn popcorn-event-btn-primary">
-                                    <i class="fa fa-check"></i> <span t-translation="on">Confirm Registration</span>
-                                </button>
-                            </form>
+                            <!-- Use membership access info passed from controller -->
+                            
+                            <!-- Show membership-based registration if user has access -->
+                            <t t-if="has_membership_access">
+                                <form t-attf-action="/popcorn/event/#{event.id}/registration/confirm" method="POST" style="display: inline;">
+                                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                    <button type="submit" class="popcorn-event-btn popcorn-event-btn-primary">
+                                        <i class="fa fa-check"></i> <span t-translation="on">Register for Club</span>
+                                    </button>
+                                </form>
+                            </t>
+                            
+                            <!-- Show membership and direct purchase options if no membership access -->
+                            <t t-else="">
+                                <!-- Error Message Display as Toast -->
+                                <t t-if="request.params.get('error')">
+                                    <div class="popcorn-error-banner" id="popcorn-error-banner">
+                                        <div class="popcorn-error-content">
+                                            <i class="fa fa-exclamation-triangle popcorn-error-icon"></i>
+                                            <span class="popcorn-error-text" t-esc="request.params.get('error')"/>
+                                            <button type="button" class="popcorn-error-close">
+                                                <i class="fa fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </t>
+                                
+                                <div class="popcorn-registration-options">
+                                    <h3><span t-translation="on">Choose Registration Option:</span></h3>
+                                    
+                                    <!-- Direct Event Purchase Option -->
+                                    <t t-if="event.event_price and event.event_price > 0">
+                                        <div class="popcorn-purchase-option">
+                                            <div class="popcorn-purchase-info">
+                                                <h4><span t-translation="on">Buy Club Ticket</span></h4>
+                                                <p class="popcorn-price"><span t-translation="on">Price:</span> <strong><t t-esc="event.currency_id.symbol"/><t t-esc="'{:,.2f}'.format(event.event_price)"/></strong></p>
+                                                <p class="popcorn-purchase-desc"><span t-translation="on">Purchase this club directly without a membership</span></p>
+                                            </div>
+                                            <form t-attf-action="/popcorn/event/#{event.id}/purchase/direct-payment" method="POST" style="display: inline;">
+                                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                                <button type="submit" class="popcorn-event-btn popcorn-event-btn-primary">
+                                                    <i class="fa fa-shopping-cart"></i> <span t-translation="on">Buy Club Ticket</span>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </t>
+                                    
+                                    <!-- Membership Purchase Option -->
+                                    <div class="popcorn-membership-option">
+                                        <div class="popcorn-membership-info">
+                                            <h4><span t-translation="on">Get Membership</span></h4>
+                                            <p class="popcorn-membership-desc"><span t-translation="on">Check out the membership plans for big savings and awesome benefits!</span></p>
+                                            <t t-if="membership_error">
+                                                <p class="popcorn-error-text"><span t-esc="membership_error"/></p>
+                                            </t>
+                                        </div>
+                                        <a href="/memberships" class="popcorn-event-btn popcorn-event-btn-secondary">
+                                            <i class="fa fa-id-card"></i> <span t-translation="on">View Memberships</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </t>
+                            
+                            <!-- Back to Events Button -->
                             <a href="/event" class="popcorn-event-btn popcorn-event-btn-secondary">
-                                <i class="fa fa-arrow-left"></i> <span t-translation="on">Back to Events</span>
+                                <i class="fa fa-arrow-left"></i> <span t-translation="on">Back to Clubs</span>
                             </a>
                         </div>
                     </div>
@@ -58,20 +116,41 @@
             <div class="popcorn-event-registration-page">
                 <div class="popcorn-container">
                     <div class="popcorn-event-registration-content">
-                        <div class="popcorn-event-registration-icon popcorn-event-success-icon">
-                            <i class="fa fa-check-circle"></i>
-                        </div>
+                        <t t-if="is_waitlist">
+                            <div class="popcorn-event-registration-icon popcorn-event-waitlist-icon">
+                                <i class="fa fa-clock-o"></i>
+                            </div>
+                        </t>
+                        <t t-else="">
+                            <div class="popcorn-event-registration-icon popcorn-event-success-icon">
+                                <i class="fa fa-check-circle"></i>
+                            </div>
+                        </t>
                         
-                        <h1 class="popcorn-event-registration-title">🎉 Registration Successful!</h1>
-                        
-                        <div class="popcorn-event-registration-message popcorn-event-success-message">
-                            Congratulations! You have been successfully registered for <t t-esc="event.name"/>.
-                        </div>
+                        <t t-if="is_waitlist">
+                            <h1 class="popcorn-event-registration-title">⏰ Waitlist Registration!</h1>
+                            
+                            <div class="popcorn-event-registration-message popcorn-event-waitlist-message">
+                                You have been added to the waitlist for <t t-esc="event.name"/>. 
+                                <t t-if="waitlist_position">
+                                    Your position on the waitlist is <strong>#<t t-esc="waitlist_position"/></strong>.
+                                </t>
+                                <br/><br/>
+                                <small>We'll notify you if a spot becomes available!</small>
+                            </div>
+                        </t>
+                        <t t-else="">
+                            <h1 class="popcorn-event-registration-title">🎉 Registration Successful!</h1>
+                            
+                            <div class="popcorn-event-registration-message popcorn-event-success-message">
+                                Congratulations! You have been successfully registered for <t t-esc="event.name"/>.
+                            </div>
+                        </t>
                         
                         <div class="popcorn-event-registration-details">
                             <h3>Registration Details:</h3>
                             <div class="popcorn-event-detail-row">
-                                <span class="popcorn-event-detail-label" t-translation="on">Event:</span>
+                                <span class="popcorn-event-detail-label" t-translation="on">Club:</span>
                                 <span class="popcorn-event-detail-value"><t t-esc="event.name"/></span>
                             </div>
                             <div class="popcorn-event-detail-row">
@@ -87,18 +166,34 @@
                                 <span class="popcorn-event-detail-value"><t t-esc="registration.id"/></span>
                             </div>
                             <div class="popcorn-event-detail-row">
-                                <span class="popcorn-event-detail-label" t-translation="on">Event Type:</span>
+                                <span class="popcorn-event-detail-label" t-translation="on">Club Type:</span>
                                 <span class="popcorn-event-detail-value"><t t-esc="event_club_type.replace('_', ' ').title()"/></span>
                             </div>
-                            <div class="popcorn-event-detail-row">
-                                <span class="popcorn-event-detail-label" t-translation="on">Consumption:</span>
-                                <span class="popcorn-event-detail-value"><t t-esc="consumption_text"/></span>
-                            </div>
+                            <t t-if="is_waitlist">
+                                <div class="popcorn-event-detail-row">
+                                    <span class="popcorn-event-detail-label" t-translation="on">Status:</span>
+                                    <span class="popcorn-event-detail-value"><span class="badge badge-warning" t-translation="on">On Waitlist</span></span>
+                                </div>
+                                <div class="popcorn-event-detail-row">
+                                    <span class="popcorn-event-detail-label" t-translation="on">Waitlist Position:</span>
+                                    <span class="popcorn-event-detail-value">#<t t-esc="waitlist_position"/></span>
+                                </div>
+                                <div class="popcorn-event-detail-row">
+                                    <span class="popcorn-event-detail-label" t-translation="on">Note:</span>
+                                    <span class="popcorn-event-detail-value" t-translation="on">No membership quota consumed until confirmed</span>
+                                </div>
+                            </t>
+                            <t t-else="">
+                                <div class="popcorn-event-detail-row">
+                                    <span class="popcorn-event-detail-label" t-translation="on">Consumption:</span>
+                                    <span class="popcorn-event-detail-value"><t t-esc="consumption_text"/></span>
+                                </div>
+                            </t>
                         </div>
                         
                         <div class="popcorn-event-registration-actions">
                             <a t-attf-href="/event/#{event.id}" class="popcorn-event-btn popcorn-event-btn-primary" t-translation="on">
-                                <i class="fa fa-calendar"></i> <span t-translation="on">View Event</span>
+                                <i class="fa fa-calendar"></i> <span t-translation="on">View Club</span>
                             </a>
                             <a href="/memberships" class="popcorn-event-btn popcorn-event-btn-secondary" t-translation="on">
                                 <i class="fa fa-id-card"></i> <span t-translation="on">My Memberships</span>
@@ -113,6 +208,395 @@
                                 <li>You can view your registration in your membership dashboard</li>
                                 <li>For any questions, please contact our support team</li>
                             </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- Event Direct Purchase Success Template -->
+    <template id="event_direct_purchase_success_page" name="Event Direct Purchase Success">
+        <t t-call="website.layout">
+            <div class="popcorn-event-registration-page">
+                <div class="popcorn-container">
+                    <div class="popcorn-event-registration-content">
+                        <div class="popcorn-event-registration-icon popcorn-event-success-icon">
+                            <i class="fa fa-shopping-cart"></i>
+                        </div>
+                        
+                        <h1 class="popcorn-event-registration-title">🎉 Purchase Successful!</h1>
+                        
+                        <div class="popcorn-event-registration-message popcorn-event-success-message">
+                            Congratulations! You have successfully purchased a ticket for <t t-esc="event.name"/>.
+                        </div>
+                        
+                        <div class="popcorn-event-registration-details">
+                            <h3><span t-translation="on">Purchase Details:</span></h3>
+                            <div class="popcorn-event-detail-row">
+                                <span class="popcorn-event-detail-label" t-translation="on">Club:</span>
+                                <span class="popcorn-event-detail-value"><t t-esc="event.name"/></span>
+                            </div>
+                            <div class="popcorn-event-detail-row">
+                                <span class="popcorn-event-detail-label" t-translation="on">Attendee:</span>
+                                <span class="popcorn-event-detail-value"><t t-esc="partner.name"/></span>
+                            </div>
+                                    <div class="popcorn-event-detail-row">
+                                        <span class="popcorn-event-detail-label" t-translation="on">Purchase Price:</span>
+                                        <span class="popcorn-event-detail-value"><strong><t t-esc="event.currency_id.symbol"/><t t-esc="'{:,.2f}'.format(purchase_price)"/></strong></span>
+                                    </div>
+                            <div class="popcorn-event-detail-row">
+                                <span class="popcorn-event-detail-label" t-translation="on">Registration ID:</span>
+                                <span class="popcorn-event-detail-value"><t t-esc="registration.id"/></span>
+                            </div>
+                            <div class="popcorn-event-detail-row">
+                                <span class="popcorn-event-detail-label" t-translation="on">Registration Type:</span>
+                                <span class="popcorn-event-detail-value"><span t-translation="on">Direct Purchase</span></span>
+                            </div>
+                        </div>
+                        
+                        <div class="popcorn-event-registration-actions">
+                            <a t-attf-href="/event/#{event.id}" class="popcorn-event-btn popcorn-event-btn-primary" t-translation="on">
+                                <i class="fa fa-calendar"></i> <span t-translation="on">View Club</span>
+                            </a>
+                            <a href="/my/clubs" class="popcorn-event-btn popcorn-event-btn-secondary" t-translation="on">
+                                <i class="fa fa-ticket"></i> <span t-translation="on">My Registrations</span>
+                            </a>
+                        </div>
+                        
+                        <div class="popcorn-event-registration-note">
+                            <p><strong><span t-translation="on">What's Next?</span></strong></p>
+                            <ul>
+                                <li>You will receive a confirmation email shortly</li>
+                                <li>Check your email for event details and reminders</li>
+                                <li>You can view your registration in your clubs dashboard</li>
+                                <li>For any questions, please contact our support team</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- Event Checkout Page Template -->
+    <template id="event_checkout_page" name="Event Checkout">
+        <t t-call="website.layout">
+            <div class="popcorn-event-checkout-page">
+                <div class="popcorn-container">
+                    <div class="popcorn-row">
+                        <!-- Checkout Form -->
+                        <div class="popcorn-col-md-8">
+                            <div class="popcorn-checkout-form">
+                                <h2 class="popcorn-checkout-title">
+                                    Complete Your Club Registration
+                                </h2>
+                                
+                                <!-- Error Message Display -->
+                                <t t-if="request.params.get('error')">
+                                    <div class="popcorn-error-banner" id="popcorn-error-banner">
+                                        <div class="popcorn-error-content">
+                                            <i class="fa fa-exclamation-triangle popcorn-error-icon"></i>
+                                            <span class="popcorn-error-text">
+                                                <t t-if="request.params.get('error') == 'missing_payment_method'">Please select a payment method.</t>
+                                                <t t-elif="request.params.get('error') == 'terms_not_accepted'">Please accept the terms and conditions.</t>
+                                                <t t-elif="request.params.get('error') == 'invalid_payment_method'">Invalid payment method selected.</t>
+                                                <t t-elif="request.params.get('error') == 'payment_access_denied'">Payment access denied. Please try again.</t>
+                                                <t t-elif="request.params.get('error') == 'gateway_unavailable'">Payment gateway is currently unavailable. Please try again later.</t>
+                                                <t t-elif="request.params.get('error') == 'processing_failed'">Payment processing failed. Please try again.</t>
+                                                <t t-else="">An error occurred during checkout. Please try again.</t>
+                                            </span>
+                                            <button type="button" class="popcorn-error-close">
+                                                <i class="fa fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </t>
+                                
+                                <form t-attf-action="/popcorn/event/#{event.id}/process_checkout" method="post" class="popcorn-checkout-form-content">
+                                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                    
+                                    <!-- WeChat Payment Container (hidden until WeChat is selected) -->
+                                    <div class="wechat-payment-container" data-payment-type="jsapi" data-event-id="event.id" data-original-url="/event" style="display: none;">
+                                        <script type="application/json" class="jsapi-params">
+                                            <!-- JSAPI parameters will be populated by WeChat payment gateway -->
+                                        </script>
+                                        <script type="application/json" class="transaction-data">
+                                            <!-- Transaction data will be populated by WeChat payment gateway -->
+                                        </script>
+                                    </div>
+                                    
+                                    <!-- Payment Methods -->
+                                    <div class="popcorn-form-section">
+                                        <h3 class="popcorn-section-title">Payment Method</h3>
+                                        <div class="popcorn-form-group">
+                                            <label class="popcorn-form-label">Select Payment Method *</label>
+                                            <div class="popcorn-payment-methods">
+                                                <!-- Dynamic Payment Methods from Active Providers -->
+                                                <t t-set="payment_providers" t-value="request.env['payment.provider'].search([('state', '=', 'enabled')])"/>
+                                                
+                                                
+                                                <t t-if="payment_providers">
+                                                    <t t-foreach="payment_providers" t-as="provider">
+                                                        <div class="popcorn-payment-method-item">
+                                                            <input type="radio" t-att-id="'payment_method_' + str(provider.id)" name="payment_method_id" 
+                                                                   t-att-value="provider.id" class="popcorn-radio" required="required"/>
+                                                            <label t-att-for="'payment_method_' + str(provider.id)" class="popcorn-radio-label">
+                                                                <span class="popcorn-payment-method-name">
+                                                                    <t t-if="provider.name == 'Stripe'">Credit Card (Stripe)</t>
+                                                                    <t t-elif="provider.name == 'PayPal'">PayPal</t>
+                                                                    <t t-elif="provider.name == 'Bank Transfer'">Bank Transfer</t>
+                                                                    <t t-else=""><t t-esc="provider.name"/></t>
+                                                                </span>
+                                                            </label>
+                                                        </div>
+                                                    </t>
+                                                </t>
+                                                <t t-else="">
+                                                    <!-- Fallback if no payment providers are configured -->
+                                                    <div class="popcorn-payment-method-item">
+                                                        <input type="radio" id="payment_method_manual" name="payment_method_id" 
+                                                               value="manual" class="popcorn-radio" required="required"/>
+                                                        <label for="payment_method_manual" class="popcorn-radio-label">
+                                                            <span class="popcorn-payment-method-name">Manual Payment</span>
+                                                        </label>
+                                                    </div>
+                                                </t>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Terms and Conditions -->
+                                    <div class="popcorn-form-section">
+                                        <div class="popcorn-form-group">
+                                            <div class="popcorn-checkbox-group">
+                                                <input type="checkbox" id="terms_accepted" name="terms_accepted" class="popcorn-checkbox" required="required"/>
+                                                <label for="terms_accepted" class="popcorn-checkbox-label">
+                                                    I agree to the <a href="/terms" target="_blank">Terms and Conditions</a> *
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Submit Button -->
+                                    <div class="popcorn-form-section">
+                                        <button type="submit" class="popcorn-checkout-submit-btn">
+                                            <i class="fa fa-lock"></i> 
+                                            Complete Registration
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        <!-- Order Summary -->
+                        <div class="popcorn-col-md-4">
+                            <div class="popcorn-order-summary">
+                                <h3 class="popcorn-summary-title">Registration Summary</h3>
+                                <div class="popcorn-summary-item">
+                                    <div class="popcorn-summary-event">
+                                        <h4 class="popcorn-event-name"><t t-esc="event.name"/></h4>
+                                        <p class="popcorn-event-date">
+                                            <t t-if="event.date_begin">
+                                                <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'dd MMM yyyy HH:mm'}"/>
+                                            </t>
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div class="popcorn-summary-pricing">
+                                    <div class="popcorn-price-row">
+                                        <span class="popcorn-price-label">Registration Fee:</span>
+                                        <span class="popcorn-price-value">
+                                            <t t-esc="event.currency_id.symbol"/><t t-esc="'{:,.2f}'.format(event.event_price)"/>
+                                        </span>
+                                    </div>
+                                    <div class="popcorn-price-row popcorn-total-row">
+                                        <span class="popcorn-price-label">Total:</span>
+                                        <span class="popcorn-price-value popcorn-total">
+                                            <t t-esc="event.currency_id.symbol"/><t t-esc="'{:,.2f}'.format(event.event_price)"/>
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="popcorn-summary-features">
+                                    <h4 class="popcorn-features-title">What's Included:</h4>
+                                    <ul class="popcorn-features-list">
+                                        <li>Club session participation</li>
+                                        <li>English conversation practice</li>
+                                        <li>Networking opportunities</li>
+                                        <li>Refreshments (if applicable)</li>
+                                        <li>Certificate of participation</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- Event Checkout Success Page Template -->
+    <template id="event_checkout_success_page" name="Event Checkout Success">
+        <t t-call="website.layout">
+            <div class="popcorn-event-success-page">
+                <div class="popcorn-container">
+                    <div class="popcorn-success-content">
+                        <div class="popcorn-success-icon">
+                            <i class="fa fa-check-circle"></i>
+                        </div>
+                        
+                        <h1 class="popcorn-success-title">
+                            Registration Successful!
+                        </h1>
+                        
+                        <div class="popcorn-success-message">
+                            <p>Thank you for your registration! You have successfully registered for the club session.</p>
+                            
+                            <t t-if="registration">
+                                <div class="popcorn-registration-details">
+                                    <h3>Registration Details</h3>
+                                    <div class="popcorn-detail-row">
+                                        <span class="popcorn-detail-label">Event:</span>
+                                        <span class="popcorn-detail-value"><t t-esc="event.name"/></span>
+                                    </div>
+                                    <div class="popcorn-detail-row">
+                                        <span class="popcorn-detail-label">Date:</span>
+                                        <span class="popcorn-detail-value">
+                                            <t t-if="event.date_begin">
+                                                <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'dd MMM yyyy HH:mm'}"/>
+                                            </t>
+                                        </span>
+                                    </div>
+                                    <div class="popcorn-detail-row">
+                                        <span class="popcorn-detail-label">Registration ID:</span>
+                                        <span class="popcorn-detail-value"><t t-esc="registration.id"/></span>
+                                    </div>
+                                    <div class="popcorn-detail-row">
+                                        <span class="popcorn-detail-label">Status:</span>
+                                        <span class="popcorn-detail-value">
+                                            <span class="popcorn-status-badge popcorn-status-open">
+                                                <t t-esc="registration.state.title()"/>
+                                            </span>
+                                        </span>
+                                    </div>
+                                    <div class="popcorn-detail-row">
+                                        <span class="popcorn-detail-label">Price Paid:</span>
+                                        <span class="popcorn-detail-value">
+                                            <t t-esc="event.currency_id.symbol"/><t t-esc="'{:,.2f}'.format(purchase_price)"/>
+                                        </span>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                        
+                        <div class="popcorn-success-actions">
+                            <a href="/event" class="popcorn-btn popcorn-btn-primary">
+                                <i class="fa fa-calendar"></i> View More Events
+                            </a>
+                            <a href="/memberships" class="popcorn-btn popcorn-btn-secondary">
+                                <i class="fa fa-id-card"></i> Get Membership
+                            </a>
+                        </div>
+                        
+                        <div class="popcorn-success-note">
+                            <p><strong>What's Next?</strong></p>
+                            <ul>
+                                <li>You will receive a confirmation email shortly</li>
+                                <li>Check your email for event details and reminders</li>
+                                <li>You can view your registration in your clubs dashboard</li>
+                                <li>For any questions, please contact our support team</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- Event Already Registered Page Template -->
+    <template id="event_already_registered_page" name="Event Already Registered">
+        <t t-call="website.layout">
+            <div class="popcorn-event-already-registered-page">
+                <div class="popcorn-container">
+                    <div class="popcorn-already-registered-content">
+                        <div class="popcorn-already-registered-icon">
+                            <i class="fa fa-info-circle"></i>
+                        </div>
+                        
+                        <h1 class="popcorn-already-registered-title">
+                            Already Registered
+                        </h1>
+                        
+                        <div class="popcorn-already-registered-message">
+                            <p>You are already registered for this club session.</p>
+                            
+                            <t t-if="registration">
+                                <div class="popcorn-registration-details">
+                                    <h3>Your Registration Details</h3>
+                                    <div class="popcorn-detail-row">
+                                        <span class="popcorn-detail-label">Event:</span>
+                                        <span class="popcorn-detail-value"><t t-esc="event.name"/></span>
+                                    </div>
+                                    <div class="popcorn-detail-row">
+                                        <span class="popcorn-detail-label">Registration ID:</span>
+                                        <span class="popcorn-detail-value"><t t-esc="registration.id"/></span>
+                                    </div>
+                                    <div class="popcorn-detail-row">
+                                        <span class="popcorn-detail-label">Status:</span>
+                                        <span class="popcorn-detail-value">
+                                            <span class="popcorn-status-badge popcorn-status-open">
+                                                <t t-esc="registration.state.title()"/>
+                                            </span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                        
+                        <div class="popcorn-already-registered-actions">
+                            <a href="/event" class="popcorn-btn popcorn-btn-primary">
+                                <i class="fa fa-calendar"></i> View More Events
+                            </a>
+                            <a href="/my/events" class="popcorn-btn popcorn-btn-secondary">
+                                <i class="fa fa-list"></i> My Registrations
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- Event Checkout Error Page Template -->
+    <template id="event_checkout_error_page" name="Event Checkout Error">
+        <t t-call="website.layout">
+            <div class="popcorn-event-error-page">
+                <div class="popcorn-container">
+                    <div class="popcorn-error-content">
+                        <div class="popcorn-error-icon">
+                            <i class="fa fa-times-circle"></i>
+                        </div>
+                        
+                        <h1 class="popcorn-error-title">
+                            Registration Error
+                        </h1>
+                        
+                        <div class="popcorn-error-message">
+                            <p>There was an error processing your registration. Please try again.</p>
+                            <p class="popcorn-error-details" t-if="error_message">
+                                <strong>Error:</strong> <t t-esc="error_message"/>
+                            </p>
+                        </div>
+                        
+                        <div class="popcorn-error-actions">
+                            <a t-attf-href="/popcorn/event/#{event.id}/checkout" class="popcorn-btn popcorn-btn-primary">
+                                <i class="fa fa-refresh"></i> Try Again
+                            </a>
+                            <a href="/event" class="popcorn-btn popcorn-btn-secondary">
+                                <i class="fa fa-calendar"></i> View Events
+                            </a>
                         </div>
                     </div>
                 </div>

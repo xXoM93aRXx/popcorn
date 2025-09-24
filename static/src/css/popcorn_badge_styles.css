@@ -1,0 +1,264 @@
+/* Badge Styles */
+.my-badges-container {
+    margin-top: 20px;
+}
+
+.badge-card {
+    background: #fff;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.badge-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+
+.badge-card.earned {
+    border-color: #28a745;
+    background: linear-gradient(135deg, #f8fff8 0%, #e8f5e8 100%);
+}
+
+.badge-card.not-earned {
+    border-color: #dee2e6;
+    background: #f8f9fa;
+}
+
+.badge-image-container {
+    margin-bottom: 15px;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.badge-image {
+    max-width: 100px;
+    max-height: 100px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.badge-card.not-earned .badge-image {
+    opacity: 0.4;
+    filter: grayscale(100%);
+}
+
+.badge-card.earned .badge-image {
+    opacity: 1;
+    filter: grayscale(0%);
+}
+
+.badge-placeholder {
+    color: #6c757d;
+    opacity: 0.5;
+}
+
+.badge-card.earned .badge-placeholder {
+    color: #28a745;
+    opacity: 0.8;
+}
+
+.badge-info {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.badge-name {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.badge-card.not-earned .badge-name {
+    color: #6c757d;
+}
+
+.badge-description {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 15px;
+    line-height: 1.4;
+}
+
+.badge-card.not-earned .badge-description {
+    color: #999;
+}
+
+.badge-status {
+    margin-top: auto;
+}
+
+.status-earned {
+    color: #28a745;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.status-earned i {
+    margin-right: 5px;
+}
+
+.status-not-earned {
+    color: #6c757d;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.status-not-earned i {
+    margin-right: 5px;
+}
+
+.no-badges {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.no-badges .alert {
+    display: inline-block;
+    padding: 20px 30px;
+    border-radius: 8px;
+}
+
+/* Badge Detail Modal Styles */
+.badge-detail-content {
+    display: flex;
+    gap: 20px;
+}
+
+.badge-detail-image {
+    flex-shrink: 0;
+}
+
+.badge-detail-image img {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.badge-detail-info {
+    flex-grow: 1;
+}
+
+.badge-detail-info h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+.badge-detail-status {
+    margin: 15px 0;
+}
+
+.badge-detail-rules {
+    margin-top: 20px;
+}
+
+.badge-detail-rules h5 {
+    color: #555;
+    margin-bottom: 10px;
+}
+
+.badge-detail-rules ul {
+    list-style: none;
+    padding: 0;
+}
+
+.badge-detail-rules li {
+    padding: 5px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.badge-detail-rules li:last-child {
+    border-bottom: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .badge-card {
+        margin-bottom: 20px;
+    }
+    
+    .badge-detail-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .badge-detail-image {
+        margin-bottom: 20px;
+    }
+}
+
+/* Animation for badge earning */
+@keyframes badgeEarned {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.badge-card.earned {
+    animation: badgeEarned 0.6s ease-in-out;
+}
+
+/* Progress indicator for partial completion */
+.badge-progress {
+    margin-top: 10px;
+}
+
+.progress {
+    height: 6px;
+    border-radius: 3px;
+    background-color: #e9ecef;
+    overflow: hidden;
+}
+
+.progress-bar {
+    background-color: #28a745;
+    transition: width 0.6s ease;
+}
+
+/* Badge collection stats */
+.badge-stats {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.badge-stats h3 {
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.stat-item {
+    display: inline-block;
+    margin: 0 20px;
+}
+
+.stat-number {
+    font-size: 24px;
+    font-weight: bold;
+    color: #28a745;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: #666;
+    margin-top: 5px;
+}

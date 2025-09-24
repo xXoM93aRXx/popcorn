@@ -27,8 +27,23 @@ class PopcornEventRegistration(models.Model):
     # Points consumed (for points-based plans)
     points_consumed = fields.Integer(string='Points Consumed', compute='_compute_points_consumed', store=True)
     
+    # Track if this registration was imported (not created through normal flow)
+    is_imported = fields.Boolean(string='Imported Registration', default=False)
+    
+    # Waitlist functionality
+    is_on_waitlist = fields.Boolean(string='On Waitlist', default=False)
+    waitlist_position = fields.Integer(string='Waitlist Position', default=0)
+    
     # Computed field to check if cancellation is allowed
     can_cancel = fields.Boolean(string='Can Cancel', compute='_compute_can_cancel', store=False)
+    
+    # Staff registration field
+    is_auto_booked = fields.Boolean(string='Auto Booked', default=False, 
+                                   help='Indicates if this registration was automatically created for a contact with auto-booking enabled')
+    
+    # Computed fields for registration desk
+    event_host = fields.Char(string='Host', related='event_id.host_id.name', readonly=True, store=True)
+    event_start_time = fields.Datetime(string='Club Start Time', related='event_id.date_begin', readonly=True, store=True)
     
     @api.depends('event_id.tag_ids')
     def _compute_club_type(self):
@@ -124,6 +139,38 @@ class PopcornEventRegistration(models.Model):
         for registration in self:
             if registration.membership_id and registration.membership_id.partner_id != registration.partner_id:
                 raise ValidationError(_('Membership must belong to the registration partner'))
+    
+    @api.constrains('partner_id', 'event_id', 'state')
+    def _check_no_double_booking(self):
+        """Prevent users from booking two events at the same time"""
+        for registration in self:
+            if not registration.partner_id or not registration.event_id or registration.state in ['cancel']:
+                continue
+                
+            # Find other registrations for the same partner that overlap in time
+            overlapping_registrations = self.search([
+                ('partner_id', '=', registration.partner_id.id),
+                ('event_id', '!=', registration.event_id.id),
+                ('state', 'in', ['draft', 'open', 'done']),  # Active registrations
+                ('id', '!=', registration.id)  # Exclude current registration
+            ])
+            
+            for other_reg in overlapping_registrations:
+                # Check if events overlap in time
+                if self._events_overlap(registration.event_id, other_reg.event_id):
+                    raise ValidationError(
+                        _('You cannot register for two events at the same time. '
+                          'You are already registered for "%s" which overlaps with "%s".') % 
+                        (other_reg.event_id.name, registration.event_id.name)
+                    )
+    
+    def _events_overlap(self, event1, event2):
+        """Check if two events overlap in time"""
+        if not event1.date_begin or not event1.date_end or not event2.date_begin or not event2.date_end:
+            return False
+            
+        # Events overlap if one starts before the other ends
+        return (event1.date_begin < event2.date_end and event2.date_begin < event1.date_end)
     
     @api.constrains('membership_id', 'event_id')
     def _check_membership_event_compatibility(self):
@@ -245,7 +292,7 @@ class PopcornEventRegistration(models.Model):
         return priority_map.get(quota_mode, 0)
     
     def action_consume_membership(self):
-        """Consume membership quota for this registration"""
+        """Manually consume membership quota for this registration (legacy method)"""
         self.ensure_one()
         
         if not self.membership_id:
@@ -254,16 +301,8 @@ class PopcornEventRegistration(models.Model):
         if self.consumption_state != 'pending':
             raise UserError(_('Registration is not in pending state for consumption'))
         
-        membership = self.membership_id
-        
-        # Check if membership has sufficient quota BEFORE marking as consumed
-        if not self._can_consume_membership():
-            raise UserError(_('Insufficient membership quota for this event'))
-        
-        # Mark as consumed first - this will trigger recomputation of remaining fields
-        self.write({
-            'consumption_state': 'consumed'
-        })
+        # Use the automatic consumption method
+        self._consume_membership_quota()
         
         return True
     
@@ -334,9 +373,11 @@ class PopcornEventRegistration(models.Model):
         if self.state not in ['open', 'confirmed']:
             raise UserError(_('Registration cannot be cancelled in its current state'))
         
-        # If membership was consumed, restore the quota
-        if self.consumption_state == 'consumed' and self.membership_id:
-            self._restore_membership_quota()
+        # If membership was consumed or pending, restore the quota
+        if self.consumption_state in ['consumed', 'pending'] and self.membership_id:
+            if self.consumption_state == 'consumed':
+                self._restore_membership_quota()
+            # If pending, just mark as cancelled (no quota to restore)
         
         # Cancel the registration
         self.write({
@@ -349,7 +390,107 @@ class PopcornEventRegistration(models.Model):
             body=_('Registration cancelled by portal user')
         )
         
+        # Promote next person from waitlist if event has limited seats
+        if self.event_id.seats_limited:
+            self._promote_next_waitlist_registration()
+        
         return True
+    
+    def _promote_next_waitlist_registration(self):
+        """Promote the next person from the waitlist when a spot becomes available"""
+        self.ensure_one()
+        
+        # Find the next person on the waitlist (lowest position number)
+        next_waitlist_reg = self.env['event.registration'].search([
+            ('event_id', '=', self.event_id.id),
+            ('is_on_waitlist', '=', True),
+            ('state', '=', 'draft')
+        ], order='waitlist_position asc', limit=1)
+        
+        if next_waitlist_reg:
+            # Promote this registration
+            next_waitlist_reg.write({
+                'is_on_waitlist': False,
+                'waitlist_position': 0,
+                'state': 'open'
+            })
+            
+            # Consume membership quota for the promoted registration
+            if next_waitlist_reg.membership_id and next_waitlist_reg.consumption_state == 'pending':
+                next_waitlist_reg._consume_membership_quota()
+            
+            # Log the promotion
+            next_waitlist_reg.message_post(
+                body=_('Promoted from waitlist to confirmed registration')
+            )
+            
+            # Update waitlist positions for remaining waitlist registrations
+            self._update_waitlist_positions()
+    
+    def _update_waitlist_positions(self):
+        """Update waitlist positions after a promotion"""
+        self.ensure_one()
+        
+        # Get all remaining waitlist registrations
+        remaining_waitlist = self.env['event.registration'].search([
+            ('event_id', '=', self.event_id.id),
+            ('is_on_waitlist', '=', True),
+            ('state', '=', 'draft')
+        ], order='waitlist_position asc')
+        
+        # Renumber positions starting from 1
+        for i, reg in enumerate(remaining_waitlist, 1):
+            reg.write({'waitlist_position': i})
+    
+    def _consume_membership_quota(self):
+        """Automatically consume membership quota when registration is created"""
+        self.ensure_one()
+        
+        if not self.membership_id or self.consumption_state != 'pending':
+            return
+        
+        membership = self.membership_id
+        
+        # Check if membership has sufficient quota BEFORE consuming
+        if not self._can_consume_membership():
+            raise ValidationError(_('Insufficient membership quota for this event'))
+        
+        # Mark as consumed first
+        self.write({
+            'consumption_state': 'consumed'
+        })
+        
+        # Log the quota consumption
+        membership.message_post(
+            body=_('Quota consumed for event registration: %s') % self.event_id.name
+        )
+    
+    def _add_to_waitlist(self):
+        """Add registration to waitlist and assign position"""
+        self.ensure_one()
+        
+        if not self.event_id.seats_limited:
+            return  # No waitlist if seats are unlimited
+        
+        # Get current waitlist count
+        current_waitlist = self.env['event.registration'].search([
+            ('event_id', '=', self.event_id.id),
+            ('is_on_waitlist', '=', True)
+        ], order='waitlist_position desc')
+        
+        # Assign next position
+        next_position = (current_waitlist[0].waitlist_position + 1) if current_waitlist else 1
+        
+        self.write({
+            'is_on_waitlist': True,
+            'waitlist_position': next_position,
+            'state': 'draft'  # Keep in draft state until promoted
+        })
+        
+        # Log the waitlist addition
+        self.message_post(
+            body=_('Added to waitlist at position #%s') % next_position
+        )
     
     def _restore_membership_quota(self):
         """Restore membership quota that was consumed by this registration"""
@@ -383,12 +524,29 @@ class PopcornEventRegistration(models.Model):
         if 'consumption_state' not in vals:
             vals['consumption_state'] = 'pending'
         
+        # Check if this is an import/migration (no automatic consumption for imports)
+        is_import = self._context.get('import_file') or self._context.get('from_import')
+        
+        # Mark as imported if this is an import
+        if is_import:
+            vals['is_imported'] = True
+        
         # Create the record first
         registration = super().create(vals)
         
         # Post-create validation and auto-selection
         if registration.partner_id and registration.event_id:
             registration._post_create_validation()
+        
+        # Only automatically consume membership quota for new registrations (not imports)
+        if not is_import and registration.membership_id and registration.consumption_state == 'pending':
+            # Check if event has seats available
+            if registration.event_id.seats_limited and registration.event_id.seats_available <= 0:
+                # Add to waitlist instead of consuming quota
+                registration._add_to_waitlist()
+            else:
+                # Normal registration - consume quota
+                registration._consume_membership_quota()
         
         # Update partner's first timer status after creating registration
         if registration.partner_id:
@@ -452,12 +610,26 @@ class PopcornEventRegistration(models.Model):
                     if not registration._is_membership_compatible(membership):
                         raise ValidationError(_('Selected membership is not compatible with this event'))
         
+        # Store original states to check for cancellations
+        original_states = {reg.id: reg.state for reg in self}
+        
         result = super().write(vals)
         
         # Post-write validation
         for registration in self:
             if registration.partner_id and registration.event_id:
                 registration._validate_registration()
+        
+        # Handle state changes for waitlist promotion
+        if 'state' in vals:
+            new_state = vals['state']
+            for registration in self:
+                original_state = original_states.get(registration.id)
+                
+                # If registration is being cancelled, promote waitlist
+                if new_state == 'cancel' and original_state in ['open', 'confirmed']:
+                    if registration.event_id.seats_limited:
+                        registration._promote_next_waitlist_registration()
         
         # Update first timer status if registration state changed to 'done' (attended)
         if vals.get('state') == 'done':
@@ -469,6 +641,58 @@ class PopcornEventRegistration(models.Model):
         self.env['ir.ui.view'].clear_caches()
         
         return result
+    
+    def action_promote_from_waitlist(self):
+        """Manually promote a registration from waitlist to confirmed"""
+        for registration in self:
+            if not registration.is_on_waitlist:
+                raise UserError(_('This registration is not on the waitlist'))
+            
+            if not registration.event_id.seats_limited:
+                raise UserError(_('This event does not have limited seats'))
+            
+            # Check if there are available seats
+            confirmed_registrations = registration.event_id.registration_ids.filtered(
+                lambda r: r.state in ['open', 'confirmed', 'done'] and not r.is_on_waitlist
+            )
+            if len(confirmed_registrations) >= registration.event_id.seats_max:
+                raise UserError(_('No seats available for promotion'))
+            
+            # Promote the registration
+            registration.write({
+                'is_on_waitlist': False,
+                'waitlist_position': 0,
+                'state': 'open'
+            })
+            
+            # Consume membership quota
+            if registration.membership_id and registration.consumption_state == 'pending':
+                registration._consume_membership_quota()
+            
+            # Log the promotion
+            registration.message_post(
+                body=_('Manually promoted from waitlist to confirmed registration')
+            )
+            
+            # Update remaining waitlist positions
+            registration._update_waitlist_positions()
+    
+    def action_add_to_waitlist(self):
+        """Manually add a registration to the waitlist"""
+        for registration in self:
+            if registration.is_on_waitlist:
+                raise UserError(_('This registration is already on the waitlist'))
+            
+            if not registration.event_id.seats_limited:
+                raise UserError(_('This event does not have limited seats'))
+            
+            # Add to waitlist
+            registration._add_to_waitlist()
+            
+            # Log the addition
+            registration.message_post(
+                body=_('Manually added to waitlist')
+            )
     
     def unlink(self):
         """Override unlink to handle membership cleanup"""

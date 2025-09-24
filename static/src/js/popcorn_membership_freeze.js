@@ -5,6 +5,22 @@ function setupFreezeFunctionality() {
   const freezeForm = document.getElementById('freezeForm');
   const freezeDaysInput = document.getElementById('freezeDays');
   
+  // Debug logging to help identify issues
+  if (!freezeModal) {
+    console.log('Freeze modal not found, skipping freeze functionality setup');
+    return;
+  }
+  if (!freezeForm) {
+    console.log('Freeze form not found, skipping freeze functionality setup');
+    return;
+  }
+  if (!freezeDaysInput) {
+    console.log('Freeze days input not found, skipping freeze functionality setup');
+    return;
+  }
+  
+  console.log('Setting up freeze functionality...');
+  
   if (freezeModal && freezeForm && freezeDaysInput) {
     // Bootstrap modal should be available in Odoo
     
@@ -15,9 +31,13 @@ function setupFreezeFunctionality() {
       btn.addEventListener('click', function(evt) {
         evt.preventDefault();
         
+        console.log('Freeze button clicked');
+        
         const membershipId = this.dataset.membershipId;
         const minDays = parseInt(this.dataset.minDays) || 7;
         const maxDays = parseInt(this.dataset.maxDays) || 30;
+        
+        console.log('Membership ID:', membershipId, 'Min days:', minDays, 'Max days:', maxDays);
         
         // Update form action
         freezeForm.action = `/my/cards/${membershipId}/freeze`;
@@ -27,15 +47,23 @@ function setupFreezeFunctionality() {
         freezeDaysInput.max = maxDays;
         freezeDaysInput.value = minDays;
         
-        // Update display
-        document.getElementById('minDays').textContent = minDays;
-        document.getElementById('maxDays').textContent = maxDays;
+        // Update display - with null checks to prevent errors
+        const minDaysElement = document.getElementById('minDays');
+        const maxDaysElement = document.getElementById('maxDays');
+        
+        if (minDaysElement) {
+            minDaysElement.textContent = minDays;
+        }
+        if (maxDaysElement) {
+            maxDaysElement.textContent = maxDays;
+        }
         
         
         // Update freeze period preview
         updateFreezePeriodPreview();
         
         // Show modal
+        console.log('About to show modal');
         showModal();
       });
     });
@@ -128,17 +156,23 @@ function setupFreezeFunctionality() {
 
 function showModal() {
   const modal = document.getElementById('freezeModal');
+  console.log('showModal called, modal found:', !!modal);
+  
   if (modal) {
     try {
       // Use Bootstrap modal show method
       const bootstrapModal = new bootstrap.Modal(modal);
       bootstrapModal.show();
+      console.log('Bootstrap modal shown successfully');
     } catch (e) {
+      console.log('Bootstrap modal failed, trying fallback:', e);
       // Fallback: try to show modal manually
       modal.style.display = 'block';
       modal.classList.add('show');
       document.body.classList.add('modal-open');
     }
+  } else {
+    console.log('Modal not found in showModal');
   }
 }
 
@@ -161,13 +195,31 @@ function hideModal() {
 }
 
 function updateFreezePeriodPreview() {
-  const freezeDays = parseInt(document.getElementById('freezeDays').value) || 0;
+  const freezeDaysInput = document.getElementById('freezeDays');
+  const freezeStartDateElement = document.getElementById('freezeStartDate');
+  const freezeEndDateElement = document.getElementById('freezeEndDate');
+  
+  console.log('updateFreezePeriodPreview called');
+  console.log('Elements found:', {
+    freezeDaysInput: !!freezeDaysInput,
+    freezeStartDateElement: !!freezeStartDateElement,
+    freezeEndDateElement: !!freezeEndDateElement
+  });
+  
+  if (!freezeDaysInput || !freezeStartDateElement || !freezeEndDateElement) {
+    console.log('Some elements not found, exiting updateFreezePeriodPreview');
+    return; // Exit early if elements are not found
+  }
+  
+  const freezeDays = parseInt(freezeDaysInput.value) || 0;
   const startDate = new Date();
   const endDate = new Date();
   endDate.setDate(endDate.getDate() + freezeDays);
   
-  document.getElementById('freezeStartDate').textContent = startDate.toLocaleDateString();
-  document.getElementById('freezeEndDate').textContent = endDate.toLocaleDateString();
+  console.log('Updating dates:', { freezeDays, startDate: startDate.toLocaleDateString(), endDate: endDate.toLocaleDateString() });
+  
+  freezeStartDateElement.textContent = startDate.toLocaleDateString();
+  freezeEndDateElement.textContent = endDate.toLocaleDateString();
 }
 
 
@@ -180,6 +232,11 @@ if (document.readyState === 'loading') {
 
 // Also initialize when page loads dynamically (for SPA-like behavior)
 document.addEventListener('DOMContentLoaded', function() {
-  // Small delay to ensure all elements are loaded
+  // Small delay to ensure all elements are loaded, especially for dynamic content
   setTimeout(setupFreezeFunctionality, 100);
+});
+
+// Additional initialization for dynamic content loading
+window.addEventListener('load', function() {
+  setTimeout(setupFreezeFunctionality, 200);
 });

@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Badge Detail Page -->
+    <template id="portal_badge_detail_page" name="Badge Detail Page">
+        <t t-call="website.layout">
+            <t t-set="title">Badge Details</t>
+            <div id="wrap">
+                <div class="container mt16">
+                    <div class="row">
+                        <div class="col-md-8 col-md-offset-2">
+                            <div class="badge-detail-page">
+                                <div class="badge-detail-header">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="badge-detail-image">
+                                                <img t-if="badge.image" 
+                                                     t-att-src="'/web/image/popcorn.badge/' + str(badge.id) + '/image'" 
+                                                     class="img-responsive badge-main-image"
+                                                     t-att-alt="badge.name"/>
+                                                <div t-if="not badge.image" class="badge-placeholder-large">
+                                                    <i class="fa fa-trophy fa-5x"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <div class="badge-detail-info">
+                                                <h1 class="badge-title"><t t-esc="badge.name"/></h1>
+                                                <div class="badge-status-large">
+                                                    <span t-if="badge.earned" class="status-earned-large">
+                                                        <i class="fa fa-check-circle"></i> 
+                                                        <strong>Earned!</strong>
+                                                    </span>
+                                                    <span t-else="" class="status-not-earned-large">
+                                                        <i class="fa fa-clock-o"></i> 
+                                                        <strong>Not Yet Earned</strong>
+                                                    </span>
+                                                </div>
+                                                <div class="badge-description-large" t-if="badge.description">
+                                                    <p><t t-esc="badge.description"/></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="badge-requirements">
+                                    <h3>Requirements</h3>
+                                    <div class="requirements-list">
+                                        <t t-foreach="badge.badge_rule_ids" t-as="rule">
+                                            <div class="requirement-item" t-att-class="'requirement-item ' + ('met' if rule._evaluate_rule_for_partner(partner) else 'not-met')">
+                                                <div class="requirement-icon">
+                                                    <i t-if="rule._evaluate_rule_for_partner(partner)" class="fa fa-check-circle text-success"></i>
+                                                    <i t-else="" class="fa fa-circle-o text-muted"></i>
+                                                </div>
+                                                <div class="requirement-content">
+                                                    <div class="requirement-title">
+                                                        <t t-esc="rule.name"/>
+                                                    </div>
+                                                    <div class="requirement-description">
+                                                        <t t-if="rule.description" t-esc="rule.description"/>
+                                                        <t t-else="">
+                                                            <t t-esc="rule.model_id.name"/> - 
+                                                            <t t-esc="rule.field_id.field_description"/> 
+                                                            <t t-esc="rule.operator"/> 
+                                                            <t t-esc="rule.value"/>
+                                                        </t>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </t>
+                                    </div>
+                                </div>
+                                
+                                <div class="badge-actions">
+                                    <a href="/my/badges" class="btn btn-primary">
+                                        <i class="fa fa-arrow-left"></i> Back to My Badges
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- Badge Detail Styles -->
+    <template id="badge_detail_styles" name="Badge Detail Styles">
+        <style>
+            .badge-detail-page {
+                background: #fff;
+                border-radius: 12px;
+                padding: 30px;
+                box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+                margin-bottom: 30px;
+            }
+            
+            .badge-detail-header {
+                margin-bottom: 30px;
+                padding-bottom: 20px;
+                border-bottom: 2px solid #f0f0f0;
+            }
+            
+            .badge-main-image {
+                max-width: 200px;
+                max-height: 200px;
+                border-radius: 12px;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            }
+            
+            .badge-placeholder-large {
+                color: #6c757d;
+                text-align: center;
+                padding: 40px;
+                background: #f8f9fa;
+                border-radius: 12px;
+                border: 2px dashed #dee2e6;
+            }
+            
+            .badge-title {
+                margin-top: 0;
+                color: #333;
+                font-size: 32px;
+                font-weight: 700;
+            }
+            
+            .badge-status-large {
+                margin: 20px 0;
+            }
+            
+            .status-earned-large {
+                color: #28a745;
+                font-size: 18px;
+            }
+            
+            .status-earned-large i {
+                margin-right: 8px;
+            }
+            
+            .status-not-earned-large {
+                color: #6c757d;
+                font-size: 18px;
+            }
+            
+            .status-not-earned-large i {
+                margin-right: 8px;
+            }
+            
+            .badge-description-large {
+                margin-top: 20px;
+                font-size: 16px;
+                line-height: 1.6;
+                color: #666;
+            }
+            
+            .badge-requirements h3 {
+                color: #333;
+                margin-bottom: 20px;
+                font-size: 24px;
+            }
+            
+            .requirements-list {
+                margin-bottom: 30px;
+            }
+            
+            .requirement-item {
+                display: flex;
+                align-items: flex-start;
+                padding: 15px;
+                margin-bottom: 10px;
+                border-radius: 8px;
+                border: 1px solid #e0e0e0;
+                transition: all 0.3s ease;
+            }
+            
+            .requirement-item.met {
+                background: #f8fff8;
+                border-color: #28a745;
+            }
+            
+            .requirement-item.not-met {
+                background: #f8f9fa;
+                border-color: #dee2e6;
+            }
+            
+            .requirement-icon {
+                margin-right: 15px;
+                margin-top: 2px;
+            }
+            
+            .requirement-icon i {
+                font-size: 18px;
+            }
+            
+            .requirement-content {
+                flex-grow: 1;
+            }
+            
+            .requirement-title {
+                font-weight: 600;
+                color: #333;
+                margin-bottom: 5px;
+            }
+            
+            .requirement-item.not-met .requirement-title {
+                color: #6c757d;
+            }
+            
+            .requirement-description {
+                font-size: 14px;
+                color: #666;
+                line-height: 1.4;
+            }
+            
+            .requirement-item.not-met .requirement-description {
+                color: #999;
+            }
+            
+            .badge-actions {
+                text-align: center;
+                padding-top: 20px;
+                border-top: 1px solid #e0e0e0;
+            }
+            
+            @media (max-width: 768px) {
+                .badge-detail-page {
+                    padding: 20px;
+                }
+                
+                .badge-title {
+                    font-size: 24px;
+                }
+                
+                .badge-main-image {
+                    max-width: 150px;
+                    max-height: 150px;
+                }
+            }
+        </style>
+    </template>
+
+</odoo>

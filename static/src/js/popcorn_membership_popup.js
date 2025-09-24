@@ -50,6 +50,6 @@ window.PopcornMembershipPopup = {
     },
     
     showMembershipRequired(message) {
-      this.showPopup(message || 'You need an active membership to access this.', 'warning');
+      this.showPopup(message || 'Check out the membership plans for big savings and awesome benefits!', 'info');
     }
   };

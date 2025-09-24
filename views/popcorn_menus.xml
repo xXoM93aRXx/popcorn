@@ -6,7 +6,6 @@
                   name="Popcorn"
                   sequence="50"
                   web_icon="popcorn,static/description/icon.png"/>
-        
 
     </data>
 </odoo>

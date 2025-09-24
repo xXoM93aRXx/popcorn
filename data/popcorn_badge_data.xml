@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <!-- Sample Badge: First Event -->
+        <record id="badge_first_event" model="popcorn.badge">
+            <field name="name">First Event</field>
+            <field name="description">Attend your first event to earn this badge!</field>
+            <field name="active">True</field>
+        </record>
+        
+        <record id="badge_rule_first_event" model="popcorn.badge.rule">
+            <field name="name">Attend First Event</field>
+            <field name="badge_id" ref="badge_first_event"/>
+            <field name="model_id" ref="event.model_event_registration"/>
+            <field name="field_id" ref="event.field_event_registration__partner_id"/>
+            <field name="operator">>=</field>
+            <field name="value">1</field>
+            <field name="description">Have at least 1 event registration</field>
+            <field name="active">True</field>
+        </record>
+        
+        <!-- Sample Badge: Event Enthusiast -->
+        <record id="badge_event_enthusiast" model="popcorn.badge">
+            <field name="name">Event Enthusiast</field>
+            <field name="description">Attend 5 or more events to become an event enthusiast!</field>
+            <field name="active">True</field>
+        </record>
+        
+        <record id="badge_rule_event_enthusiast" model="popcorn.badge.rule">
+            <field name="name">Attend Multiple Events</field>
+            <field name="badge_id" ref="badge_event_enthusiast"/>
+            <field name="model_id" ref="event.model_event_registration"/>
+            <field name="field_id" ref="event.field_event_registration__partner_id"/>
+            <field name="operator">>=</field>
+            <field name="value">5</field>
+            <field name="description">Have at least 5 event registrations</field>
+            <field name="active">True</field>
+        </record>
+        
+        <!-- Sample Badge: VIP Member -->
+        <record id="badge_vip_member" model="popcorn.badge">
+            <field name="name">VIP Member</field>
+            <field name="description">Achieve VIP status by having an active membership!</field>
+            <field name="active">True</field>
+        </record>
+        
+        <record id="badge_rule_vip_member" model="popcorn.badge.rule">
+            <field name="name">Active Membership</field>
+            <field name="badge_id" ref="badge_vip_member"/>
+            <field name="model_id" ref="popcorn.model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__partner_id"/>
+            <field name="operator">>=</field>
+            <field name="value">1</field>
+            <field name="description">Have at least 1 active membership</field>
+            <field name="active">True</field>
+        </record>
+        
+        <!-- Sample Badge: Social Butterfly -->
+        <record id="badge_social_butterfly" model="popcorn.badge">
+            <field name="name">Social Butterfly</field>
+            <field name="description">Connect with others by having a complete profile!</field>
+            <field name="active">True</field>
+        </record>
+        
+        <record id="badge_rule_social_butterfly_email" model="popcorn.badge.rule">
+            <field name="name">Has Email</field>
+            <field name="badge_id" ref="badge_social_butterfly"/>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="field_id" ref="base.field_res_partner__email"/>
+            <field name="operator">!=</field>
+            <field name="value">False</field>
+            <field name="description">Email field is not empty</field>
+            <field name="active">True</field>
+        </record>
+        
+        <record id="badge_rule_social_butterfly_phone" model="popcorn.badge.rule">
+            <field name="name">Has Phone</field>
+            <field name="badge_id" ref="badge_social_butterfly"/>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="field_id" ref="base.field_res_partner__phone"/>
+            <field name="operator">!=</field>
+            <field name="value">False</field>
+            <field name="description">Phone field is not empty</field>
+            <field name="active">True</field>
+        </record>
+        
+    </data>
+</odoo>

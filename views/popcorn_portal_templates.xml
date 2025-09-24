@@ -14,7 +14,7 @@
                         </div>
                         <div>
                             <div class="mt-0 mb-1 fs-5 fw-normal lh-1 d-flex gap-2">
-                                <span t-translation="on">Your Clubs</span>
+                                <span t-translation="on">My Clubs</span>
                             </div>
                             <div class="opacity-75">
                                 View your registered clubs and upcoming events
@@ -32,7 +32,7 @@
                         </div>
                         <div>
                             <div class="mt-0 mb-1 fs-5 fw-normal lh-1 d-flex gap-2">
-                                <span t-translation="on">Your Cards</span>
+                                <span t-translation="on">My Cards</span>
                             </div>
                             <div class="opacity-75">
                                 View your membership cards and their status
@@ -107,54 +107,57 @@
                                 </div>
                                 <div class="card-body">
                                     <t t-if="registrations">
-                                        <div class="table-responsive">
-                                            <table class="table table-hover">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Host</th>
-                                                        <th>Club Name</th>
-                                                        <th>Date &amp; Time</th>
-                                                        <th>Location</th>
-                                                        <th>Actions</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                                                                         <t t-foreach="registrations" t-as="registration">
-                                                         <tr>
-                                                             <td>
-                                                                 <span t-field="registration.event_id.host_id.name" t-if="registration.event_id.host_id"/>
-                                                                 <span t-if="not registration.event_id.host_id">-</span>
-                                                             </td>
-                                                            <td>
-                                                                <strong t-field="registration.event_id.name"/>
-                                                            </td>
-                                                            <td>
-                                                                <span t-field="registration.event_id.date_begin" t-options="{'widget': 'datetime'}"/>
-                                                            </td>
-                                                            <td>
-                                                                <span t-field="registration.event_id.address_id.city" t-if="registration.event_id.address_id"/>
-                                                                <span t-if="not registration.event_id.address_id">Online</span>
-                                                            </td>
-                                                            <td>
-                                                                <div class="btn-group" role="group">
-                                                                    <a t-attf-href="/event/#{registration.event_id.id}" 
-                                                                       class="btn btn-sm btn-outline-primary">
-                                                                        <i class="fa fa-eye"></i> View Details
-                                                                    </a>
-                                                                    <t t-if="registration.can_cancel">
-                                                                        <button type="button" 
-                                                                                class="btn btn-sm btn-outline-danger btn-cancel-registration"
-                                                                                t-att-data-registration-id="registration.id"
-                                                                                t-att-data-event-name="registration.event_id.name">
-                                                                            <i class="fa fa-times"></i> Cancel
-                                                                        </button>
-                                                                    </t>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    </t>
-                                                </tbody>
-                                            </table>
+                                        <div class="club-cards-container">
+                                            <t t-foreach="registrations" t-as="registration">
+                                                <div class="club-card-horizontal">
+                                                    <!-- Host's Picture -->
+                                                    <div class="club-host-pic">
+                                                        <img t-att-src="'/web/image/res.partner/' + str(registration.event_id.host_id.id) + '/image_128'" 
+                                                             t-att-alt="registration.event_id.host_id.name"
+                                                             class="host-avatar"
+                                                             t-if="registration.event_id.host_id"/>
+                                                        <div class="host-avatar-placeholder" t-if="not registration.event_id.host_id">
+                                                            <i class="fa fa-user"></i>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Club Content -->
+                                                    <div class="club-content">
+                                                        <!-- Club Name -->
+                                                        <h5 class="club-name" t-field="registration.event_id.name"/>
+                                                        
+                                                        <!-- Club Description Excerpt -->
+                                                        <div class="club-description-excerpt">
+                                                            <span t-field="registration.event_id.description" t-options="{'widget': 'text', 'max_length': 50, 'strip_html': True}"/>
+                                                        </div>
+                                                        
+                                                        <!-- Time and Actions Row -->
+                                                        <div class="club-time-actions-row">
+                                                            <!-- Time -->
+                                                            <div class="club-time">
+                                                                <i class="fa fa-clock-o me-1"></i>
+                                                                <span t-field="registration.event_id.date_begin" t-options="{'widget': 'datetime', 'format': 'dd MMM yyyy HH:mm'}"/>
+                                                            </div>
+                                                            
+                                                            <!-- Action Buttons -->
+                                                            <div class="club-actions">
+                                                                <a t-attf-href="/event/#{registration.event_id.id}" 
+                                                                   class="btn btn-sm btn-outline-primary me-2">
+                                                                    <i class="fa fa-eye"></i> View Details
+                                                                </a>
+                                                                <t t-if="registration.can_cancel">
+                                                                    <button type="button" 
+                                                                            class="btn btn-sm btn-outline-danger btn-cancel-registration"
+                                                                            t-att-data-registration-id="registration.id"
+                                                                            t-att-data-event-name="registration.event_id.name">
+                                                                        <i class="fa fa-times"></i> Cancel
+                                                                    </button>
+                                                                </t>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </t>
                                         </div>
                                     </t>
                                     <t t-else="">
@@ -179,44 +182,49 @@
                                 </div>
                                 <div class="card-body">
                                     <t t-if="past_registrations">
-                                        <div class="table-responsive">
-                                            <table class="table table-hover">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Host</th>
-                                                        <th>Club Name</th>
-                                                        <th>Date &amp; Time</th>
-                                                        <th>Location</th>
-                                                        <th>Actions</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                                                                         <t t-foreach="past_registrations" t-as="registration">
-                                                         <tr>
-                                                             <td>
-                                                                 <span t-field="registration.event_id.host_id.name" t-if="registration.event_id.host_id"/>
-                                                                 <span t-if="not registration.event_id.host_id">-</span>
-                                                             </td>
-                                                            <td>
-                                                                <strong t-field="registration.event_id.name"/>
-                                                            </td>
-                                                            <td>
-                                                                <span t-field="registration.event_id.date_begin" t-options="{'widget': 'datetime'}"/>
-                                                            </td>
-                                                            <td>
-                                                                <span t-field="registration.event_id.address_id.city" t-if="registration.event_id.address_id"/>
-                                                                <span t-if="not registration.event_id.address_id">Online</span>
-                                                            </td>
-                                                            <td>
+                                        <div class="club-cards-container">
+                                            <t t-foreach="past_registrations" t-as="registration">
+                                                <div class="club-card-horizontal">
+                                                    <!-- Host's Picture -->
+                                                    <div class="club-host-pic">
+                                                        <img t-att-src="'/web/image/res.partner/' + str(registration.event_id.host_id.id) + '/image_128'" 
+                                                             t-att-alt="registration.event_id.host_id.name"
+                                                             class="host-avatar"
+                                                             t-if="registration.event_id.host_id"/>
+                                                        <div class="host-avatar-placeholder" t-if="not registration.event_id.host_id">
+                                                            <i class="fa fa-user"></i>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Club Content -->
+                                                    <div class="club-content">
+                                                        <!-- Club Name -->
+                                                        <h5 class="club-name" t-field="registration.event_id.name"/>
+                                                        
+                                                        <!-- Club Description Excerpt -->
+                                                        <div class="club-description-excerpt">
+                                                            <span t-field="registration.event_id.description" t-options="{'widget': 'text', 'max_length': 50, 'strip_html': True}"/>
+                                                        </div>
+                                                        
+                                                        <!-- Time and Actions Row -->
+                                                        <div class="club-time-actions-row">
+                                                            <!-- Time -->
+                                                            <div class="club-time">
+                                                                <i class="fa fa-clock-o me-1"></i>
+                                                                <span t-field="registration.event_id.date_begin" t-options="{'widget': 'datetime', 'format': 'dd MMM yyyy HH:mm'}"/>
+                                                            </div>
+                                                            
+                                                            <!-- Action Buttons -->
+                                                            <div class="club-actions">
                                                                 <a t-attf-href="/event/#{registration.event_id.id}" 
-                                                                   class="btn btn-sm btn-outline-secondary">
+                                                                   class="btn btn-sm btn-outline-primary me-2">
                                                                     <i class="fa fa-eye"></i> View Details
                                                                 </a>
-                                                            </td>
-                                                        </tr>
-                                                    </t>
-                                                </tbody>
-                                            </table>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </t>
                                         </div>
                                     </t>
                                     <t t-else="">

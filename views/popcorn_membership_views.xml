@@ -9,6 +9,7 @@
             <field name="arch" type="xml">
                 <list string="Memberships">
                     <field name="partner_id"/>
+                    <field name="partner_phone"/>
                     <field name="membership_plan_id"/>
                     <field name="state" decoration-info="state == 'pending'" decoration-warning="state == 'frozen'" decoration-danger="state == 'expired'"/>
                     <field name="activation_date"/>
@@ -34,11 +35,15 @@
                         <button name="action_activate" string="Activate" type="object" 
                                 class="oe_highlight" 
                                 invisible="state != 'pending'"/>
+                        <button name="action_activate_pending_payment" string="Activate" type="object" 
+                                class="oe_highlight" 
+                                invisible="state != 'pending_payment'"
+                                confirm="Are you sure you want to activate this membership? This will mark the payment as completed."/>
                         <button name="action_expire" string="Expire" type="object" 
                                 class="btn-danger" 
                                 invisible="state not in ['active', 'frozen']"/>
                         <field name="state" widget="statusbar" 
-                               statusbar_visible="pending,active,frozen,expired"/>
+                               statusbar_visible="pending,pending_payment,active,frozen,expired"/>
                     </header>
                     <sheet>
                         <div class="oe_title">
@@ -49,7 +54,9 @@
                         <group>
                             <group string="Member Information">
                                 <field name="partner_id"/>
+                                <field name="partner_phone"/>
                                 <field name="membership_plan_id"/>
+                                <field name="state"/>
                                 <field name="purchase_channel"/>
                                 <field name="price_tier"/>
                             </group>
@@ -60,8 +67,38 @@
                                 <field name="effective_end_date"/>
                                 <field name="upgrade_discount_allowed"/>
                                 <field name="first_timer_customer"/>
+                                <field name="contract_id"/>
                             </group>
                         </group>
+                        
+                        <!-- Action Buttons in Sheet -->
+                        <div class="oe_button_box" name="button_box">
+                            <button name="action_activate_pending_payment" string="Activate Payment" type="object" 
+                                    class="oe_stat_button" icon="fa-check"
+                                    invisible="state != 'pending_payment'"
+                                    confirm="Are you sure you want to activate this membership? This will mark the payment as completed.">
+                                <field name="state" widget="statinfo" string="Status"/>
+                            </button>
+                            <button name="action_create_contract" string="Create Contract" type="object" 
+                                    class="oe_stat_button" icon="fa-file-text-o"
+                                    invisible="contract_id"
+                                    confirm="Create a contract for this membership?">
+                                <field name="contract_id" widget="statinfo" string="Contract"/>
+                            </button>
+                            <button name="action_view_contract" string="View Contract" type="object" 
+                                    class="oe_stat_button" icon="fa-file-text-o"
+                                    invisible="not contract_id">
+                                <field name="contract_id" widget="statinfo" string="Contract"/>
+                            </button>
+                        </div>
+                        
+                        <!-- Debug: Always visible button for testing -->
+                        <div class="alert alert-info" invisible="state != 'pending_payment'">
+                            <strong>Pending Payment:</strong> This membership is waiting for payment confirmation.
+                            <button name="action_activate_pending_payment" string="Activate Now" type="object" 
+                                    class="btn btn-primary btn-sm" style="margin-left: 10px;"
+                                    confirm="Are you sure you want to activate this membership? This will mark the payment as completed."/>
+                        </div>
                         
                         <notebook>
                             <page string="Usage &amp; Quota" name="usage">
@@ -130,6 +167,7 @@
                 <kanban string="Memberships" class="o_kanban_small_column" default_group_by="state">
                     <field name="id"/>
                     <field name="partner_id"/>
+                    <field name="partner_phone"/>
                     <field name="membership_plan_id"/>
                     <field name="state"/>
                     <field name="activation_date"/>
@@ -149,6 +187,9 @@
                                             </strong>
                                             <small class="o_kanban_record_subtitle">
                                                 <field name="membership_plan_id"/>
+                                            </small>
+                                            <small class="o_kanban_record_subtitle">
+                                                <field name="partner_phone"/>
                                             </small>
                                         </div>
                                         <div class="o_kanban_record_top_right">
@@ -202,6 +243,7 @@
             <field name="arch" type="xml">
                 <search string="Search Memberships">
                     <field name="partner_id"/>
+                    <field name="partner_phone"/>
                     <field name="membership_plan_id"/>
                     <field name="state"/>
                     <field name="purchase_channel"/>
@@ -246,6 +288,18 @@
                   parent="menu_popcorn_root"
                   action="action_popcorn_membership" 
                   sequence="10"/>
+        
+        <!-- Server Actions -->
+        <record id="action_activate_pending_payment_memberships" model="ir.actions.server">
+            <field name="name">Activate Pending Payment Memberships</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="state">code</field>
+            <field name="code">
+for membership in records:
+    if membership.state == 'pending_payment':
+        membership.action_activate_pending_payment()
+            </field>
+        </record>
         
     </data>
 </odoo>

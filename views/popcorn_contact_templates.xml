@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Contact Us Page Template -->
+        <template id="popcorn_contact_page" name="Contact Us Page">
+            <t t-call="website.layout">
+                <t t-set="title">Contact Us - Popcorn Club</t>
+                <div class="popcorn-contact-page">
+                    <!-- Full Width Contact Image -->
+                    <div class="popcorn-contact-image">
+                        <img src="/popcorn/static/src/images/contact_us.jpg" 
+                             alt="Contact Us - Popcorn Club" 
+                             class="popcorn-contact-img"/>
+                    </div>
+                </div>
+            </t>
+        </template>
+    </data>
+</odoo>

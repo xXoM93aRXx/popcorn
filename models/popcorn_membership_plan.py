@@ -70,6 +70,13 @@ class PopcornMembershipPlan(models.Model):
                                          string='Can Upgrade To', 
                                          domain="[('active', '=', True), ('id', '!=', id)]")
     
+    # Discount Relationships
+    discount_ids = fields.Many2many('popcorn.discount', 
+                                   'popcorn_membership_plan_discount_rel',
+                                   'plan_id', 'discount_id',
+                                   string='Available Discounts',
+                                   help='Discounts that can be applied to this membership plan')
+    
     # Computed Fields
     display_name = fields.Char(string='Display Name', compute='_compute_display_name', store=True)
     plan_summary = fields.Text(string='Plan Summary', compute='_compute_plan_summary', store=True)
@@ -271,4 +278,136 @@ class PopcornMembershipPlan(models.Model):
             })
         
         return benefits
+    
+    def get_available_discounts(self, customer_partner=None):
+        """Get all available discounts for this membership plan"""
+        self.ensure_one()
+        
+        # Get discounts linked to this plan
+        linked_discounts = self.discount_ids.filtered('is_valid')
+        
+        # Get global discounts (not linked to specific plans)
+        global_discounts = self.env['popcorn.discount'].search([
+            ('is_valid', '=', True),
+            ('membership_plan_ids', '=', False)
+        ])
+        
+        all_discounts = linked_discounts | global_discounts
+        
+        # Filter by customer type if customer is provided
+        if customer_partner:
+            filtered_discounts = self.env['popcorn.discount']
+            for discount in all_discounts:
+                if discount.customer_type == 'all':
+                    filtered_discounts |= discount
+                elif discount.customer_type == 'first_timer' and customer_partner.is_first_timer:
+                    filtered_discounts |= discount
+                elif discount.customer_type == 'existing' and not customer_partner.is_first_timer:
+                    filtered_discounts |= discount
+                elif discount.customer_type == 'new' and customer_partner.is_first_timer:
+                    filtered_discounts |= discount
+            all_discounts = filtered_discounts
+        
+        return all_discounts
+    
+    def get_discounted_price(self, discount, customer_partner=None):
+        """Calculate discounted price using a specific discount"""
+        self.ensure_one()
+        
+        if not discount or not discount.is_valid:
+            return self.price_normal
+        
+        # Check if discount applies to this plan
+        if discount.membership_plan_ids and self not in discount.membership_plan_ids:
+            return self.price_normal
+        
+        # Check customer type restrictions
+        if customer_partner and discount.customer_type != 'all':
+            if discount.customer_type == 'first_timer' and not customer_partner.is_first_timer:
+                return self.price_normal
+            elif discount.customer_type == 'existing' and customer_partner.is_first_timer:
+                return self.price_normal
+            elif discount.customer_type == 'new' and customer_partner.is_first_timer:
+                return self.price_normal
+        
+        # Calculate discount
+        if discount.discount_type == 'percentage':
+            discount_amount = self.price_normal * (discount.discount_value / 100)
+            return max(0, self.price_normal - discount_amount)
+        
+        elif discount.discount_type == 'fixed_amount':
+            return max(0, self.price_normal - discount.discount_value)
+        
+        elif discount.discount_type == 'first_timer':
+            return self.price_first_timer
+        
+        elif discount.discount_type == 'upgrade':
+            return max(0, self.price_normal - discount.discount_value)
+        
+        return self.price_normal
+    
+    def get_best_discount_price(self, customer_partner=None):
+        """Get the best discounted price for this plan"""
+        self.ensure_one()
+        
+        available_discounts = self.get_available_discounts(customer_partner)
+        if not available_discounts:
+            return self.price_normal, None
+        
+        best_price = self.price_normal
+        best_discount = None
+        
+        for discount in available_discounts:
+            discounted_price = discount.get_discounted_price(self, self.price_normal, customer_partner)
+            if discounted_price < best_price:
+                best_price = discounted_price
+                best_discount = discount
+        
+        return best_price, best_discount
+    
+    def get_best_discount_with_extra_days(self, customer_partner=None):
+        """Get the best discount including extra days information"""
+        self.ensure_one()
+        
+        available_discounts = self.get_available_discounts(customer_partner)
+        if not available_discounts:
+            return self.price_normal, None, 0
+        
+        best_price = self.price_normal
+        best_discount = None
+        total_extra_days = 0
+        best_value = 0  # Track the best value (price savings or extra days)
+        
+        # First pass: find the best price discount
+        for discount in available_discounts:
+            discounted_price = discount.get_discounted_price(self, self.price_normal, customer_partner)
+            extra_days = discount.get_extra_days(self, customer_partner)
+            
+            # Calculate value: price savings or extra days
+            if discount.discount_type == 'extra_days' and extra_days > 0:
+                # For extra days, consider each day as equivalent to 1 unit of value
+                discount_value = extra_days
+            else:
+                # For price discounts, calculate the savings
+                discount_value = self.price_normal - discounted_price
+            
+            # Choose the discount with the highest value
+            if discount_value > best_value:
+                best_price = discounted_price
+                best_discount = discount
+                total_extra_days = extra_days
+                best_value = discount_value
+        
+        # Second pass: collect all available extra days from any discount
+        # This ensures extra days are applied even if they're not from the "best" discount
+        all_extra_days = 0
+        for discount in available_discounts:
+            extra_days = discount.get_extra_days(self, customer_partner)
+            if extra_days > 0:
+                all_extra_days += extra_days
+        
+        # Use the maximum of the best discount's extra days or all available extra days
+        total_extra_days = max(total_extra_days, all_extra_days)
+        
+        return best_price, best_discount, total_extra_days
 

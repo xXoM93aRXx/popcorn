@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Extend website event search to include host filtering -->
+    <record id="popcorn_event_event_view_search_website" model="ir.ui.view">
+        <field name="name">popcorn.event.event.search.website</field>
+        <field name="model">event.event</field>
+        <field name="inherit_id" ref="website_event.event_event_view_search"/>
+        <field name="arch" type="xml">
+            <!-- Add host_id field to search fields -->
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="host_id" string="Host"/>
+                <field name="host_search_name" string="Host Name"/>
+            </xpath>
+            <!-- Add host filter -->
+            <xpath expr="//filter[@name='filter_published']" position="after">
+                <separator/>
+                <filter string="My Hosted Events" name="my_hosted_events" help="Events where I am the host" domain="[('host_id', '=', uid)]"/>
+            </xpath>
+            <!-- Add host group by option -->
+            <xpath expr="//filter[@name='venue']" position="after">
+                <filter string="Host" name="host_group" context="{'group_by': 'host_id'}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

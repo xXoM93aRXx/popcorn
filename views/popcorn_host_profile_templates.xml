@@ -1,0 +1,206 @@
+<odoo>
+    <!-- Host Profile Page Template -->
+    <template id="popcorn_host_profile_page" name="Host Profile Page">
+        <t t-call="web.frontend_layout">
+            <t t-set="title">Meet Our Hosts - Popcorn Club</t>
+            <!-- Language Switcher for Hosts Page -->
+            <div id="popcorn-language-switcher" class="popcorn-language-switcher">
+                <t t-call="popcorn.popcorn_custom_language_selector"/>
+            </div>
+            <div class="popcorn-hosts-page">
+                <!-- Minimalistic Header -->
+                <div class="popcorn-header">
+                    <h1>Meet Our Hosts</h1>
+                </div>
+
+                <!-- Host Listings Section -->
+                <div class="popcorn-hosts-container">
+                    <!-- Online Hosts Section -->
+                    <div class="popcorn-hosts-section">
+                        <div class="popcorn-section-header" data-target="online-hosts">
+                            <span class="status-icon online">●</span> 
+                            <span class="section-title">Online Hosts</span>
+                            <span class="popcorn-host-count" t-esc="online_hosts_count"/>
+                            <span class="popcorn-dropdown-arrow" id="online-arrow">▼</span>
+                        </div>
+                        <div class="popcorn-hosts-dropdown" id="online-hosts">
+                            <t t-foreach="online_hosts" t-as="host" t-key="host.id">
+                                <a t-attf-href="/host/#{host.id}" class="popcorn-host-card-link">
+                                    <div class="popcorn-host-card">
+                                        <div class="host-photo">
+                                            <img t-att-src="image_data_uri(host.image_1920)" 
+                                                 t-att-alt="host.name" 
+                                                 class="host-image"/>
+                                        </div>
+                                        <div class="host-info">
+                                            <h3 t-esc="host.name"/>
+                                            <p t-if="host.excerpt" class="host-excerpt" t-esc="host.excerpt"/>
+                                            <p t-if="not host.excerpt and host.host_bio" class="host-bio" t-esc="host.host_bio"/>
+                                        </div>
+                                    </div>
+                                </a>
+                            </t>
+                        </div>
+                    </div>
+
+                    <!-- Offline Hosts Section -->
+                    <div class="popcorn-hosts-section">
+                        <div class="popcorn-section-header" data-target="offline-hosts">
+                            <span class="status-icon offline">●</span> 
+                            <span class="section-title">Offline Hosts</span>
+                            <span class="popcorn-host-count" t-esc="offline_hosts_count"/>
+                            <span class="popcorn-dropdown-arrow" id="offline-arrow">▼</span>
+                        </div>
+                        <div class="popcorn-hosts-dropdown" id="offline-hosts">
+                            <t t-foreach="offline_hosts" t-as="host" t-key="host.id">
+                                <a t-attf-href="/host/#{host.id}" class="popcorn-host-card-link">
+                                    <div class="popcorn-host-card">
+                                        <div class="host-photo">
+                                            <img t-att-src="image_data_uri(host.image_1920)" 
+                                                 t-att-alt="host.name" 
+                                                 class="host-image"/>
+                                        </div>
+                                        <div class="host-info">
+                                            <h3 t-esc="host.name"/>
+                                            <p t-if="host.excerpt" class="host-excerpt" t-esc="host.excerpt"/>
+                                            <p t-if="not host.excerpt and host.host_bio" class="host-bio" t-esc="host.host_bio"/>
+                                        </div>
+                                    </div>
+                                </a>
+                            </t>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- Single Host Profile Template -->
+    <template id="popcorn_single_host_profile" name="Single Host Profile">
+        <t t-call="web.frontend_layout">
+            <!-- Language Switcher for Single Host Profile -->
+            <div id="popcorn-language-switcher" class="popcorn-language-switcher">
+                <t t-call="popcorn.popcorn_custom_language_selector"/>
+            </div>
+            <div class="popcorn-individual-host">
+                <!-- Full Width Host Poster Image -->
+                <div t-if="host.host_poster_image" class="popcorn-poster-image">
+                    <img t-att-src="image_data_uri(host.host_poster_image)" 
+                         t-att-alt="host.name + ' poster'" 
+                         class="popcorn-poster-img"/>
+                </div>
+                
+                <!-- Clubs by this Host Section -->
+                <div class="popcorn-host-clubs-section">
+                    <div class="container">
+                        <div class="row">
+                            <div class="col-12">
+                                <h2 class="popcorn-clubs-title">Clubs by this Host</h2>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <t t-foreach="host_events[:3]" t-as="event" t-key="event.id">
+                                <div class="col-md-4 mb-4">
+                                    <a t-attf-href="/event/#{slug(event)}/#{(not event.menu_id) and 'register'}" 
+                                       class="popcorn-event-card" 
+                                       t-att-data-publish="event.website_published and 'on' or 'off'" 
+                                       t-att-data-event-id="event.id">
+                                        <article t-attf-class="popcorn-event-article #{not event.event_registrations_open and 'disabled' or ''}" 
+                                                 itemscope="itemscope" 
+                                                 itemtype="http://schema.org/Event" 
+                                                 t-att-style="'background-color: ' + (event.background_color or '#ffffff') + '; color: ' + (event.text_color or '#000000') + ';'">
+                                            <div class="h-100 d-flex flex-wrap flex-column">
+                                                <!-- Header with Image -->
+                                                <header class="popcorn-event-header col-12">
+                                                    <div class="popcorn-event-image-container">
+                                                        <!-- Banner Image -->
+                                                        <div t-if="event.badge_image" class="popcorn-event-image">
+                                                            <img t-att-src="'/web/image/event.event/' + str(event.id) + '/badge_image'" class="w-100 h-100" style="object-fit: cover;" t-att-alt="event.name"/>
+                                                        </div>
+                                                        <div t-else="" class="popcorn-event-image" style="background-image: url('/website_event/static/src/img/event_cover_4.jpg');"></div>
+                                                        
+                                                        <meta itemprop="startDate" t-att-content="event.date_begin.isoformat()"/>
+                                                        
+                                                        <!-- Date Overlay - Bottom Left -->
+                                                        <div class="popcorn-event-date-overlay o_wevent_event_date o_not_editable bottom-left">
+                                                            <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'LLL'}" class="popcorn-event-month"/>
+                                                            <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'dd'}" class="popcorn-event-day oe_hide_on_date_edit"/>
+                                                        </div>
+                                                        
+                                                        <!-- Status overlays -->
+                                                        <div t-if="not event.event_registrations_open" class="popcorn-event-status-overlay">
+                                                            <t t-if="not event.event_registrations_started">
+                                                                Not Open
+                                                            </t>
+                                                            <t t-elif="event.event_registrations_sold_out">
+                                                                Sold Out
+                                                            </t>
+                                                            <t t-else="">
+                                                                Closed
+                                                            </t>
+                                                        </div>
+                                                        
+                                                        <small t-if="event.is_participating" class="o_wevent_participating position-absolute bottom-0 px-3 py-2 w-100 text-bg-success">
+                                                            <i class="fa fa-check me-2"/>Registered
+                                                        </small>
+                                                        <small t-if="not event.website_published" class="o_wevent_unpublished position-absolute bottom-0 px-3 py-2 w-100 text-bg-danger">
+                                                            <i class="fa fa-ban me-2"/>Unpublished
+                                                        </small>
+                                                    </div>
+                                                </header>
+                                                
+                                                <!-- Body -->
+                                                <main class="popcorn-event-body col-12 py-3">
+                                                    <div id="event_details">
+                                                        <div class="popcorn-event-tags">
+                                                            <t t-foreach="event.tag_ids.filtered(lambda tag: tag.category_id.website_id == website or not tag.category_id.website_id)" t-as="tag">
+                                                                <span t-if="tag.color" t-attf-class="popcorn-event-tag badge #{'o_color_%s' % tag.color if tag.color else 'text-bg-light'}">
+                                                                    <t t-out="tag.name"/>
+                                                                </span>
+                                                            </t>
+                                                        </div>
+                                                        <!-- Title -->
+                                                        <h5 t-attf-class="popcorn-event-title #{(not event.website_published) and 'text-danger'}">
+                                                            <span t-field="event.name" itemprop="name"/>
+                                                        </h5>
+                                                        <!-- Event Date and Time -->
+                                                        <div class="popcorn-event-datetime mb-2">
+                                                            <i class="fa fa-clock-o me-2" style="color: #6c757d;"></i>
+                                                            <small class="text-muted">
+                                                                <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
+                                                                <span t-if="event.date_begin != event.date_end"> - </span>
+                                                                <span t-if="event.date_begin != event.date_end" t-out="event.date_end" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
+                                                            </small>
+                                                        </div>
+                                                        <!-- Subtitle -->
+                                                        <small class="popcorn-event-subtitle" itemprop="description" t-field="event.subtitle"/>
+                                                    </div>
+                                                    <!-- Location -->
+                                                    <div t-if="not event.is_online_event or event.event_city" class="popcorn-event-location">
+                                                        <i class="fa fa-map-marker popcorn-event-location-icon" title="Location"/>
+                                                        <small t-if="event.event_city" class="popcorn-event-location-text o_not_editable" itemprop="location" t-out="event.event_city"/>
+                                                        <small t-else="" class="popcorn-event-location-text o_not_editable" itemprop="location">Online event</small>
+                                                    </div>
+                                                </main>
+                                            </div>
+                                        </article>
+                                    </a>
+                                </div>
+                            </t>
+                        </div>
+                        
+                        <!-- Show All Clubs Link -->
+                        <div class="row">
+                            <div class="col-12 text-center">
+                                <a href="/event" class="btn btn-outline-primary popcorn-show-all-clubs">
+                                    <i class="fa fa-calendar me-2"></i>Show All Clubs
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+</odoo>

@@ -14,6 +14,7 @@ class PopcornMembership(models.Model):
 
     # Core fields
     partner_id = fields.Many2one('res.partner', string='Member', required=True)
+    partner_phone = fields.Char(string='Phone', related='partner_id.phone', readonly=True, store=True)
     membership_plan_id = fields.Many2one('popcorn.membership.plan', string='Membership Plan', required=True)
     state = fields.Selection([
         ('pending', 'Pending'),
@@ -27,8 +28,10 @@ class PopcornMembership(models.Model):
     purchase_price_paid = fields.Monetary(string='Purchase Price', currency_field='currency_id', required=True)
     price_tier = fields.Selection([
         ('normal', 'Normal'),
-        ('first_timer', 'First Timer')
+        ('first_timer', 'First Timer'),
+        ('discount', 'Discount Applied')
     ], string='Price Tier', required=True, default='normal')
+    applied_discount_id = fields.Many2one('popcorn.discount', string='Applied Discount', readonly=True)
     purchase_channel = fields.Selection([
         ('online', 'Online'),
         ('pitch_day', 'Pitch Day'),
@@ -70,6 +73,13 @@ class PopcornMembership(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', 
                                  default=lambda self: self.env.company.currency_id)
     
+    # Payment tracking
+    payment_transaction_id = fields.Many2one('payment.transaction', string='Payment Transaction', readonly=True)
+    payment_reference = fields.Char(string='Payment Reference', readonly=True)
+    
+    # Contract relationship
+    contract_id = fields.Many2one('popcorn.contract', string='Contract', ondelete='cascade')
+    
     # Related fields for convenience
     plan_duration_days = fields.Integer(string='Plan Duration (Days)', related='membership_plan_id.duration_days')
     plan_quota_mode = fields.Selection(string='Quota Mode', related='membership_plan_id.quota_mode')
@@ -77,19 +87,31 @@ class PopcornMembership(models.Model):
     plan_allowed_regular_online = fields.Boolean(string='Allows Regular Online', related='membership_plan_id.allowed_regular_online')
     plan_allowed_spclub = fields.Boolean(string='Allows Special Club', related='membership_plan_id.allowed_spclub')
     
-    @api.depends('activation_date', 'membership_plan_id.duration_days')
+    # Computed fields for duration
+    total_duration_days = fields.Integer(string='Total Duration (Days)', compute='_compute_total_duration_days', store=True)
+    
+    @api.depends('membership_plan_id.duration_days', 'extra_days_extension')
+    def _compute_total_duration_days(self):
+        """Compute total duration including extra days"""
+        for membership in self:
+            base_duration = membership.membership_plan_id.duration_days or 0
+            extra_days = membership.extra_days_extension or 0
+            membership.total_duration_days = base_duration + extra_days
+    
+    @api.depends('activation_date', 'total_duration_days')
     def _compute_end_date_base(self):
         for membership in self:
-            if membership.activation_date and membership.membership_plan_id.duration_days > 0:
-                membership.end_date_base = membership.activation_date + timedelta(days=membership.membership_plan_id.duration_days)
+            if membership.activation_date and membership.total_duration_days > 0:
+                membership.end_date_base = membership.activation_date + timedelta(days=membership.total_duration_days)
             else:
                 membership.end_date_base = False
     
-    @api.depends('end_date_base', 'freeze_total_days_used', 'extra_days_extension')
+    @api.depends('end_date_base', 'freeze_total_days_used')
     def _compute_effective_end_date(self):
         for membership in self:
             if membership.end_date_base:
-                membership.effective_end_date = membership.end_date_base + timedelta(days=membership.freeze_total_days_used + membership.extra_days_extension)
+                # Extra days are now included in end_date_base, so we only add freeze days
+                membership.effective_end_date = membership.end_date_base + timedelta(days=membership.freeze_total_days_used)
             else:
                 membership.effective_end_date = False
     
@@ -158,10 +180,13 @@ class PopcornMembership(models.Model):
             return 0
         
         try:
-            # Find registrations for this membership
+            # Only count registrations that went through proper consumption flow
+            # Exclude imported registrations and registrations without proper state
             registrations = self.env['event.registration'].sudo().search([
                 ('membership_id', '=', self.id),
-                ('consumption_state', '=', 'consumed')
+                ('consumption_state', '=', 'consumed'),
+                ('state', 'in', ['open', 'confirmed', 'done']),  # Only count valid registrations
+                ('is_imported', '=', False)  # Exclude imported registrations
             ])
             
             count = 0
@@ -182,9 +207,13 @@ class PopcornMembership(models.Model):
             return 0
             
         try:
+            # Only count registrations that went through proper consumption flow
+            # Exclude imported registrations and registrations without proper state
             registrations = self.env['event.registration'].sudo().search([
                 ('membership_id', '=', self.id),
-                ('consumption_state', '=', 'consumed')
+                ('consumption_state', '=', 'consumed'),
+                ('state', 'in', ['open', 'confirmed', 'done']),  # Only count valid registrations
+                ('is_imported', '=', False)  # Exclude imported registrations
             ])
             
             total_points = 0
@@ -193,15 +222,15 @@ class PopcornMembership(models.Model):
                 if reg.club_type:
                     club_type = reg.club_type
                     plan = self.membership_plan_id
-                if club_type == 'regular_offline':
-                    points = plan.points_per_offline
-                    total_points += points
-                elif club_type == 'regular_online':
-                    points = plan.points_per_online
-                    total_points += points
-                elif club_type == 'spclub':
-                    points = plan.points_per_sp
-                    total_points += points
+                    if club_type == 'regular_offline':
+                        points = plan.points_per_offline
+                        total_points += points
+                    elif club_type == 'regular_online':
+                        points = plan.points_per_online
+                        total_points += points
+                    elif club_type == 'spclub':
+                        points = plan.points_per_sp
+                        total_points += points
         
             return total_points
         except Exception:
@@ -237,13 +266,34 @@ class PopcornMembership(models.Model):
     def action_activate(self):
         """Activate a pending membership"""
         self.ensure_one()
-        if self.state != 'pending':
-            raise UserError(_('Only pending memberships can be activated'))
+        if self.state not in ['pending', 'pending_payment']:
+            raise UserError(_('Only pending or pending payment memberships can be activated'))
         
         self.write({
             'state': 'active',
             'activation_date': fields.Date.today()
         })
+        
+        # Log the manual activation
+        self.message_post(
+            body=_('Membership manually activated by staff')
+        )
+    
+    def action_activate_pending_payment(self):
+        """Activate a membership that was pending payment"""
+        self.ensure_one()
+        if self.state != 'pending_payment':
+            raise UserError(_('Only pending payment memberships can be activated'))
+        
+        self.write({
+            'state': 'active',
+            'activation_date': fields.Date.today()
+        })
+        
+        # Log the manual activation from pending payment
+        self.message_post(
+            body=_('Membership activated manually from pending payment status by staff')
+        )
     
     def action_freeze(self, freeze_days):
         """Freeze membership for specified days"""
@@ -544,6 +594,172 @@ class PopcornMembership(models.Model):
         status = 'enabled' if new_value else 'disabled'
         self.message_post(
             body=_('Staff %s upgrade discount ability') % status
+        )
+        
+        return True
+    
+    def action_create_contract(self):
+        """Create a contract for this membership"""
+        self.ensure_one()
+        if self.contract_id:
+            raise UserError(_('A contract already exists for this membership'))
+        
+        # Create contract with default text
+        contract_vals = {
+            'membership_id': self.id,
+            'contract_type': 'standard',
+            'contract_text': self._get_default_contract_text(),
+            'state': 'draft'
+        }
+        
+        contract = self.env['popcorn.contract'].create(contract_vals)
+        
+        # Link the contract to the membership
+        self.write({'contract_id': contract.id})
+        
+        # Log the action
+        self.message_post(
+            body=_('Contract created for this membership')
+        )
+        
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Contract'),
+            'res_model': 'popcorn.contract',
+            'res_id': contract.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
+    
+    def action_view_contract(self):
+        """View the contract for this membership"""
+        self.ensure_one()
+        if not self.contract_id:
+            raise UserError(_('No contract exists for this membership'))
+        
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Contract'),
+            'res_model': 'popcorn.contract',
+            'res_id': self.contract_id.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
+    
+    def _get_default_contract_text(self):
+        """Get default contract text based on membership plan"""
+        plan = self.membership_plan_id
+        if not plan:
+            return _('Standard membership contract terms and conditions.')
+        
+        contract_text = f"""
+        <h2>Membership Contract</h2>
+        <h3>Plan: {plan.name}</h3>
+        <p><strong>Member:</strong> {self.partner_id.name if self.partner_id else 'N/A'}</p>
+        <p><strong>Purchase Price:</strong> {self.purchase_price_paid} {self.currency_id.symbol if self.currency_id else ''}</p>
+        <p><strong>Duration:</strong> {plan.duration_days} days</p>
+        
+        <h3>Terms and Conditions:</h3>
+        <ul>
+            <li>This membership is valid for {plan.duration_days} days from the activation date.</li>
+            <li>The member agrees to abide by all club rules and regulations.</li>
+            <li>Membership benefits are subject to the terms of the selected plan.</li>
+            <li>Refunds are subject to the club's refund policy.</li>
+        </ul>
+        
+        <h3>Plan Details:</h3>
+        <p><strong>Quota Mode:</strong> {dict(plan._fields['quota_mode'].selection)[plan.quota_mode]}</p>
+        """
+        
+        if plan.quota_mode == 'bucket_counts':
+            contract_text += f"""
+            <ul>
+                <li>Offline Sessions: {plan.quota_offline or 0}</li>
+                <li>Online Sessions: {plan.quota_online or 0}</li>
+                <li>Special Club Sessions: {plan.quota_sp or 0}</li>
+            </ul>
+            """
+        elif plan.quota_mode == 'points':
+            contract_text += f"""
+            <ul>
+                <li>Starting Points: {plan.points_start or 0}</li>
+                <li>Points per Offline Session: {plan.points_per_offline or 0}</li>
+                <li>Points per Online Session: {plan.points_per_online or 0}</li>
+                <li>Points per Special Club Session: {plan.points_per_sp or 0}</li>
+            </ul>
+            """
+        elif plan.quota_mode == 'unlimited':
+            contract_text += """
+            <ul>
+                <li>Unlimited access to all club activities</li>
+            </ul>
+            """
+        
+        contract_text += """
+        <p><strong>Signature:</strong> By signing this contract, both parties agree to the terms and conditions outlined above.</p>
+        """
+        
+        return contract_text
+    
+    def apply_discount(self, discount):
+        """Apply a discount to this membership"""
+        self.ensure_one()
+        
+        if not discount or not discount.is_valid:
+            raise UserError(_('Invalid or expired discount'))
+        
+        # Check if discount applies to this plan
+        if discount.membership_plan_ids and self.membership_plan_id not in discount.membership_plan_ids:
+            raise UserError(_('This discount does not apply to the selected membership plan'))
+        
+        # Check customer type restrictions
+        if discount.customer_type != 'all':
+            if discount.customer_type == 'first_timer' and not self.partner_id.is_first_timer:
+                raise UserError(_('This discount is only available for first-time customers'))
+            elif discount.customer_type == 'existing' and self.partner_id.is_first_timer:
+                raise UserError(_('This discount is only available for existing customers'))
+            elif discount.customer_type == 'new' and self.partner_id.is_first_timer:
+                raise UserError(_('This discount is only available for new customers'))
+        
+        # Calculate discounted price
+        discounted_price = self.membership_plan_id.get_discounted_price(discount, self.partner_id)
+        
+        # Update membership with discount
+        self.write({
+            'purchase_price_paid': discounted_price,
+            'price_tier': 'discount',
+            'applied_discount_id': discount.id
+        })
+        
+        # Increment discount usage
+        discount.action_increment_usage()
+        
+        # Log the discount application
+        self.message_post(
+            body=_('Discount "%s" applied. New price: %s %s') % 
+                 (discount.name, discounted_price, self.currency_id.symbol if self.currency_id else '')
+        )
+        
+        return True
+    
+    def remove_discount(self):
+        """Remove applied discount and revert to normal pricing"""
+        self.ensure_one()
+        
+        if not self.applied_discount_id:
+            raise UserError(_('No discount is currently applied to this membership'))
+        
+        # Revert to normal price
+        self.write({
+            'purchase_price_paid': self.membership_plan_id.price_normal,
+            'price_tier': 'normal',
+            'applied_discount_id': False
+        })
+        
+        # Log the discount removal
+        self.message_post(
+            body=_('Discount removed. Reverted to normal pricing: %s %s') % 
+                 (self.purchase_price_paid, self.currency_id.symbol if self.currency_id else '')
         )
         
         return True

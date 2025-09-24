@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        
+        <!-- Inherit the standard event registration form to add waitlist fields -->
+        <record id="view_event_registration_form_waitlist" model="ir.ui.view">
+            <field name="name">event.registration.form.waitlist</field>
+            <field name="model">event.registration</field>
+            <field name="inherit_id" ref="event.view_event_registration_form"/>
+            <field name="arch" type="xml">
+                
+                <!-- Add waitlist fields to the Event Information group -->
+                <xpath expr="//group[@name='event']" position="inside">
+                    <field name="is_on_waitlist" invisible="not event_id.seats_limited"/>
+                    <field name="waitlist_position" invisible="not is_on_waitlist" readonly="1"/>
+                    <field name="membership_id" 
+                           domain="[('partner_id', '=', partner_id), ('state', 'in', ['active', 'frozen', 'pending'])]"
+                           invisible="not event_id.seats_limited"/>
+                    <field name="consumption_state" invisible="not membership_id"/>
+                    <field name="club_type" readonly="1" invisible="not event_id.seats_limited"/>
+                    <field name="is_auto_booked" readonly="1"/>
+                </xpath>
+                
+                <!-- Add waitlist alert after the header -->
+                <xpath expr="//sheet" position="inside">
+                    <div class="alert alert-warning" invisible="not is_on_waitlist">
+                        <strong>⏰ Waitlist Registration:</strong> This person is on the waitlist at position #<field name="waitlist_position" readonly="1"/>.
+                    </div>
+                </xpath>
+                
+                <!-- Add waitlist action buttons to the button box -->
+                <xpath expr="//div[@name='button_box']" position="inside">
+                    <button name="action_promote_from_waitlist" string="Promote from Waitlist" type="object" 
+                            class="oe_stat_button" icon="fa-arrow-up"
+                            invisible="not is_on_waitlist"
+                            confirm="Promote this person from the waitlist to confirmed registration?">
+                        <field name="waitlist_position" widget="statinfo" string="Position"/>
+                    </button>
+                    <button name="action_add_to_waitlist" string="Add to Waitlist" type="object" 
+                            class="oe_stat_button" icon="fa-clock-o"
+                            invisible="is_on_waitlist or not event_id.seats_limited"
+                            confirm="Add this person to the waitlist?">
+                        <field name="is_on_waitlist" widget="statinfo" string="Waitlist"/>
+                    </button>
+                </xpath>
+                
+            </field>
+        </record>
+        
+        <!-- Custom Registration Tree View for Registration Desk -->
+        <record id="view_event_registration_tree_custom" model="ir.ui.view">
+            <field name="name">event.registration.tree.custom</field>
+            <field name="model">event.registration</field>
+            <field name="inherit_id" ref="event.view_event_registration_tree"/>
+            <field name="arch" type="xml">
+                <!-- Replace Email field with Host -->
+                <xpath expr="//field[@name='email']" position="replace">
+                    <field name="event_host" string="Host" optional="show" readonly="1"/>
+                </xpath>
+                
+                <!-- Replace Ticket Type field with Club start time -->
+                <xpath expr="//field[@name='event_ticket_id']" position="replace">
+                    <field name="event_start_time" string="Club Start Time" optional="show" readonly="1"/>
+                </xpath>
+                
+                <!-- Remove sale status field -->
+                <xpath expr="//field[@name='sale_status']" position="replace">
+                    <field name="sale_status" column_invisible="True"/>
+                </xpath>
+            </field>
+        </record>
+        
+    </data>
+</odoo>

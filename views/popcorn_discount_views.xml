@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Discount List View -->
+    <record id="popcorn_discount_tree_view" model="ir.ui.view">
+        <field name="name">popcorn.discount.tree</field>
+        <field name="model">popcorn.discount</field>
+        <field name="arch" type="xml">
+            <list string="Discounts" decoration-bf="not active" decoration-muted="not is_valid">
+                <field name="sequence" widget="handle"/>
+                <field name="badge_image" widget="image" optional="hide"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="discount_type"/>
+                <field name="discount_value"/>
+                <field name="extra_days" optional="hide"/>
+                <field name="active"/>
+                <field name="is_valid"/>
+                <field name="usage_count"/>
+                <field name="usage_limit"/>
+                <field name="remaining_usage"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Discount Form View -->
+    <record id="popcorn_discount_form_view" model="ir.ui.view">
+        <field name="name">popcorn.discount.form</field>
+        <field name="model">popcorn.discount</field>
+        <field name="arch" type="xml">
+            <form string="Discount">
+                <header>
+                    <button name="action_increment_usage" string="Increment Usage" type="object" 
+                            class="btn-primary" invisible="not active"/>
+                    <button name="action_reset_usage" string="Reset Usage" type="object" 
+                            class="btn-secondary" invisible="not active"/>
+                    <button name="action_duplicate" string="Duplicate" type="object" 
+                            class="btn-secondary" invisible="not active"/>
+                    <field name="active" widget="boolean_toggle"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_increment_usage" type="object" class="oe_stat_button" icon="fa-plus">
+                            <field name="usage_count" widget="statinfo" string="Times Used"/>
+                        </button>
+                        <button name="action_reset_usage" type="object" class="oe_stat_button" icon="fa-refresh">
+                            <field name="remaining_usage" widget="statinfo" string="Remaining"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Discount Name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="code"/>
+                            <field name="discount_type"/>
+                            <field name="discount_value"/>
+                            <field name="extra_days" invisible="discount_type != 'extra_days'"/>
+                            <field name="customer_type"/>
+                            <field name="is_public"/>
+                        </group>
+                        <group>
+                            <field name="sequence"/>
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                            <field name="usage_limit"/>
+                            <field name="usage_limit_per_customer"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="description"/>
+                        </group>
+                        <group>
+                            <field name="website_description"/>
+                        </group>
+                    </group>
+                    
+                    <group>
+                        <group string="Badge Image">
+                            <field name="badge_image" widget="image" class="oe_avatar"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Applicable Plans" name="plans">
+                            <field name="membership_plan_ids" widget="many2many_tags" 
+                                   options="{'no_create': True}"/>
+                        </page>
+                        <page string="Usage Statistics" name="usage">
+                            <group>
+                                <group>
+                                    <field name="usage_count" readonly="1"/>
+                                    <field name="usage_limit"/>
+                                    <field name="remaining_usage" readonly="1"/>
+                                </group>
+                                <group>
+                                    <field name="is_valid" readonly="1"/>
+                                    <field name="date_from"/>
+                                    <field name="date_to"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Discount Search View -->
+    <record id="popcorn_discount_search_view" model="ir.ui.view">
+        <field name="name">popcorn.discount.search</field>
+        <field name="model">popcorn.discount</field>
+        <field name="arch" type="xml">
+            <search string="Search Discounts">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="discount_type"/>
+                <field name="membership_plan_ids"/>
+                <separator/>
+                <filter string="Active" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Valid" name="valid" domain="[('is_valid', '=', True)]"/>
+                <filter string="Public" name="public" domain="[('is_public', '=', True)]"/>
+                <separator/>
+                <filter string="Percentage" name="percentage" domain="[('discount_type', '=', 'percentage')]"/>
+                <filter string="Fixed Amount" name="fixed_amount" domain="[('discount_type', '=', 'fixed_amount')]"/>
+                <filter string="First Timer" name="first_timer" domain="[('discount_type', '=', 'first_timer')]"/>
+                <filter string="Upgrade" name="upgrade" domain="[('discount_type', '=', 'upgrade')]"/>
+                <separator/>
+                <filter string="All Customers" name="all_customers" domain="[('customer_type', '=', 'all')]"/>
+                <filter string="First Timer Only" name="first_timer_only" domain="[('customer_type', '=', 'first_timer')]"/>
+                <filter string="Existing Customers" name="existing_customers" domain="[('customer_type', '=', 'existing')]"/>
+                <separator/>
+                <group expand="0" string="Group By">
+                    <filter string="Discount Type" name="group_discount_type" context="{'group_by': 'discount_type'}"/>
+                    <filter string="Customer Type" name="group_customer_type" context="{'group_by': 'customer_type'}"/>
+                    <filter string="Valid From" name="group_date_from" context="{'group_by': 'date_from'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Discount Kanban View -->
+    <record id="popcorn_discount_kanban_view" model="ir.ui.view">
+        <field name="name">popcorn.discount.kanban</field>
+        <field name="model">popcorn.discount</field>
+        <field name="arch" type="xml">
+            <kanban string="Discounts">
+                <field name="name"/>
+                <field name="discount_type"/>
+                <field name="discount_value"/>
+                <field name="active"/>
+                <field name="is_valid"/>
+                <field name="usage_count"/>
+                <field name="usage_limit"/>
+                <field name="membership_plan_ids"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_card oe_kanban_global_click">
+                            <div class="oe_kanban_content">
+                                <div class="o_kanban_record_top">
+                                    <div class="o_kanban_record_headings">
+                                        <strong class="o_kanban_record_title">
+                                            <field name="name"/>
+                                        </strong>
+                                    </div>
+                                    <div class="o_kanban_record_body">
+                                        <div t-if="record.discount_type.raw_value == 'percentage'">
+                                            <field name="discount_value"/>% Off
+                                        </div>
+                                        <div t-elif="record.discount_type.raw_value == 'fixed_amount'">
+                                            $<field name="discount_value"/> Off
+                                        </div>
+                                        <div t-elif="record.discount_type.raw_value == 'first_timer'">
+                                            First Timer Price
+                                        </div>
+                                        <div t-elif="record.discount_type.raw_value == 'upgrade'">
+                                            Upgrade Discount
+                                        </div>
+                                        <div t-elif="record.discount_type.raw_value == 'extra_days'">
+                                            +<field name="extra_days"/> Extra Days
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="o_kanban_record_bottom">
+                                    <div class="oe_kanban_bottom_left">
+                                        <span t-if="record.usage_count.raw_value > 0">
+                                            Used: <field name="usage_count"/>
+                                        </span>
+                                        <span t-if="record.usage_limit.raw_value > 0">
+                                            / <field name="usage_limit"/>
+                                        </span>
+                                    </div>
+                                    <div class="oe_kanban_bottom_right">
+                                        <span t-if="record.is_valid.raw_value" class="badge badge-success">Valid</span>
+                                        <span t-else="" class="badge badge-secondary">Invalid</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Discount Actions -->
+    <record id="popcorn_discount_action" model="ir.actions.act_window">
+        <field name="name">Discounts</field>
+        <field name="res_model">popcorn.discount</field>
+        <field name="view_mode">list,form,kanban</field>
+        <field name="search_view_id" ref="popcorn_discount_search_view"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first discount!
+            </p>
+            <p>
+                Discounts allow you to offer special pricing to customers for membership plans.
+                You can create percentage discounts, fixed amount discounts, or special pricing for first-time customers.
+            </p>
+        </field>
+    </record>
+
+    <!-- Discount Menu -->
+    <menuitem id="popcorn_discount_menu" 
+              name="Discounts" 
+              parent="menu_popcorn_root" 
+              action="popcorn_discount_action" 
+              sequence="40"/>
+
+</odoo>

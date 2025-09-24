@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Contract List View -->
+    <record id="popcorn_contract_view_list" model="ir.ui.view">
+        <field name="name">popcorn.contract.list</field>
+        <field name="model">popcorn.contract</field>
+        <field name="arch" type="xml">
+            <list string="Contracts" decoration-info="state=='draft'" decoration-success="state=='active'" decoration-muted="state in ['expired','cancelled']">
+                <field name="display_name"/>
+                <field name="partner_id"/>
+                <field name="membership_plan_id"/>
+                <field name="contract_type"/>
+                <field name="contract_date"/>
+                <field name="effective_date"/>
+                <field name="expiry_date"/>
+                <field name="state"/>
+                <field name="signed_by_customer"/>
+                <field name="signed_by_staff"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Contract Form View -->
+    <record id="popcorn_contract_view_form" model="ir.ui.view">
+        <field name="name">popcorn.contract.form</field>
+        <field name="model">popcorn.contract</field>
+        <field name="arch" type="xml">
+            <form string="Contract">
+                <header>
+                    <button name="action_approve" string="Approve" type="object" 
+                            class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_sign_customer" string="Sign (Customer)" type="object" 
+                            class="btn-secondary" invisible="state not in ['approved', 'signed']"/>
+                    <button name="action_sign_staff" string="Sign (Staff)" type="object" 
+                            class="btn-secondary" invisible="state not in ['approved', 'signed']"/>
+                    <button name="action_activate" string="Activate" type="object" 
+                            class="btn-success" invisible="state != 'signed'"/>
+                    <button name="action_cancel" string="Cancel" type="object" 
+                            class="btn-danger" invisible="state not in ['draft', 'pending_approval', 'approved', 'signed']"/>
+                    <button name="action_expire" string="Expire" type="object" 
+                            class="btn-warning" invisible="state != 'active'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,pending_approval,approved,signed,active"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="display_name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="membership_id" options="{'no_create': True}"/>
+                            <field name="partner_id" readonly="1"/>
+                            <field name="membership_plan_id" readonly="1"/>
+                            <field name="membership_state" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="contract_type"/>
+                            <field name="contract_date"/>
+                            <field name="effective_date"/>
+                            <field name="expiry_date" readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="signed_by_customer"/>
+                            <field name="customer_signature_date" readonly="1"/>
+                            <field name="customer_signature" widget="image" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="signed_by_staff"/>
+                            <field name="staff_signature_date" readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="approved_by" readonly="1"/>
+                            <field name="approval_date" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Contract Text" name="contract_text">
+                            <field name="contract_text" nolabel="1"/>
+                        </page>
+                        <page string="Terms &amp; Conditions" name="terms_conditions">
+                            <field name="terms_and_conditions" nolabel="1"/>
+                        </page>
+                        <page string="Special Conditions" name="special_conditions">
+                            <field name="special_conditions" nolabel="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Contract Search View -->
+    <record id="popcorn_contract_view_search" model="ir.ui.view">
+        <field name="name">popcorn.contract.search</field>
+        <field name="model">popcorn.contract</field>
+        <field name="arch" type="xml">
+            <search string="Search Contracts">
+                <field name="display_name"/>
+                <field name="partner_id"/>
+                <field name="membership_plan_id"/>
+                <field name="contract_type"/>
+                <field name="contract_date"/>
+                <field name="effective_date"/>
+                <field name="expiry_date"/>
+                <field name="state"/>
+                <field name="signed_by_customer"/>
+                <field name="signed_by_staff"/>
+                <filter string="Draft" name="draft" domain="[('state','=','draft')]"/>
+                <filter string="Pending Approval" name="pending_approval" domain="[('state','=','pending_approval')]"/>
+                <filter string="Approved" name="approved" domain="[('state','=','approved')]"/>
+                <filter string="Signed" name="signed" domain="[('state','=','signed')]"/>
+                <filter string="Active" name="active" domain="[('state','=','active')]"/>
+                <filter string="Expired" name="expired" domain="[('state','=','expired')]"/>
+                <filter string="Cancelled" name="cancelled" domain="[('state','=','cancelled')]"/>
+                <filter string="Standard Contracts" name="standard" domain="[('contract_type','=','standard')]"/>
+                <filter string="Custom Contracts" name="custom" domain="[('contract_type','=','custom')]"/>
+                <filter string="Upgrade Contracts" name="upgrade" domain="[('contract_type','=','upgrade')]"/>
+                <filter string="Renewal Contracts" name="renewal" domain="[('contract_type','=','renewal')]"/>
+                <filter string="Signed by Customer" name="signed_customer" domain="[('signed_by_customer','=',True)]"/>
+                <filter string="Signed by Staff" name="signed_staff" domain="[('signed_by_staff','=',True)]"/>
+                <filter string="This Month" name="this_month" domain="[('contract_date','&gt;=',datetime.datetime.now().strftime('%Y-%m-01')),('contract_date','&lt;=',datetime.datetime.now().strftime('%Y-%m-%d'))]"/>
+                <filter string="This Year" name="this_year" domain="[('contract_date','&gt;=',datetime.datetime.now().strftime('%Y-01-01')),('contract_date','&lt;=',datetime.datetime.now().strftime('%Y-12-31'))]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Status" name="group_state" context="{'group_by':'state'}"/>
+                    <filter string="Contract Type" name="group_contract_type" context="{'group_by':'contract_type'}"/>
+                    <filter string="Member" name="group_partner" context="{'group_by':'partner_id'}"/>
+                    <filter string="Membership Plan" name="group_membership_plan" context="{'group_by':'membership_plan_id'}"/>
+                    <filter string="Contract Date" name="group_contract_date" context="{'group_by':'contract_date'}"/>
+                    <filter string="Effective Date" name="group_effective_date" context="{'group_by':'effective_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Contract Kanban View -->
+    <record id="popcorn_contract_view_kanban" model="ir.ui.view">
+        <field name="name">popcorn.contract.kanban</field>
+        <field name="model">popcorn.contract</field>
+        <field name="arch" type="xml">
+            <kanban string="Contracts" class="o_kanban_small_column">
+                <field name="state"/>
+                <field name="display_name"/>
+                <field name="partner_id"/>
+                <field name="membership_plan_id"/>
+                <field name="contract_type"/>
+                <field name="contract_date"/>
+                <field name="effective_date"/>
+                <field name="expiry_date"/>
+                <field name="signed_by_customer"/>
+                <field name="signed_by_staff"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_card oe_kanban_global_click">
+                            <div class="oe_kanban_content">
+                                <div class="o_kanban_record_top">
+                                    <div class="o_kanban_record_headings">
+                                        <strong class="o_kanban_record_title">
+                                            <field name="display_name"/>
+                                        </strong>
+                                    </div>
+                                    <div class="o_kanban_record_body">
+                                        <div>
+                                            <strong>Member:</strong> <field name="partner_id"/>
+                                        </div>
+                                        <div>
+                                            <strong>Plan:</strong> <field name="membership_plan_id"/>
+                                        </div>
+                                        <div>
+                                            <strong>Type:</strong> <field name="contract_type"/>
+                                        </div>
+                                        <div>
+                                            <strong>Contract Date:</strong> <field name="contract_date"/>
+                                        </div>
+                                        <div>
+                                            <strong>Effective Date:</strong> <field name="effective_date"/>
+                                        </div>
+                                        <div>
+                                            <strong>Expiry Date:</strong> <field name="expiry_date"/>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="o_kanban_record_bottom">
+                                    <div class="oe_kanban_bottom_left">
+                                        <span t-if="record.signed_by_customer.raw_value" class="badge badge-success">Customer Signed</span>
+                                        <span t-if="record.signed_by_staff.raw_value" class="badge badge-info">Staff Signed</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Contract Action -->
+    <record id="popcorn_contract_action" model="ir.actions.act_window">
+        <field name="name">Contracts</field>
+        <field name="res_model">popcorn.contract</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="search_view_id" ref="popcorn_contract_view_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first contract!
+            </p>
+            <p>
+                Contracts contain the terms and conditions for membership agreements.
+                Each membership can have one contract associated with it.
+            </p>
+        </field>
+    </record>
+
+    <!-- Contract Menu -->
+    <menuitem id="popcorn_contract_menu" 
+              name="Contracts" 
+              parent="menu_popcorn_root" 
+              action="popcorn_contract_action" 
+              sequence="50"/>
+
+</odoo>

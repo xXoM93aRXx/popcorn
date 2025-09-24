@@ -50,6 +50,10 @@
     color: var(--popcorn-event-success);
 }
 
+.popcorn-event-waitlist-icon {
+    color: var(--popcorn-event-warning);
+}
+
 .popcorn-event-error-icon {
     color: var(--popcorn-event-danger);
 }
@@ -77,6 +81,12 @@
     background: #d4edda;
     border: 1px solid #c3e6cb;
     color: #155724;
+}
+
+.popcorn-event-waitlist-message {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
 }
 
 .popcorn-event-error-message {
@@ -308,6 +318,19 @@
     text-decoration: none;
 }
 
+/* Waitlist Position Button */
+.btn-info {
+    background-color: var(--popcorn-event-info);
+    border-color: var(--popcorn-event-info);
+    color: var(--popcorn-event-white);
+}
+
+.btn-info:hover {
+    background-color: #138496;
+    border-color: #117a8b;
+    color: var(--popcorn-event-white);
+}
+
 .popcorn-event-btn i {
     margin-right: 0.5rem;
 }
@@ -450,5 +473,129 @@
     .popcorn-event-submit-btn {
         padding: 0.75rem 1rem;
         font-size: 1rem;
+    }
+}
+
+/* Registration Options Styles */
+.popcorn-registration-options {
+    margin: 2rem 0;
+    text-align: left;
+}
+
+.popcorn-registration-options h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--popcorn-event-dark);
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.popcorn-purchase-option,
+.popcorn-membership-option {
+    background: var(--popcorn-event-white);
+    border: 2px solid var(--popcorn-event-border-light);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.popcorn-purchase-option:hover,
+.popcorn-membership-option:hover {
+    border-color: var(--popcorn-event-primary);
+    box-shadow: 0 4px 12px rgba(230, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.popcorn-purchase-option {
+    border-color: var(--popcorn-event-success);
+}
+
+.popcorn-purchase-option:hover {
+    border-color: var(--popcorn-event-success);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
+}
+
+.popcorn-purchase-info,
+.popcorn-membership-info {
+    margin-bottom: 1rem;
+}
+
+.popcorn-purchase-info h4,
+.popcorn-membership-info h4 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--popcorn-event-dark);
+    margin-bottom: 0.5rem;
+}
+
+.popcorn-price {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--popcorn-event-success);
+    margin: 0.5rem 0;
+}
+
+.popcorn-purchase-desc,
+.popcorn-membership-desc {
+    color: var(--popcorn-event-gray-dark);
+    font-size: 1rem;
+    line-height: 1.5;
+    margin: 0.5rem 0;
+}
+
+.popcorn-error-text {
+    color: var(--popcorn-event-danger);
+    font-size: 0.9rem;
+    font-style: italic;
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 0.25rem;
+}
+
+/* Option buttons within options */
+.popcorn-purchase-option .popcorn-event-btn,
+.popcorn-membership-option .popcorn-event-btn {
+    margin-top: 1rem;
+    width: 100%;
+    text-align: center;
+}
+
+/* Responsive adjustments for registration options */
+@media (max-width: 768px) {
+    .popcorn-registration-options {
+        margin: 1.5rem 0;
+    }
+    
+    .popcorn-registration-options h3 {
+        font-size: 1.25rem;
+    }
+    
+    .popcorn-purchase-option,
+    .popcorn-membership-option {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .popcorn-purchase-info h4,
+    .popcorn-membership-info h4 {
+        font-size: 1.125rem;
+    }
+    
+    .popcorn-price {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .popcorn-purchase-option,
+    .popcorn-membership-option {
+        padding: 0.75rem;
+    }
+    
+    .popcorn-registration-options h3 {
+        font-size: 1.125rem;
     }
 }

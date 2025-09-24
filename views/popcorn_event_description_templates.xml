@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <!-- Inherit the event description template to add host bio -->
+        <!-- Inherit the event description template to add host bio and replace sidebar -->
         <template id="popcorn_event_description_full" inherit_id="website_event.event_description_full" name="Popcorn Event Description Full">
             <xpath expr="//div[@class='o_wevent_event_main_dates_mobile d-lg-none mt-3']" position="after">
                 <!-- Host Bio -->
@@ -26,6 +26,48 @@
                         </div>
                     </div>
                 </div>
+            </xpath>
+            
+            <!-- Replace the entire sidebar with only desired sections -->
+            <xpath expr="//aside[@id='o_wevent_event_main_sidebar']" position="replace">
+                <!-- Sidebar -->
+                <aside id="o_wevent_event_main_sidebar" class="col-lg-4 my-3 mb-lg-0 d-print-none">
+                    <!-- CTA (desktop only) -->
+                    <div class="d-none d-lg-block mb-3">
+                        <t t-call="website_event.registration_template">
+                            <t t-set="cta_additional_classes">w-100</t>
+                        </t>
+                    </div>
+                    <!-- Date & Time (desktop only) -->
+                    <div class="d-none d-lg-block border-bottom pb-2 mb-3">
+                        <meta itemprop="startDate" t-att-content="event.date_begin.isoformat()"/>
+                        <meta itemprop="endDate" t-att-content="event.date_end.isoformat()"/>
+                        <t t-call="website_event.event_description_dates"/>
+                    </div>
+                    <header class="d-lg-none mt-4 mb-2 py-3 border-top">
+                        <h5 class="my-0">Event Info</h5>
+                        <meta itemprop="eventStatus" content="https://schema.org/EventScheduled"/>
+                    </header>
+                    <!-- Location -->
+                    <meta itemprop="eventAttendanceMode" t-attf-content="https://schema.org/{{'Offline' if event.address_id else 'Online'}}EventAttendanceMode"/>
+                    <div t-if="event.address_id" class="o_wevent_sidebar_block border-bottom pb-3 mb-4" itemprop="location" itemscope="itemscope" itemtype="https://schema.org/Place">
+                        <h6 class="o_wevent_sidebar_title">Location</h6>
+                        <div itemprop="name" class="mb-1" t-field="event.address_id"/>
+                        <small class="d-block mb-2" t-field="event.address_id" t-options="{                                 &quot;widget&quot;: &quot;contact&quot;,                                 &quot;fields&quot;: [&quot;address&quot;],                                 &quot;no_marker&quot;: True,                                 &quot;with_microdata&quot;: True,                             }"/>
+                        <small t-field="event.address_id" class="d-block mb-2" t-options="{                                 &quot;widget&quot;: &quot;contact&quot;,                                 &quot;fields&quot;: [&quot;phone&quot;, &quot;mobile&quot;, &quot;email&quot;]                             }"/>
+                        <a t-att-href="event._google_map_link()" target="_blank" class="btn btn-light" title="Get directions">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="align-text-top" role="img" style="height: 1em; width: 1em">
+                                <rect width="24" height="24" opacity="0"/>
+                                <path role="presentation" fill="currentColor" d="M13.67 22h-.06a1 1 0 0 1-.92-.8l-1.54-7.57a1 1 0 0 0-.78-.78L2.8 11.31a1 1 0 0 1-.12-1.93l16-5.33A1 1 0 0 1 20 5.32l-5.33 16a1 1 0 0 1-1 .68z"/>
+                            </svg>
+                            Get directions
+                        </a>
+                    </div>
+                    <div t-else="" class="o_wevent_sidebar_block border-bottom pb-3 mb-4">
+                        <h6 class="o_wevent_sidebar_title">Location</h6>
+                        <i class="fa fa-map-marker" title="Location"/> Online event
+                    </div>
+                </aside>
             </xpath>
         </template>
     </data>

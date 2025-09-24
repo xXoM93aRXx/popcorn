@@ -1,0 +1,354 @@
+/* Minimalistic Host Profile Styles */
+.popcorn-hosts-page {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #f8f9fa;
+    min-height: 100vh;
+}
+
+/* Minimalistic Header */
+.popcorn-header {
+    text-align: center;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.popcorn-header h1 {
+    font-size: 28px;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+}
+
+/* Hosts Container */
+.popcorn-hosts-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Host Section */
+.popcorn-hosts-section {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.popcorn-section-header {
+    padding: 16px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 16px;
+    font-weight: 500;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    transition: background-color 0.2s ease;
+}
+
+.popcorn-section-header:hover {
+    background: #e9ecef;
+}
+
+.section-title {
+    flex: 1;
+    margin-left: 8px;
+}
+
+.status-icon {
+    font-size: 12px;
+    margin-right: 8px;
+}
+
+.status-icon.online {
+    color: #28a745;
+}
+
+.status-icon.offline {
+    color: #dc3545;
+}
+
+.popcorn-host-count {
+    background: #6c757d;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-right: 8px;
+}
+
+.popcorn-dropdown-arrow {
+    font-size: 12px;
+    transition: transform 0.2s ease;
+    color: #6c757d;
+}
+
+.popcorn-dropdown-arrow.rotated,
+.popcorn-section-open .popcorn-dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+/* Dropdown Content */
+.popcorn-hosts-dropdown {
+    display: none;
+}
+
+.popcorn-hosts-dropdown.open {
+    display: block;
+    animation: slideDown 0.3s ease;
+    max-height: 80vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Host Card Links */
+.popcorn-host-card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    transition: background-color 0.2s ease;
+}
+
+.popcorn-host-card-link:hover {
+    background-color: #f8f9fa;
+    text-decoration: none;
+    color: inherit;
+}
+
+.popcorn-host-card-link:focus {
+    outline: 2px solid #0d6efd;
+    outline-offset: -2px;
+}
+
+/* Host Cards */
+.popcorn-host-card {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f3f4;
+    gap: 16px;
+    cursor: pointer;
+}
+
+.popcorn-host-card:last-child {
+    border-bottom: none;
+}
+
+.host-photo {
+    flex-shrink: 0;
+}
+
+.host-image {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e9ecef;
+}
+
+.host-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.host-info h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 4px 0;
+}
+
+.flag-container {
+    margin: 4px 0;
+}
+
+.flag {
+    width: 24px;
+    height: 18px;
+    border-radius: 2px;
+}
+
+.host-info p {
+    font-size: 14px;
+    color: #6c757d;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.host-excerpt {
+    font-weight: 500;
+    color: #495057;
+    font-style: italic;
+}
+
+.host-bio {
+    color: #6c757d;
+}
+
+
+/* Full Width Host Poster Image */
+.popcorn-poster-image {
+    width: 100%;
+    min-height: 100vh;
+    margin-bottom: 0;
+}
+
+.popcorn-poster-img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Clubs by this Host Section */
+.popcorn-host-clubs-section {
+    background: white;
+    padding: 60px 0;
+}
+
+.popcorn-clubs-title {
+    font-size: 32px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 40px;
+    text-align: center;
+}
+
+.popcorn-show-all-clubs {
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 500;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    margin-top: 30px;
+}
+
+.popcorn-show-all-clubs:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    text-decoration: none;
+}
+
+/* Host Bio Container */
+.popcorn-host-bio-container {
+    max-width: 800px;
+    margin: 0 auto;
+}image.png
+
+.popcorn-host-bio {
+    font-size: 18px;
+    line-height: 1.6;
+    color: white;
+    text-align: left;
+}
+
+.popcorn-host-bio h1,
+.popcorn-host-bio h2,
+.popcorn-host-bio h3,
+.popcorn-host-bio h4,
+.popcorn-host-bio h5,
+.popcorn-host-bio h6 {
+    color: white;
+    font-weight: bold;
+}
+
+.popcorn-host-bio ul {
+    list-style-type: disc;
+    margin-left: 20px;
+}
+
+.popcorn-host-bio li {
+    margin-bottom: 8px;
+}
+
+.popcorn-host-bio p {
+    margin-bottom: 16px;
+}
+
+.popcorn-host-bio strong {
+    font-weight: bold;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .popcorn-hosts-page {
+        padding: 16px;
+    }
+    
+    .popcorn-header {
+        padding: 24px 16px;
+    }
+    
+    .popcorn-header h1 {
+        font-size: 24px;
+    }
+    
+    .popcorn-section-header {
+        padding: 12px 16px;
+        font-size: 14px;
+    }
+    
+    .popcorn-host-card {
+        padding: 12px 16px;
+        gap: 12px;
+    }
+    
+    .host-image {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .host-info h3 {
+        font-size: 14px;
+    }
+    
+    .host-info p {
+        font-size: 12px;
+    }
+    
+    
+    
+    .popcorn-flag-img {
+        width: 40px;
+        height: 30px;
+    }
+    
+    .popcorn-poster-img {
+        height: auto;
+    }
+    
+    .popcorn-host-clubs-section {
+        padding: 40px 0;
+    }
+    
+    .popcorn-clubs-title {
+        font-size: 24px;
+        margin-bottom: 30px;
+    }
+    
+    .popcorn-show-all-clubs {
+        padding: 10px 20px;
+        font-size: 14px;
+        margin-top: 20px;
+    }
+    
+    .popcorn-host-bio {
+        font-size: 16px;
+    }
+}

@@ -1,6 +1,9 @@
-from odoo import models, fields, api
+from odoo import models, fields, api, _
+from odoo.exceptions import AccessError
 import logging
 from datetime import timedelta
+
+_logger = logging.getLogger(__name__)
 
 
 class EventEvent(models.Model):
@@ -18,6 +21,12 @@ class EventEvent(models.Model):
         help='Number of hours before the event start time when users can cancel their registration'
     )
     
+    event_price = fields.Float(
+        string='Event Price',
+        digits='Product Price',
+        help='Price for attending this event'
+    )
+    
     # Club type classification (computed, not stored in UI)
     club_type = fields.Selection([
         ('regular_offline', 'Regular Offline'),
@@ -32,6 +41,44 @@ class EventEvent(models.Model):
         compute='_compute_host_info',
         store=False,
         help='Host name for website display'
+    )
+    
+    # Searchable host name field for search functionality
+    host_search_name = fields.Char(
+        string='Host Search Name',
+        compute='_compute_host_search_name',
+        store=True,
+        help='Host name for search functionality'
+    )
+    
+    # Seat availability and waitlist information (depends on seats_limited field)
+    seats_available = fields.Integer(
+        string='Seats Available',
+        compute='_compute_seat_availability',
+        store=False,
+        help='Number of available seats'
+    )
+    
+    seats_taken = fields.Integer(
+        string='Seats Taken',
+        compute='_compute_seat_availability',
+        store=False,
+        help='Number of seats taken'
+    )
+    
+    waitlist_count = fields.Integer(
+        string='Waitlist Count',
+        compute='_compute_waitlist_info',
+        store=False,
+        help='Number of people on waitlist'
+    )
+    
+    # User's waitlist position (for current user)
+    user_waitlist_position = fields.Integer(
+        string='Your Waitlist Position',
+        compute='_compute_user_waitlist_position',
+        store=False,
+        help='Current user\'s position on the waitlist'
     )
     
     host_image = fields.Binary(
@@ -82,6 +129,22 @@ class EventEvent(models.Model):
         compute='_compute_location_info',
         store=False,
         help='Whether this is an online event'
+    )
+    
+    # User registration status fields
+    has_conflicting_registration = fields.Boolean(
+        string='Has Conflicting Registration',
+        compute='_compute_has_conflicting_registration',
+        store=False,
+        help='Whether the current user has a conflicting registration for another event at the same time'
+    )
+    
+    conflicting_event = fields.Many2one(
+        'event.event',
+        string='Conflicting Event',
+        compute='_compute_has_conflicting_registration',
+        store=False,
+        help='The event that conflicts with this one'
     )
 
     @api.depends('tag_ids', 'is_online_event')
@@ -172,6 +235,21 @@ class EventEvent(models.Model):
                 event.host_function = ''
                 event.host_bio = ''
     
+    @api.depends('host_id')
+    def _compute_host_search_name(self):
+        """Compute searchable host name for search functionality"""
+        for event in self:
+            try:
+                if event.host_id:
+                    # Use sudo() to bypass access rights for reading basic fields
+                    host = event.host_id.sudo()
+                    event.host_search_name = host.name or ''
+                else:
+                    event.host_search_name = ''
+            except:
+                # If there's any access issue, set default values
+                event.host_search_name = ''
+    
     @api.depends('address_id')
     def _compute_location_info(self):
         """Compute location information to avoid direct res.partner access"""
@@ -213,13 +291,24 @@ class EventEvent(models.Model):
         return event
     
     def write(self, vals):
-        """Override write to automatically set is_host field when host is assigned"""
+        """Override write to automatically set is_host field when host is assigned and promote waitlist"""
+        # Store original seats_max to check if capacity increased
+        original_seats_max = self.seats_max if hasattr(self, 'seats_max') else None
+        
         result = super().write(vals)
         
         # If host_id is being set, mark the partner as a host
         if 'host_id' in vals and vals['host_id']:
             host_partner = self.env['res.partner'].browse(vals['host_id'])
             host_partner.is_host = True
+        
+        # If seats_max increased, trigger auto-promotion via computed field
+        if 'seats_max' in vals and original_seats_max is not None:
+            new_seats_max = vals['seats_max']
+            if new_seats_max > original_seats_max:
+                _logger.info(f"Event {self.id}: Seats increased from {original_seats_max} to {new_seats_max}, triggering auto-promotion")
+                # Trigger the computed field to recalculate and auto-promote
+                self._compute_seat_availability()
             
         return result
     
@@ -366,3 +455,292 @@ class EventEvent(models.Model):
         
         # Check if current time is before the cancellation deadline
         return now < cancellation_deadline
+    
+    def promote_waitlist_registrations(self):
+        """Manually promote waitlist registrations if seats become available"""
+        for event in self:
+            if not event.seats_limited:
+                continue
+            
+            # Calculate how many spots are available
+            confirmed_registrations = event.registration_ids.filtered(
+                lambda r: r.state in ['open', 'confirmed', 'done'] and not r.is_on_waitlist
+            )
+            available_spots = max(0, event.seats_max - len(confirmed_registrations))
+            
+            # Promote waitlist registrations up to available spots
+            waitlist_registrations = event.registration_ids.filtered(
+                lambda r: r.is_on_waitlist and r.state == 'draft'
+            ).sorted('waitlist_position')
+            
+            for i, reg in enumerate(waitlist_registrations[:available_spots]):
+                reg.write({
+                    'is_on_waitlist': False,
+                    'waitlist_position': 0,
+                    'state': 'open'
+                })
+                
+                # Consume membership quota
+                if reg.membership_id and reg.consumption_state == 'pending':
+                    reg._consume_membership_quota()
+                
+                # Log the promotion
+                try:
+                    if reg and reg.exists():
+                        reg.message_post(
+                            body=_('Promoted from waitlist to confirmed registration')
+                        )
+                except Exception as e:
+                    _logger.warning(f"Could not post message to registration {reg.id}: {e}")
+                    # Continue processing even if message posting fails
+            
+            # Update remaining waitlist positions
+            if waitlist_registrations:
+                remaining_waitlist = waitlist_registrations[available_spots:]
+                for i, reg in enumerate(remaining_waitlist, 1):
+                    reg.write({'waitlist_position': i})
+    
+    def _auto_promote_waitlist(self):
+        """Automatically promote waitlist registrations when seats become available"""
+        self.ensure_one()
+        
+        if not self.seats_limited or self.seats_available <= 0:
+            _logger.info(f"Event {self.id}: No auto-promotion needed (seats_limited={self.seats_limited}, seats_available={self.seats_available})")
+            return
+        
+        # Get waitlist registrations in order
+        waitlist_registrations = self.registration_ids.filtered(
+            lambda r: r.is_on_waitlist and r.state == 'draft'
+        ).sorted('waitlist_position')
+        
+        # Promote up to the number of available seats
+        promotions_needed = min(self.seats_available, len(waitlist_registrations))
+        
+        _logger.info(f"Event {self.id}: Found {len(waitlist_registrations)} waitlist registrations, promoting {promotions_needed}")
+        
+        for i in range(promotions_needed):
+            reg = waitlist_registrations[i]
+            reg.write({
+                'is_on_waitlist': False,
+                'waitlist_position': 0,
+                'state': 'open'
+            })
+            
+            # Consume membership quota
+            if reg.membership_id and reg.consumption_state == 'pending':
+                reg._consume_membership_quota()
+            
+            # Log the promotion
+            try:
+                if reg and reg.exists():
+                    reg.message_post(
+                        body=_('Automatically promoted from waitlist to confirmed registration')
+                    )
+            except Exception as e:
+                _logger.warning(f"Could not post message to registration {reg.id}: {e}")
+                # Continue processing even if message posting fails
+        
+        # Update remaining waitlist positions
+        if promotions_needed > 0:
+            remaining_waitlist = waitlist_registrations[promotions_needed:]
+            for i, reg in enumerate(remaining_waitlist, 1):
+                reg.write({'waitlist_position': i})
+    
+    @api.model
+    def _search_get_detail(self, website, order, options):
+        """Override to add host search functionality"""
+        # Get the base search detail from the parent method
+        search_detail = super()._search_get_detail(website, order, options)
+        
+        # Add host search field to search_fields
+        if 'search_fields' in search_detail:
+            search_detail['search_fields'].append('host_search_name')
+        
+        # Add host field to fetch_fields
+        if 'fetch_fields' in search_detail:
+            search_detail['fetch_fields'].append('host_search_name')
+        
+        # Add host mapping
+        if 'mapping' in search_detail:
+            search_detail['mapping']['host'] = {
+                'name': 'host_search_name', 
+                'type': 'text', 
+                'match': True
+            }
+        
+        return search_detail
+    
+    @api.depends('seats_limited', 'seats_max', 'registration_ids', 'registration_ids.state')
+    def _compute_seat_availability(self):
+        """Compute seat availability based on seats_limited and registrations"""
+        for event in self:
+            if not event.seats_limited:
+                # If seats are not limited, show unlimited
+                event.seats_available = -1  # -1 means unlimited
+                event.seats_taken = 0
+            else:
+                # Count confirmed registrations (excluding cancelled and draft)
+                confirmed_registrations = event.registration_ids.filtered(
+                    lambda r: r.state in ['open', 'confirmed', 'done'] and not r.is_on_waitlist
+                )
+                event.seats_taken = len(confirmed_registrations)
+                event.seats_available = max(0, event.seats_max - event.seats_taken)
+                
+                # Auto-promote waitlist registrations if seats become available
+                if event.seats_available > 0:
+                    _logger.info(f"Auto-promoting waitlist for event {event.id}: {event.seats_available} seats available")
+                    event._auto_promote_waitlist()
+    
+    @api.depends('registration_ids', 'registration_ids.is_on_waitlist')
+    def _compute_waitlist_info(self):
+        """Compute waitlist count"""
+        for event in self:
+            waitlist_registrations = event.registration_ids.filtered('is_on_waitlist')
+            event.waitlist_count = len(waitlist_registrations)
+    
+    @api.depends('registration_ids', 'registration_ids.partner_id', 'registration_ids.is_on_waitlist')
+    def _compute_user_waitlist_position(self):
+        """Compute current user's waitlist position"""
+        for event in self:
+            event.user_waitlist_position = 0
+            
+            # Only compute for logged-in users
+            if hasattr(self.env, 'user') and self.env.user and self.env.user.partner_id:
+                user_partner = self.env.user.partner_id
+                
+                # Find user's waitlist registration
+                user_waitlist_reg = event.registration_ids.filtered(
+                    lambda r: r.partner_id == user_partner and r.is_on_waitlist
+                )
+                
+                if user_waitlist_reg:
+                    # Count registrations before this user on the waitlist
+                    all_waitlist_regs = event.registration_ids.filtered(
+                        lambda r: r.is_on_waitlist
+                    ).sorted('waitlist_position')
+                    
+                    for i, reg in enumerate(all_waitlist_regs, 1):
+                        if reg.partner_id == user_partner:
+                            event.user_waitlist_position = i
+                            break
+    
+    @api.depends('registration_ids', 'registration_ids.partner_id', 'registration_ids.state')
+    def _compute_has_conflicting_registration(self):
+        """Check if current user has conflicting registrations for overlapping events"""
+        for event in self:
+            event.has_conflicting_registration = False
+            event.conflicting_event = False
+    
+    
+    def action_mark_as_ended(self):
+        """Mark this event as ended"""
+        self.ensure_one()
+        # Find the "Ended" stage
+        ended_stage = self.env['event.stage'].search([('name', '=', 'Ended')], limit=1)
+        if ended_stage:
+            self.write({'stage_id': ended_stage.id})
+            self.message_post(
+                body=_('Event automatically marked as ended 15 minutes after completion')
+            )
+        else:
+            _logger.warning('Could not find "Ended" stage for event')
+        return True
+    
+    @api.model
+    def _auto_mark_ended_events(self):
+        """Automatically mark events as ended 15 minutes after they finish"""
+        now = fields.Datetime.now()
+        
+        # Find events that ended 15 minutes ago but are not yet marked as done
+        cutoff_time = now - timedelta(minutes=15)
+        
+        # Search for events that:
+        # 1. Have an end date
+        # 2. Ended at least 15 minutes ago
+        # 3. Are not already in the "Ended" stage
+        events_to_end = self.search([
+            ('date_end', '!=', False),
+            ('date_end', '<=', cutoff_time),
+            ('stage_id.name', '!=', 'Ended')
+        ])
+        
+        if events_to_end:
+            # Find the "Ended" stage
+            ended_stage = self.env['event.stage'].search([('name', '=', 'Ended')], limit=1)
+            if ended_stage:
+                # Mark all found events as ended
+                events_to_end.write({'stage_id': ended_stage.id})
+                
+                # Log the action for each event
+                for event in events_to_end:
+                    event.message_post(
+                        body=_('Event automatically marked as ended 15 minutes after completion')
+                    )
+                
+                _logger.info(f'Automatically marked {len(events_to_end)} events as ended')
+            else:
+                _logger.warning('Could not find "Ended" stage for events')
+        
+        return len(events_to_end)
+    
+    def write(self, vals):
+        """Override write to handle automatic staff registration when event is published"""
+        result = super().write(vals)
+        
+        # Check if the event is being published or if it's already published
+        if 'is_published' in vals and vals['is_published']:
+            for event in self:
+                event._auto_register_staff_members()
+        elif 'is_published' not in vals:
+            # If is_published is not being changed, check if event is already published
+            for event in self:
+                if event.is_published:
+                    event._auto_register_staff_members()
+        
+        return result
+    
+    def _auto_register_staff_members(self):
+        """Automatically register all staff members for this event"""
+        if not self.exists():
+            return
+            
+        # Find all staff members
+        staff_members = self.env['res.partner'].search([
+            ('book_club_automatically', '=', True),
+            ('active', '=', True)
+        ])
+        
+        if not staff_members:
+            _logger.info(f'No contacts with automatic booking enabled found for event {self.name}')
+            return
+        
+        registrations_created = 0
+        for staff in staff_members:
+            # Check if staff member is already registered for this event
+            existing_registration = self.env['event.registration'].search([
+                ('event_id', '=', self.id),
+                ('partner_id', '=', staff.id)
+            ], limit=1)
+            
+            if not existing_registration:
+                try:
+                    # Create registration for staff member
+                    self.env['event.registration'].create({
+                        'event_id': self.id,
+                        'partner_id': staff.id,
+                        'name': staff.name,
+                        'email': staff.email,
+                        'phone': staff.phone,
+                        'state': 'open',  # Automatically confirmed
+                        'is_auto_booked': True,  # Mark as auto-booked registration
+                    })
+                    registrations_created += 1
+                    _logger.info(f'Automatically registered contact {staff.name} for event {self.name}')
+                except Exception as e:
+                    _logger.error(f'Failed to register contact {staff.name} for event {self.name}: {str(e)}')
+        
+        if registrations_created > 0:
+            self.message_post(
+                body=_('Automatically registered %d contacts for this event.') % registrations_created
+            )
+            _logger.info(f'Automatically registered {registrations_created} contacts for event {self.name}')

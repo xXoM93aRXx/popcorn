@@ -1,0 +1,404 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Contract View Template -->
+        <template id="contract_view_template" name="Contract View">
+            <t t-call="web.frontend_layout">
+                <t t-set="title">Service Contract</t>
+                
+                <div class="container mt-4">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Service Contract - <span t-field="contract.display_name"/></h3>
+                                    <div class="float-right">
+                                        <a t-attf-href="/popcorn/contract/#{contract.id}/pdf" class="btn btn-primary">
+                                            <i class="fa fa-download"/> Download PDF
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Contract Status -->
+                                    <div class="alert alert-info">
+                                        <strong>Contract Status:</strong> 
+                                        <span t-if="contract.state == 'draft'">Draft</span>
+                                        <span t-if="contract.state == 'pending_approval'">Pending Approval</span>
+                                        <span t-if="contract.state == 'approved'">Approved</span>
+                                        <span t-if="contract.state == 'signed'">Signed</span>
+                                        <span t-if="contract.state == 'active'">Active</span>
+                                        <span t-if="contract.state == 'expired'">Expired</span>
+                                        <span t-if="contract.state == 'cancelled'">Cancelled</span>
+                                    </div>
+                                    
+                                    <!-- Signature Status -->
+                                    <div class="alert" t-attf-class="alert-#{contract.signed_by_customer ? 'success' : 'warning'}">
+                                        <strong>Customer Signature:</strong> 
+                                        <span t-if="contract.signed_by_customer">Signed on <span t-field="contract.customer_signature_date"/></span>
+                                        <span t-if="not contract.signed_by_customer">Not signed</span>
+                                    </div>
+                                    
+                                    <!-- Contract Content -->
+                                    <div class="contract-content" style="border: 1px solid #ddd; padding: 20px; margin: 20px 0;">
+                                        <t t-call="popcorn.popcorn_service_contract_website_template"/>
+                                    </div>
+                                    
+                                    <!-- Signature Section -->
+                                    <t t-if="contract.state in ['approved', 'signed'] and not contract.signed_by_customer">
+                                        <div class="signature-section mt-4">
+                                            <h4>Digital Signature</h4>
+                                            <p>Please sign the contract below to complete the agreement.</p>
+                                            
+                                            <!-- Signature Canvas -->
+                                            <div class="signature-pad-container">
+                                                <canvas id="signature-pad" width="400" height="200" style="border: 1px solid #ddd;"></canvas>
+                                                <div class="mt-2">
+                                                    <button type="button" class="btn btn-secondary" onclick="clearSignature()">Clear Signature</button>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Sign Contract Button -->
+                                            <div class="mt-3">
+                                                <button type="button" class="btn btn-success" onclick="signContract()">
+                                                    <i class="fa fa-pencil"/> Sign Contract
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </t>
+                                    
+                                    <!-- Already Signed Message -->
+                                    <t t-if="contract.signed_by_customer">
+                                        <div class="alert alert-success">
+                                            <h4>Contract Signed</h4>
+                                            <p>This contract has been digitally signed on <span t-field="contract.customer_signature_date"/>.</p>
+                                            <p>Thank you for completing the agreement.</p>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Include Signature Pad JavaScript -->
+                <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+                <script>
+                    let signaturePad;
+                    
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const canvas = document.getElementById('signature-pad');
+                        if (canvas) {
+                            signaturePad = new SignaturePad(canvas, {
+                                backgroundColor: 'rgba(255, 255, 255, 0)',
+                                penColor: 'rgb(0, 0, 0)'
+                            });
+                        }
+                    });
+                    
+                    function clearSignature() {
+                        if (signaturePad) {
+                            signaturePad.clear();
+                        }
+                    }
+                    
+                    function signContract() {
+                        if (!signaturePad || signaturePad.isEmpty()) {
+                            alert('Please provide a signature before signing the contract.');
+                            return;
+                        }
+                        
+                        const signatureData = signaturePad.toDataURL();
+                        
+                        // Show loading
+                        const button = event.target;
+                        const originalText = button.innerHTML;
+                        button.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Signing...';
+                        button.disabled = true;
+                        
+                        // Submit signature
+                        const formData = new FormData();
+                        formData.append('signature_data', signatureData);
+                        formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+                        
+                        fetch(window.location.href + '/sign', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                window.location.href = window.location.href + '/signed';
+                            } else {
+                                throw new Error('Failed to sign contract');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('An error occurred while signing the contract. Please try again.');
+                            button.innerHTML = originalText;
+                            button.disabled = false;
+                        });
+                    }
+                </script>
+            </t>
+        </template>
+        
+        <!-- Contract Signed Template -->
+        <template id="contract_signed_template" name="Contract Signed">
+            <t t-call="web.frontend_layout">
+                <t t-set="title">Contract Signed</t>
+                
+                <div class="container mt-4">
+                    <div class="row justify-content-center">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <div class="mb-4">
+                                        <i class="fa fa-check-circle fa-5x text-success"></i>
+                                    </div>
+                                    <h2 class="text-success">Contract Successfully Signed!</h2>
+                                    <p class="lead">Thank you for completing the service contract.</p>
+                                    
+                                    <div class="alert alert-info">
+                                        <h5>Contract Details:</h5>
+                                        <p><strong>Contract:</strong> <span t-field="contract.display_name"/></p>
+                                        <p><strong>Signed On:</strong> <span t-field="contract.customer_signature_date"/></p>
+                                        <p><strong>Status:</strong> <span t-if="contract.state == 'active'">Active</span><span t-if="contract.state == 'signed'">Signed</span></p>
+                                    </div>
+                                    
+                                    <div class="mt-4">
+                                        <a t-attf-href="/popcorn/contract/#{contract.id}/pdf" class="btn btn-primary">
+                                            <i class="fa fa-download"/> Download Signed Contract
+                                        </a>
+                                        <a href="/my" class="btn btn-secondary ml-2">
+                                            <i class="fa fa-home"/> Back to Portal
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </template>
+        
+        <!-- Contract Error Template -->
+        <template id="contract_error_template" name="Contract Error">
+            <t t-call="web.frontend_layout">
+                <t t-set="title">Contract Error</t>
+                
+                <div class="container mt-4">
+                    <div class="row justify-content-center">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <div class="mb-4">
+                                        <i class="fa fa-exclamation-triangle fa-5x text-warning"></i>
+                                    </div>
+                                    <h2 class="text-warning">Contract Error</h2>
+                                    <div class="alert alert-danger">
+                                        <span t-field="error_message"/>
+                                    </div>
+                                    
+                                    <div class="mt-4">
+                                        <a href="/my" class="btn btn-primary">
+                                            <i class="fa fa-home"/> Back to Portal
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </template>
+        
+        <!-- Contract Action Button in Membership View -->
+        <template id="membership_contract_action" name="Membership Contract Action">
+            <div class="contract-action-section mt-3">
+                <t t-if="not membership.contract_id">
+                    <a t-attf-href="/popcorn/contract/create/#{membership.id}" class="btn btn-primary">
+                        <i class="fa fa-file-text"/> Create Service Contract
+                    </a>
+                </t>
+                <t t-if="membership.contract_id">
+                    <div class="btn-group">
+                        <a t-attf-href="/popcorn/contract/#{membership.contract_id.id}" class="btn btn-info">
+                            <i class="fa fa-eye"/> View Contract
+                        </a>
+                        <a t-attf-href="/popcorn/contract/#{membership.contract_id.id}/pdf" class="btn btn-success">
+                            <i class="fa fa-download"/> Download PDF
+                        </a>
+                    </div>
+                </t>
+            </div>
+        </template>
+
+        <!-- Website version of Service Contract Template -->
+        <template id="popcorn_service_contract_website_template" name="Service Contract Website">
+            <t t-foreach="docs" t-as="doc">
+                <div class="contract-content" style="font-family: 'SimSun', 'Microsoft YaHei', 'Arial Unicode MS', Arial, sans-serif;">
+                    <!-- DEBUG: Show contract data -->
+                    <div style="background-color: #f0f0f0; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc;">
+                        <h3>DEBUG INFO:</h3>
+                        <p>Contract ID: <span t-esc="doc.id"/></p>
+                        <p>Contract Name: <span t-esc="doc.name"/></p>
+                        <p>Partner: <span t-esc="doc.partner_id.name if doc.partner_id else 'No partner'"/></p>
+                        <p>Partner ID: <span t-esc="doc.partner_id.id if doc.partner_id else 'No partner ID'"/></p>
+                        <p>Membership: <span t-esc="doc.membership_id.name if doc.membership_id else 'No membership'"/></p>
+                        <p>Membership ID: <span t-esc="doc.membership_id.id if doc.membership_id else 'No membership ID'"/></p>
+                        <p>Price: <span t-esc="doc.membership_id.purchase_price_paid if doc.membership_id and doc.membership_id.purchase_price_paid else 'No price'"/></p>
+                    </div>
+                    
+                    <!-- TEST: Simple static content to ensure template renders -->
+                    <div style="background-color: #e8f5e8; padding: 10px; margin-bottom: 20px; border: 2px solid #4CAF50;">
+                        <h3 style="color: #2E7D32;">✅ TEMPLATE IS WORKING!</h3>
+                        <p>This is a test to ensure the template is rendering content.</p>
+                        <p>If you can see this, the template is working correctly.</p>
+                    </div>
+
+                    <!-- Header -->
+                    <div style="text-align: center; margin-bottom: 30px; font-family: 'SimSun', 'Microsoft YaHei', 'Arial Unicode MS', Arial, sans-serif;">
+                        <h1 style="font-family: 'SimSun', 'Microsoft YaHei', 'Arial Unicode MS', Arial, sans-serif;"><strong>服务合同</strong></h1>
+                        <h1 style="font-family: 'SimSun', 'Microsoft YaHei', 'Arial Unicode MS', Arial, sans-serif;"><strong>Service Contract</strong></h1>
+                    </div>
+
+                    <!-- Party Information -->
+                    <div style="margin-bottom: 20px; font-family: 'SimSun', 'Microsoft YaHei', 'Arial Unicode MS', Arial, sans-serif;">
+                        <div style="width: 50%; float: left;">
+                            <p style="font-family: 'SimSun', 'Microsoft YaHei', 'Arial Unicode MS', Arial, sans-serif;"><strong>甲方Party A：</strong></p>
+                            <p style="font-family: 'SimSun', 'Microsoft YaHei', 'Arial Unicode MS', Arial, sans-serif;">姓名 Name：<span t-esc="doc.partner_id.name if doc.partner_id else 'No partner'"/></p>
+                            <p style="font-family: 'SimSun', 'Microsoft YaHei', 'Arial Unicode MS', Arial, sans-serif;">联系方式 Contact Number：<span t-esc="doc.partner_id.phone if doc.partner_id else 'No phone'"/></p>
+                        </div>
+                        <div style="width: 50%; float: right;">
+                            <p style="font-family: 'SimSun', 'Microsoft YaHei', 'Arial Unicode MS', Arial, sans-serif;"><strong>乙方 Party B：</strong></p>
+                            <p style="font-family: 'SimSun', 'Microsoft YaHei', 'Arial Unicode MS', Arial, sans-serif;">公司名称 Company Name：帕谷（上海）商务咨询有限公司</p>
+                            <p style="font-family: 'SimSun', 'Microsoft YaHei', 'Arial Unicode MS', Arial, sans-serif;">统一社会信用代码 Unified Social Credit Code：91310115MA1HA8CK0W</p>
+                            <p style="font-family: 'SimSun', 'Microsoft YaHei', 'Arial Unicode MS', Arial, sans-serif;">法定代表人 Legal Representative：DAVID MIZRAHI</p>
+                            <p style="font-family: 'SimSun', 'Microsoft YaHei', 'Arial Unicode MS', Arial, sans-serif;">联系方式 Contact Number：15921418167</p>
+                        </div>
+                        <div style="clear: both;"></div>
+                    </div>
+
+                    <!-- Introduction -->
+                    <div style="margin-bottom: 20px;">
+                        <p>亲爱的朋友，欢迎您加入我司俱乐部！为了让每一位会员都能在轻松愉快的氛围中享受英语交流的乐趣，我们特别制定了以下会员规则，以便共同维护社交俱乐部的良好秩序和体验。</p>
+                        <p>Dear friend, you're welcome to join us! To ensure that every member enjoys English communication in a relaxed and pleasant environment, we have established the following membership rules to jointly maintain good order and experience within the social club.</p>
+                    </div>
+
+                    <!-- Membership Details -->
+                    <div style="margin-bottom: 20px;">
+                        <h2>一、会员类型与权益 Membership Types &amp; Benefits</h2>
+                        <p>甲方根据自身需求选择会员卡，支付原价/折扣价￥<strong><span t-esc="doc.membership_id.purchase_price_paid if doc.membership_id and doc.membership_id.purchase_price_paid else '[Price not available]'"/></strong> 元。</p>
+                        <p>Party A chose the membership card(s) based on personal needs, and pay the original/discounted price of ￥<strong><span t-esc="doc.membership_id.purchase_price_paid if doc.membership_id and doc.membership_id.purchase_price_paid else '[Price not available]'"/></strong>.</p>
+                        
+                        <!-- Simple Membership Table -->
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 5px; background-color: #f0f0f0;"><strong>会员卡类型</strong></td>
+                                <td style="border: 1px solid #000; padding: 5px; background-color: #f0f0f0;"><strong>使用期限</strong></td>
+                                <td style="border: 1px solid #000; padding: 5px; background-color: #f0f0f0;"><strong>使用范围</strong></td>
+                                <td style="border: 1px solid #000; padding: 5px; background-color: #f0f0f0;"><strong>原价</strong></td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 5px;">90天金卡 Regular</td>
+                                <td style="border: 1px solid #000; padding: 5px;">90天</td>
+                                <td style="border: 1px solid #000; padding: 5px;">无限次参加线下及线上Regular Clubs</td>
+                                <td style="border: 1px solid #000; padding: 5px;">5988</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 5px;">90天金卡 VIP</td>
+                                <td style="border: 1px solid #000; padding: 5px;">90天</td>
+                                <td style="border: 1px solid #000; padding: 5px;">无限次参加线下及线上Regular, Specialty Clubs及Party</td>
+                                <td style="border: 1px solid #000; padding: 5px;">7777</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 5px;">180天金卡 Regular</td>
+                                <td style="border: 1px solid #000; padding: 5px;">180天</td>
+                                <td style="border: 1px solid #000; padding: 5px;">无限次参加线下及线上Regular Clubs</td>
+                                <td style="border: 1px solid #000; padding: 5px;">8788</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 5px;">180天金卡 VIP</td>
+                                <td style="border: 1px solid #000; padding: 5px;">180天</td>
+                                <td style="border: 1px solid #000; padding: 5px;">无限次参加线下及线上Regular, Specialty Clubs及Party</td>
+                                <td style="border: 1px solid #000; padding: 5px;">10988</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 5px;">365天金卡 Regular</td>
+                                <td style="border: 1px solid #000; padding: 5px;">365天</td>
+                                <td style="border: 1px solid #000; padding: 5px;">无限次参加线下及线上Regular Clubs</td>
+                                <td style="border: 1px solid #000; padding: 5px;">13988</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 5px;">365天金卡 VIP</td>
+                                <td style="border: 1px solid #000; padding: 5px;">365天</td>
+                                <td style="border: 1px solid #000; padding: 5px;">无限次参加线下及线上Regular, Specialty Clubs及Party</td>
+                                <td style="border: 1px solid #000; padding: 5px;">16988</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 5px;">自由卡</td>
+                                <td style="border: 1px solid #000; padding: 5px;">无期限</td>
+                                <td style="border: 1px solid #000; padding: 5px;">36场线下Regular Clubs，可灵活安排</td>
+                                <td style="border: 1px solid #000; padding: 5px;">7388</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 5px;">体验卡</td>
+                                <td style="border: 1px solid #000; padding: 5px;">90天</td>
+                                <td style="border: 1px solid #000; padding: 5px;">6场线下Regular Clubs</td>
+                                <td style="border: 1px solid #000; padding: 5px;">1398</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 5px;">线上迷你卡</td>
+                                <td style="border: 1px solid #000; padding: 5px;">90天</td>
+                                <td style="border: 1px solid #000; padding: 5px;">6次线上Regular Clubs</td>
+                                <td style="border: 1px solid #000; padding: 5px;">888</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 5px;">线上进阶卡</td>
+                                <td style="border: 1px solid #000; padding: 5px;">270天</td>
+                                <td style="border: 1px solid #000; padding: 5px;">18次线上Regular Clubs</td>
+                                <td style="border: 1px solid #000; padding: 5px;">2333</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <!-- Terms and Conditions -->
+                    <div style="margin-bottom: 20px;">
+                        <h2>二、报名与取消规则 Registration &amp; Cancellation Rules</h2>
+                        <p>1. 甲方需通过俱乐部官方渠道报名参加每次活动。</p>
+                        <p>2. 甲方如欲取消已报名club，须在club开始前24小时或以上取消。</p>
+                        
+                        <h2>三、金卡会员冻卡权益 Gold Card Freeze Privilege</h2>
+                        <p>对于90天、180天及365天金卡会员可享受冻卡权益，会员有效期相应延长。</p>
+                        
+                        <h2>四、退款与转卡政策 Refund &amp; Transfer Policy</h2>
+                        <p>1. 金卡会员退款规则：购买后不满7天，且未参加任何活动，可全额退款。</p>
+                        <p>2. 自由卡会员退款规则：购买不满7天，且未参加任何活动，可全额退款。</p>
+                        <p>3. 体验卡会员退款规则：购买不满7天，且未参加任何活动，可全额退款。</p>
+                    </div>
+
+                    <!-- Signature Section -->
+                    <div style="margin-top: 50px;">
+                        <div style="width: 50%; float: left;">
+                            <p><strong>甲方（签名）：</strong></p>
+                            <div style="min-height: 60px; border-bottom: 1px solid #000; margin-bottom: 10px;">
+                                <t t-if="doc.customer_signature">
+                                    <img t-att-src="image_data_uri(doc.customer_signature)" style="max-height: 60px; max-width: 200px;"/>
+                                </t>
+                            </div>
+                            <p>签署日期：<span t-if="doc.customer_signature_date" t-field="doc.customer_signature_date" t-options="{'widget': 'date', 'format': 'yyyy年MM月dd日'}"/></p>
+                        </div>
+                        <div style="width: 50%; float: right;">
+                            <p><strong>乙方（盖章）：帕谷（上海）商务咨询有限公司</strong></p>
+                            <div style="min-height: 60px; border-bottom: 1px solid #000; margin-bottom: 10px;"></div>
+                            <p>代表人签字：</p>
+                            <div style="min-height: 30px; border-bottom: 1px solid #000; margin-bottom: 10px;"></div>
+                            <p>签署日期：<span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y年%m月%d日')"/></p>
+                        </div>
+                        <div style="clear: both;"></div>
+                    </div>
+                </div>
+            </t>
+        </template>
+    </data>
+</odoo>

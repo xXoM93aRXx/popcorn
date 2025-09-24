@@ -103,6 +103,13 @@
                                 <field name="plan_summary" readonly="1"/>
                             </group>
                         </group>
+                        
+                        <notebook>
+                            <page string="Available Discounts" name="discounts">
+                                <field name="discount_ids" widget="many2many_tags" 
+                                       options="{'no_create': True}"/>
+                            </page>
+                        </notebook>
                     </sheet>
                     
                     <chatter/>

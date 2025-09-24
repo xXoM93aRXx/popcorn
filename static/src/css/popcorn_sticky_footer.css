@@ -8,7 +8,7 @@
 
 /* Add padding to body to prevent content from being hidden behind sticky footer */
 body { 
-    padding-bottom: calc(var(--sticky-nav-h) + env(safe-area-inset-bottom)); 
+    margin-bottom: 1500px; 
 }
 
 /* Sticky Footer Container */
@@ -18,8 +18,7 @@ body {
     right: 0; 
     bottom: 0; 
     z-index: 1000;
-    height: calc(var(--sticky-nav-h) + env(safe-area-inset-bottom));
-    padding-bottom: env(safe-area-inset-bottom);
+    height: var(--sticky-nav-h);
     display: flex; 
     justify-content: space-evenly; 
     align-items: center;

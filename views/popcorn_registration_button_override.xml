@@ -11,19 +11,20 @@
                 <t t-if="is_frozen" t-set="frozen_membership" t-value="event.is_in_freeze_period(request.env.user.partner_id)[1]"/>
             </t>
             
-            <t t-if="event.event_registrations_open and not event.is_participating and not is_frozen">
-                <a t-att-href="'/popcorn/event/' + slug(event) + '/register'" 
-                   t-att-class="'btn btn-primary ' + (cta_additional_classes or '')"
-                   t-att-title="'Register for this event'">
-                    <i class="fa fa-ticket me-2"/> <span t-translation="on">Register Now</span>
-                </a>
-            </t>
-            <t t-elif="event.is_participating">
+            <t t-if="event.is_participating">
                 <button type="button" 
                         t-att-class="'btn btn-secondary ' + (cta_additional_classes or '')"
                         disabled="disabled"
                         t-att-title="'Already registered for this event'">
                     <i class="fa fa-check me-2"/> <span t-translation="on">Already Registered</span>
+                </button>
+            </t>
+            <t t-elif="event.user_waitlist_position and event.user_waitlist_position > 0">
+                <button type="button" 
+                        t-att-class="'btn btn-info ' + (cta_additional_classes or '')"
+                        disabled="disabled"
+                        t-att-title="'You are on the waitlist for this event'">
+                    <i class="fa fa-clock-o me-2"/> <span t-translation="on">You are #<t t-esc="event.user_waitlist_position"/> on the waitlist</span>
                 </button>
             </t>
             <t t-elif="is_frozen">
@@ -36,6 +37,39 @@
                         <br/><small><span t-translation="on">Until</span> <t t-esc="frozen_membership.freeze_end"/></small>
                     </t>
                 </button>
+            </t>
+            <t t-elif="event.has_conflicting_registration">
+                <button type="button" 
+                        t-att-class="'btn btn-warning ' + (cta_additional_classes or '')"
+                        disabled="disabled"
+                        t-att-title="'You have a conflicting registration for another event at the same time'">
+                    <i class="fa fa-calendar-times-o me-2"/> <span t-translation="on">Time Conflict</span>
+                </button>
+                <t t-if="event.conflicting_event">
+                    <div class="mt-2">
+                        <a t-att-href="'/event/' + slug(event.conflicting_event)" 
+                           class="btn btn-outline-warning btn-sm">
+                            <i class="fa fa-eye me-1"/> <span t-translation="on">View Conflicting Club:</span> <t t-esc="event.conflicting_event.name"/>
+                        </a>
+                    </div>
+                </t>
+            </t>
+            <t t-elif="event.event_registrations_open or (event.seats_limited and event.seats_available == 0)">
+                <!-- Check if event is full and has waitlist capability -->
+                <t t-if="event.seats_limited and event.seats_available == 0">
+                    <a t-att-href="'/popcorn/event/' + slug(event) + '/register'" 
+                       t-att-class="'btn btn-warning ' + (cta_additional_classes or '')"
+                       t-att-title="'Join the waitlist for this event'">
+                        <i class="fa fa-clock-o me-2"/> <span t-translation="on">Join the Waitlist</span>
+                    </a>
+                </t>
+                <t t-else="">
+                    <a t-att-href="'/popcorn/event/' + slug(event) + '/register'" 
+                       t-att-class="'btn btn-primary ' + (cta_additional_classes or '')"
+                       t-att-title="'Register for this event'">
+                        <i class="fa fa-ticket me-2"/> <span t-translation="on">Register Now</span>
+                    </a>
+                </t>
             </t>
             <t t-else="">
                 <button type="button" 

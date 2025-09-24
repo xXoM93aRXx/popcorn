@@ -12,13 +12,15 @@
     <!-- Custom language selector button -->
     <template id="popcorn_custom_language_selector" name="Popcorn Custom Language Selector">
         <t t-set="languages" t-value="request.website.language_ids"/>
-        <div class="popcorn-lang-selector">
+        <t t-set="current_lang" t-value="request.env.context.get('lang', 'en_US')"/>
+        <t t-if="languages and len(languages) > 1">
+            <div class="popcorn-lang-selector">
             <div class="dropdown">
                 <button class="btn dropdown-toggle popcorn-lang-btn" type="button" 
                         data-bs-toggle="dropdown" aria-expanded="false">
                     <span class="popcorn-current-lang">
                         <t t-foreach="languages" t-as="lang">
-                            <span t-if="lang.code == request.env.context.get('lang')">
+                            <span t-if="lang.code == current_lang">
                                 <t t-if="lang.code == 'zh_CN'">中文</t>
                                 <t t-elif="lang.code == 'en_US'">EN</t>
                                 <t t-else="" t-esc="lang.code"/>
@@ -28,7 +30,7 @@
                 </button>
                 <ul class="dropdown-menu popcorn-lang-dropdown">
                     <t t-foreach="languages" t-as="lang">
-                        <li t-if="lang.code != request.env.context.get('lang')">
+                        <li t-if="lang.code != current_lang">
                             <a t-attf-href="#{request.httprequest.url_root}#{lang.code}#{request.httprequest.path}" 
                                class="popcorn-lang-option"
                                t-att-data-lang="lang.code">
@@ -43,5 +45,6 @@
                 </ul>
             </div>
         </div>
+        </t>
     </template>
 </odoo>

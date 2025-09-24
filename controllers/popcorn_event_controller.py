@@ -2,6 +2,7 @@
 
 from odoo import http, fields, _
 from odoo.http import request
+from odoo.exceptions import ValidationError
 import json
 import werkzeug
 import logging
@@ -46,7 +47,7 @@ class PopcornEventController(http.Controller):
         all_usable_memberships = active_memberships | pending_first_attendance
         
         if not all_usable_memberships:
-            return False, '/memberships', _('You need an active membership to register for events')
+            return False, '/memberships', _('Check out the membership plans for big savings and awesome benefits!')
         
         # Check if any membership allows this event type
         event_club_type = self._get_event_club_type(event)
@@ -58,7 +59,7 @@ class PopcornEventController(http.Controller):
             if self._can_membership_attend_event(membership, event_club_type):
                 return True, None, None
         
-        return False, '/memberships', _('Your membership does not allow %s events') % event_club_type.replace("_", " ").title()
+        return False, '/memberships', _('Your membership does not allow %s clubs') % event_club_type.replace("_", " ").title()
     
     def _get_event_club_type(self, event):
         """Determine the club type for an event based on its tags"""
@@ -232,28 +233,20 @@ class PopcornEventController(http.Controller):
     
     @http.route(['/popcorn/event/<model("event.event"):event>/register'], type='http', auth="public", website=True)
     def event_register(self, event, **kwargs):
-        """Override event registration page to check membership access"""
-        # Check membership access
+        """Override event registration page to show membership and direct purchase options"""
+        # Check if user is logged in
+        if request.env.user.id == request.env.ref('base.public_user').id:
+            # Redirect to login with return URL pointing to the registration page
+            registration_url = f'/popcorn/event/{event.id}/register'
+            return redirect('/web/login?redirect=' + registration_url)
+        
+        # User is logged in, check membership access and show registration options page
         has_access, redirect_url, error_message = self._check_membership_access(event)
         
-        if not has_access:
-            # Use Odoo's redirect mechanism with proper redirect URL
-            if 'log in' in error_message.lower():
-                # Redirect to login with return URL pointing to the event page, not registration
-                event_url = f'/event/{event.id}'
-                return redirect('/web/login?redirect=' + event_url)
-            elif redirect_url:
-                # Include error message in redirect URL
-                error_param = url_quote(error_message) if error_message else ''
-                return redirect(redirect_url + '?error=' + error_param)
-            else:
-                # Fallback redirect to memberships for membership with error message
-                error_param = url_quote(error_message) if error_message else ''
-                return redirect('/memberships?error=' + error_param)
-        
-        # User has access, proceed with normal registration
         values = {
             'event': event,
+            'has_membership_access': has_access,
+            'membership_error': error_message,
         }
         return request.render('popcorn.event_registration_access_page', values)
     
@@ -375,12 +368,12 @@ class PopcornEventController(http.Controller):
                             club_type_issue_found = True
                     
                     if club_type_issue_found:
-                        error_message = _('Your membership does not allow %s events') % event_club_type.replace("_", " ").title()
+                        error_message = _('Your membership does not allow %s clubs') % event_club_type.replace("_", " ").title()
                     else:
                         # All checks passed but something else is wrong
-                        error_message = _('Insufficient quota for this event')
+                        error_message = _('Insufficient quota for this club')
             else:
-                error_message = _('No suitable membership found for this event')
+                error_message = _('No suitable membership found for this club')
             
             error_param = url_quote(error_message)
             return werkzeug.utils.redirect('/memberships?error=' + error_param)
@@ -415,14 +408,22 @@ class PopcornEventController(http.Controller):
             'state': 'open'
         }
         
-        # Create the registration
-        registration = request.env['event.registration'].sudo().create(registration_vals)
+        # Create the registration (consumption is now handled automatically in create method)
+        try:
+            registration = request.env['event.registration'].sudo().create(registration_vals)
+        except ValidationError as e:
+            # Catch validation errors and redirect back with error message
+            error_param = url_quote(str(e))
+            return redirect(f'/popcorn/event/{event.id}/register?error=' + error_param)
         
-        # Let the model validate quota and mark consumed atomically
-        registration.sudo().action_consume_membership()
+        # Check if registration was added to waitlist
+        is_waitlist = registration.is_on_waitlist
+        waitlist_position = registration.waitlist_position if is_waitlist else 0
         
-        # Get consumption text
-        consumption_text = self._get_consumption_text(best_membership, event_club_type)
+        # Get consumption text only if not on waitlist
+        consumption_text = ""
+        if not is_waitlist:
+            consumption_text = self._get_consumption_text(best_membership, event_club_type)
         
         # Show success page
         values = {
@@ -432,12 +433,459 @@ class PopcornEventController(http.Controller):
             'registration': registration,
             'event_club_type': event_club_type,
             'consumption_text': consumption_text,
+            'is_waitlist': is_waitlist,
+            'waitlist_position': waitlist_position,
         }
         
         # Clear UI caches to ensure fresh data
         request.env['ir.ui.view'].clear_caches()
         
         return request.render('popcorn.event_registration_success_page', values)
+    
+    @http.route(['/popcorn/event/<model("event.event"):event>/purchase/direct'], type='http', auth="user", website=True, methods=['POST'])
+    def event_direct_purchase(self, event, purchase_type='membership', **kwargs):
+        """Handle direct event purchase - either membership or direct payment"""
+        # Check if user is logged in
+        if request.env.user.id == request.env.ref('base.public_user').id:
+            return redirect('/web/login?redirect=' + request.httprequest.url)
+        
+        # Get the partner for the current user
+        partner = request.env.user.sudo().partner_id
+        if not partner:
+            error_message = _('User profile not found')
+            error_param = url_quote(error_message)
+            return redirect(f'/popcorn/event/{event.id}/register?error=' + error_param)
+        
+        # Check if user is already registered for this event
+        existing_registration = request.env['event.registration'].sudo().search([
+            ('event_id', '=', event.id),
+            ('partner_id', '=', partner.id),
+            ('state', 'in', ['open', 'confirmed'])
+        ])
+        
+        if existing_registration:
+            error_message = _('You are already registered for this club')
+            error_param = url_quote(error_message)
+            return redirect(f'/popcorn/event/{event.id}/register?error=' + error_param)
+        
+        if purchase_type == 'membership':
+            # Flow 1: Redirect to membership plans
+            return request.redirect('/memberships')
+        
+        elif purchase_type == 'direct_payment':
+            # Flow 2: Direct payment for the event - redirect to dedicated event checkout
+            # Check if event has a price set
+            if not event.event_price or event.event_price <= 0:
+                error_message = _('This club is not available for direct purchase')
+                error_param = url_quote(error_message)
+                return redirect(f'/popcorn/event/{event.id}/register?error=' + error_param)
+            
+            # Redirect to dedicated event checkout page
+            return request.redirect(f'/popcorn/event/{event.id}/checkout')
+        
+        else:
+            # Default: redirect to membership plans
+            return request.redirect('/memberships')
+    
+    @http.route(['/popcorn/event/<model("event.event"):event>/purchase/membership'], type='http', auth="user", website=True, methods=['POST'])
+    def event_purchase_membership(self, event, **kwargs):
+        """Handle event purchase by redirecting to membership plans"""
+        return self.event_direct_purchase(event, purchase_type='membership', **kwargs)
+    
+    @http.route(['/popcorn/event/<model("event.event"):event>/purchase/direct-payment'], type='http', auth="user", website=True, methods=['POST'])
+    def event_purchase_direct_payment(self, event, **kwargs):
+        """Handle direct payment for event without membership"""
+        return self.event_direct_purchase(event, purchase_type='direct_payment', **kwargs)
+    
+    @http.route(['/popcorn/event/<model("event.event"):event>/checkout'], type='http', auth="user", website=True)
+    def event_checkout(self, event, **kwargs):
+        """Display event checkout page"""
+        # Check if user is logged in
+        if request.env.user.id == request.env.ref('base.public_user').id:
+            return redirect('/web/login?redirect=' + request.httprequest.url)
+        
+        # Check if event has a price set
+        if not event.event_price or event.event_price <= 0:
+            return request.not_found()
+        
+        # Check if user is already registered for this event
+        partner = request.env.user.sudo().partner_id
+        existing_registration = request.env['event.registration'].sudo().search([
+            ('event_id', '=', event.id),
+            ('partner_id', '=', partner.id),
+            ('state', 'in', ['open', 'confirmed'])
+        ])
+        
+        if existing_registration:
+            return request.render('popcorn.event_already_registered_page', {
+                'event': event,
+                'registration': existing_registration
+            })
+        
+        values = {
+            'event': event,
+            'partner': partner,
+        }
+        
+        return request.render('popcorn.event_checkout_page', values)
+    
+    @http.route(['/popcorn/event/<model("event.event"):event>/process_checkout'], type='http', auth="user", website=True, methods=['POST'])
+    def event_process_checkout(self, event, **kwargs):
+        """Process event checkout and initiate payment transaction"""
+        # Check if user is logged in
+        if request.env.user.id == request.env.ref('base.public_user').id:
+            return redirect('/web/login?redirect=' + request.httprequest.url)
+        
+        # Check if event has a price set
+        if not event.event_price or event.event_price <= 0:
+            return request.not_found()
+        
+        partner = request.env.user.sudo().partner_id
+        
+        # Check if user is already registered for this event
+        existing_registration = request.env['event.registration'].sudo().search([
+            ('event_id', '=', event.id),
+            ('partner_id', '=', partner.id),
+            ('state', 'in', ['open', 'confirmed'])
+        ])
+        
+        if existing_registration:
+            return request.render('popcorn.event_already_registered_page', {
+                'event': event,
+                'registration': existing_registration
+            })
+        
+        try:
+            # Validate form data
+            if not kwargs.get('payment_method_id'):
+                return request.redirect(f'/popcorn/event/{event.id}/checkout?error=missing_payment_method')
+            
+            if not kwargs.get('terms_accepted'):
+                return request.redirect(f'/popcorn/event/{event.id}/checkout?error=terms_not_accepted')
+            
+            # Get payment method/provider ID
+            payment_method_id = kwargs.get('payment_method_id')
+            
+            # Check if it's a manual payment (fallback)
+            if payment_method_id == 'manual':
+                # For manual payment, create registration directly but mark as pending payment
+                registration_vals = {
+                    'event_id': event.id,
+                    'partner_id': partner.id,
+                    'name': partner.name,
+                    'email': partner.email,
+                    'phone': partner.phone,
+                    'state': 'draft',
+                }
+                
+                registration = request.env['event.registration'].sudo().create(registration_vals)
+                
+                # Log the manual payment request
+                registration.message_post(
+                    body=_('Manual payment requested for club: %s. Price: $%s. Payment method: Manual') % (event.name, event.event_price)
+                )
+                
+                # Redirect to success page with pending payment status
+                return request.redirect(f'/popcorn/event/{event.id}/purchase/success?registration_id={registration.id}&payment_pending=true')
+            
+            # Otherwise, it should be a payment provider ID
+            try:
+                provider_id = int(payment_method_id)
+                
+                # Use payment.provider (Odoo 18)
+                payment_provider = None
+                try:
+                    payment_provider = request.env['payment.provider'].browse(provider_id)
+                    
+                    if not payment_provider or not payment_provider.exists() or payment_provider.state != 'enabled':
+                        return request.redirect(f'/popcorn/event/{event.id}/checkout?error=invalid_payment_method')
+                except Exception as e:
+                    _logger.error(f"Failed to access payment provider: {str(e)}")
+                    return request.redirect(f'/popcorn/event/{event.id}/checkout?error=payment_access_denied')
+                    
+            except (ValueError, TypeError):
+                return request.redirect(f'/popcorn/event/{event.id}/checkout?error=invalid_payment_method')
+            
+            # Store event purchase details in session for after payment
+            request.session['event_purchase_details'] = {
+                'event_id': event.id,
+                'partner_id': partner.id,
+                'event_price': event.event_price,
+                'payment_provider_id': payment_provider.id,
+                'payment_provider_name': payment_provider.name,
+            }
+            
+            _logger.info(f"Stored pending event purchase in session: {request.session['event_purchase_details']}")
+            
+            # Handle different payment methods based on provider name
+            _logger.info(f"Payment provider name: '{payment_provider.name}', lowercase: '{payment_provider.name.lower()}'")
+            if payment_provider.name.lower() in ['bank transfer', 'bank_transfer']:
+                # For bank transfer, create registration immediately but mark as pending payment
+                registration_vals = {
+                    'event_id': event.id,
+                    'partner_id': partner.id,
+                    'name': partner.name,
+                    'email': partner.email,
+                    'phone': partner.phone,
+                    'state': 'draft',
+                }
+                
+                registration = request.env['event.registration'].sudo().create(registration_vals)
+                
+                # Log the bank transfer payment request
+                registration.message_post(
+                    body=_('Bank transfer payment requested for club: %s. Price: $%s. Payment method: %s') % (event.name, event.event_price, payment_provider.name)
+                )
+                
+                # Redirect to success page with pending payment status
+                return request.redirect(f'/popcorn/event/{event.id}/purchase/success?registration_id={registration.id}&payment_pending=true')
+            elif payment_provider.name.lower() in ['wechat', 'wechat pay', 'wechatpay']:
+                # For WeChat payments, redirect to WeChat OAuth2 flow
+                _logger.info(f"Creating WeChat payment transaction for event purchase, provider: {payment_provider.name}")
+                
+                # Get or create a default payment method for the provider
+                payment_method = request.env['payment.method'].sudo().search([
+                    ('provider_ids', 'in', payment_provider.id),
+                    ('active', '=', True)
+                ], limit=1)
+                
+                if not payment_method:
+                    # Create a default payment method for this provider
+                    payment_method = request.env['payment.method'].sudo().create({
+                        'name': f'{payment_provider.name} Payment',
+                        'code': payment_provider.code.lower().replace(' ', '_'),
+                        'provider_ids': [(6, 0, [payment_provider.id])],
+                        'active': True,
+                    })
+                
+                # Create payment transaction with unique reference (NO registration created yet)
+                import time
+                timestamp = int(time.time())
+                
+                payment_transaction = request.env['payment.transaction'].sudo().create({
+                    'provider_id': payment_provider.id,
+                    'payment_method_id': payment_method.id,
+                    'amount': event.event_price,
+                    'currency_id': event.currency_id.id if hasattr(event, 'currency_id') and event.currency_id else request.env.ref('base.USD').id,
+                    'partner_id': partner.id,
+                    'reference': f'EVENT-{event.id}-{partner.id}-{timestamp}',
+                    'state': 'draft',
+                })
+                
+                _logger.info(f"WeChat event payment transaction created with ID: {payment_transaction.id}")
+                
+                # Store transaction ID and event purchase data in session for callback (NO registration created yet)
+                request.session['payment_transaction_id'] = payment_transaction.id
+                # event_purchase_details is already stored in session above
+                
+                # Store the event purchase data in session for WeChat success callback
+                request.session['wechat_pending_event_purchase'] = {
+                    'event_id': event.id,
+                    'partner_id': partner.id,
+                    'event_price': event.event_price,
+                    'payment_provider_id': payment_provider.id,
+                    'payment_provider_name': payment_provider.name,
+                }
+                
+                # Redirect to WeChat OAuth2 flow
+                wechat_oauth_url = f'/payment/wechat/oauth2/authorize?transaction_id={payment_transaction.reference}'
+                _logger.info(f"Redirecting to WeChat OAuth2 for event purchase: {wechat_oauth_url}")
+                return request.redirect(wechat_oauth_url)
+            else:
+                # For all other online payments (Stripe/PayPal/etc), create payment transaction and redirect to gateway
+                _logger.info(f"Creating payment transaction for event purchase, provider: {payment_provider.name}")
+                
+                # Get or create a default payment method for the provider
+                payment_method = request.env['payment.method'].sudo().search([
+                    ('provider_ids', 'in', payment_provider.id),
+                    ('active', '=', True)
+                ], limit=1)
+                
+                if not payment_method:
+                    # Create a default payment method for this provider
+                    payment_method = request.env['payment.method'].sudo().create({
+                        'name': f'{payment_provider.name} Payment',
+                        'code': payment_provider.code.lower().replace(' ', '_'),
+                        'provider_ids': [(6, 0, [payment_provider.id])],
+                        'active': True,
+                    })
+                
+                # Create payment transaction with unique reference (NO registration created yet)
+                import time
+                timestamp = int(time.time())
+                
+                payment_transaction = request.env['payment.transaction'].sudo().create({
+                    'provider_id': payment_provider.id,
+                    'payment_method_id': payment_method.id,
+                    'amount': event.event_price,
+                    'currency_id': event.currency_id.id if hasattr(event, 'currency_id') and event.currency_id else request.env.ref('base.USD').id,
+                    'partner_id': partner.id,
+                    'reference': f'EVENT-{event.id}-{partner.id}-{timestamp}',
+                    'state': 'draft',
+                })
+                
+                _logger.info(f"Event payment transaction created with ID: {payment_transaction.id}")
+                
+                # Store transaction ID and event purchase data in session for callback (NO registration created yet)
+                request.session['payment_transaction_id'] = payment_transaction.id
+                # event_purchase_details is already stored in session above
+                
+                # Let the payment gateway handle the payment flow
+                try:
+                    payment_link = payment_transaction._get_specific_rendering_values(None)
+                    if payment_link and 'action_url' in payment_link:
+                        _logger.info(f"Redirecting to payment gateway for event purchase: {payment_link['action_url']}")
+                        return request.redirect(payment_link['action_url'])
+                except Exception as e:
+                    _logger.warning(f"Failed to get payment link for event: {str(e)}")
+                
+                # Fallback: if no payment link available, redirect to payment failed page
+                _logger.warning("No payment link available for event purchase, redirecting to payment failed page")
+                request.session.pop('event_purchase_details', None)
+                return request.redirect(f'/popcorn/event/{event.id}/checkout?error=gateway_unavailable')
+            
+        except Exception as e:
+            _logger.error(f"Failed to process event checkout: {str(e)}")
+            return request.redirect(f'/popcorn/event/{event.id}/checkout?error=processing_failed')
+    
+    @http.route(['/popcorn/event/<model("event.event"):event>/checkout/success'], type='http', auth="user", website=True)
+    def event_checkout_success(self, event, **kwargs):
+        """Display event checkout success page"""
+        registration_id = kwargs.get('registration_id')
+        registration = None
+        
+        if registration_id:
+            registration = request.env['event.registration'].sudo().browse(int(registration_id))
+        
+        values = {
+            'event': event,
+            'registration': registration,
+            'partner': request.env.user.sudo().partner_id,
+            'purchase_price': event.event_price,
+        }
+        
+        return request.render('popcorn.event_checkout_success_page', values)
+    
+    @http.route(['/popcorn/event/<model("event.event"):event>/purchase/success'], type='http', auth="user", website=True)
+    def event_purchase_success(self, event, **kwargs):
+        """Display success page after event purchase"""
+        registration_id = kwargs.get('registration_id')
+        payment_success = kwargs.get('payment_success')
+        transaction_id_param = kwargs.get('transaction_id')
+        registration = None
+        
+        # Handle WeChat payment success redirect
+        if payment_success == 'true' and transaction_id_param:
+            _logger.info(f"=== WeChat event payment success redirect ===")
+            _logger.info(f"Event ID: {event.id}")
+            _logger.info(f"Transaction ID: {transaction_id_param}")
+            _logger.info(f"Session keys: {list(request.session.keys())}")
+            _logger.info(f"WeChat pending event purchase in session: {bool(request.session.get('wechat_pending_event_purchase'))}")
+            _logger.info(f"Regular event purchase details in session: {bool(request.session.get('event_purchase_details'))}")
+            
+            # Get pending event purchase data from session (try both keys)
+            pending_event_purchase = request.session.get('wechat_pending_event_purchase')
+            if not pending_event_purchase:
+                _logger.warning("No WeChat pending event purchase found, trying regular event purchase details")
+                pending_event_purchase = request.session.get('event_purchase_details')
+                
+            if not pending_event_purchase:
+                _logger.error("No pending event purchase found in session (neither WeChat nor regular)")
+                _logger.error(f"Session contents: {dict(request.session)}")
+                return request.redirect(f'/popcorn/event/{event.id}/checkout?error=session_expired')
+            
+            # Get the transaction
+            transaction = None
+            _logger.info(f"Looking for transaction with ID/reference: {transaction_id_param}")
+            
+            try:
+                # First try as integer ID
+                transaction = request.env['payment.transaction'].sudo().browse(int(transaction_id_param))
+                _logger.info(f"Tried as integer ID, found: {transaction.exists() if transaction else False}")
+                if not transaction.exists():
+                    transaction = None
+            except (ValueError, TypeError) as e:
+                _logger.info(f"Failed to parse as integer ID: {e}")
+                pass
+            
+            # If not found as ID, try as reference
+            if not transaction or not transaction.exists():
+                _logger.info(f"Trying to find by reference: {transaction_id_param}")
+                transaction = request.env['payment.transaction'].sudo().search([
+                    ('reference', '=', transaction_id_param),
+                    ('provider_code', '=', 'wechat')
+                ], limit=1)
+                _logger.info(f"Found by reference: {transaction.exists() if transaction else False}")
+            
+            if not transaction or not transaction.exists():
+                _logger.error(f"WeChat transaction {transaction_id_param} not found")
+                # Let's also search without provider_code filter
+                all_transactions = request.env['payment.transaction'].sudo().search([
+                    ('reference', '=', transaction_id_param)
+                ])
+                _logger.error(f"Found {len(all_transactions)} transactions with reference {transaction_id_param}")
+                for t in all_transactions:
+                    _logger.error(f"  Transaction ID: {t.id}, Provider: {t.provider_id.name if t.provider_id else 'None'}, Code: {t.provider_code}")
+                return request.redirect(f'/popcorn/event/{event.id}/checkout?error=transaction_not_found')
+            
+            _logger.info(f"Found transaction: {transaction.id}, State: {transaction.state}, Provider: {transaction.provider_id.name if transaction.provider_id else 'None'}")
+            
+            # Mark transaction as done (WeChat payment was successful)
+            transaction.write({'state': 'done'})
+            
+            # Create event registration now
+            _logger.info(f"Creating event registration with data: {pending_event_purchase}")
+            partner = request.env['res.partner'].sudo().browse(pending_event_purchase['partner_id'])
+            
+            _logger.info(f"Partner exists: {partner.exists()}")
+            _logger.info(f"Partner name: {partner.name if partner.exists() else 'N/A'}")
+            
+            if not partner.exists():
+                _logger.error(f"Invalid partner - Partner ID: {pending_event_purchase.get('partner_id')}")
+                return request.redirect(f'/popcorn/event/{event.id}/checkout?error=invalid_data')
+            
+            # Create the event registration (using only standard fields)
+            _logger.info("Creating event registration")
+            registration_vals = {
+                'event_id': event.id,
+                'partner_id': partner.id,
+                'name': partner.name,
+                'email': partner.email,
+                'phone': partner.phone,
+                'state': 'open',
+            }
+            
+            registration = request.env['event.registration'].sudo().create(registration_vals)
+            _logger.info(f"Event registration created with ID: {registration.id}, State: {registration.state}")
+            
+            registration.message_post(
+                body=_('Direct purchase registration for event: %s. Price: %s. Payment successful via %s. Transaction: %s. Event registration created and activated.') % (event.name, pending_event_purchase['event_price'], transaction.provider_id.name, transaction.reference)
+            )
+            _logger.info(f"Event registration message posted")
+            
+            # Clear session data
+            request.session.pop('payment_transaction_id', None)
+            request.session.pop('event_purchase_details', None)
+            request.session.pop('wechat_pending_event_purchase', None)
+            
+            _logger.info(f"WeChat event payment successful. Registration created with ID: {registration.id}")
+            _logger.info(f"Final registration details - ID: {registration.id}, State: {registration.state}, Partner: {registration.partner_id.name}")
+            
+            # Continue to show success page with the created registration
+            # (don't redirect, just continue with the existing registration)
+        
+        # Regular success page handling
+        if registration_id:
+            registration = request.env['event.registration'].sudo().browse(int(registration_id))
+        
+        values = {
+            'event': event,
+            'partner': request.env.user.partner_id,
+            'registration': registration,
+            'purchase_price': event.event_price,
+        }
+        
+        return request.render('popcorn.event_direct_purchase_success_page', values)
     
     @http.route(['/popcorn/shop/cart/update_json'], type='json', auth="public")
     def cart_update_json(self, product_id, add_qty=1, set_qty=0, **kwargs):
@@ -463,7 +911,7 @@ class PopcornEventController(http.Controller):
         ])
         
         if not active_memberships:
-            return False, '/memberships', _('You need an active membership to purchase event tickets')
+            return False, '/memberships', _('Check out the membership plans for big savings and awesome benefits!')
         
         # For now, allow purchase if user has any active membership
         # You could add more specific logic here based on the product/event type
@@ -930,6 +1378,33 @@ class PopcornPortalController(CustomerPortal):
             }
         
         return freeze_info
+
+
+
+    @http.route(['/event/<model("event.event"):event>', '/event/<model("event.event"):event>/<string:page>'], type='http', auth="public", website=True)
+    def event(self, event, page='main', **kwargs):
+        """Override event detail page to ensure proper access control"""
+        from odoo.addons.website_event.controllers.main import WebsiteEventController
+        
+        # Ensure we can access the event with sudo() to avoid access issues
+        try:
+            # Pre-check event access with sudo() to ensure it exists and is accessible
+            accessible_event = request.env['event.event'].sudo().browse(event.id)
+            if not accessible_event.exists():
+                _logger.error(f"Event {event.id} not found or not accessible")
+                return request.not_found()
+            
+            # Log successful access
+            _logger.info(f"Event detail page accessed for event {event.id}: {event.name}")
+            
+        except Exception as e:
+            _logger.error(f"Error accessing event {event.id}: {str(e)}")
+            return request.not_found()
+        
+        # Call the original event detail method
+        response = WebsiteEventController().event(event=event, page=page, **kwargs)
+        
+        return response
 
     @http.route(['/my/clubs/<int:registration_id>/cancel'], type='http', auth="user", website=True, methods=['POST'])
     def portal_cancel_registration(self, registration_id, **kwargs):

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <!-- Scheduled Action: Auto-mark events as ended 15 minutes after completion -->
+        <record id="ir_cron_auto_mark_ended_events" model="ir.cron">
+            <field name="name">Popcorn: Auto-mark Events as Ended</field>
+            <field name="model_id" ref="event.model_event_event"/>
+            <field name="state">code</field>
+            <field name="code">model._auto_mark_ended_events()</field>
+            <field name="interval_number">5</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+            <field name="user_id" ref="base.user_root"/>
+            <field name="priority">5</field>
+        </record>
+        
+    </data>
+</odoo>

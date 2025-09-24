@@ -20,9 +20,43 @@
                     
                     <h1 class="popcorn-page-title" t-translation="on">Choose Your Membership Plan</h1>
                     <div class="popcorn-row">
-                        <t t-foreach="request.env['popcorn.membership.plan'].search([('active','=', True)], order='sequence, name')" t-as="plan">
+                        <t t-foreach="membership_plans" t-as="plan">
                             <div class="popcorn-col-md-4">
+                                <!-- Discount Badge (outside and behind the card) -->
+                                <t t-if="plan_discounts[plan.id]['best_discount']">
+                                    <div class="popcorn-discount-badge">
+                                        <t t-if="plan_discounts[plan.id]['best_discount'].badge_image">
+                                            <img t-att-src="'/web/image/popcorn.discount/' + str(plan_discounts[plan.id]['best_discount'].id) + '/badge_image'" 
+                                                 t-att-alt="plan_discounts[plan.id]['best_discount'].name"
+                                                 class="popcorn-badge-image"/>
+                                        </t>
+                                        <t t-else="">
+                                            <div class="popcorn-badge-text">
+                                                <t t-if="plan_discounts[plan.id]['best_discount'].discount_type == 'percentage'">
+                                                    <t t-esc="plan_discounts[plan.id]['best_discount'].discount_value"/>% OFF
+                                                </t>
+                                                <t t-elif="plan_discounts[plan.id]['best_discount'].discount_type == 'fixed_amount'">
+                                                    $<t t-esc="plan_discounts[plan.id]['best_discount'].discount_value"/> OFF
+                                                </t>
+                                                <t t-elif="plan_discounts[plan.id]['best_discount'].discount_type == 'first_timer'">
+                                                    FIRST TIMER
+                                                </t>
+                                                <t t-elif="plan_discounts[plan.id]['best_discount'].discount_type == 'extra_days'">
+                                                    +<t t-esc="plan_discounts[plan.id]['extra_days']"/> DAYS
+                                                </t>
+                                                <t t-elif="plan_discounts[plan.id]['extra_days'] and plan_discounts[plan.id]['extra_days'] > 0">
+                                                    +<t t-esc="plan_discounts[plan.id]['extra_days']"/> DAYS
+                                                </t>
+                                                <t t-else="">
+                                                    <t t-esc="plan_discounts[plan.id]['best_discount'].name"/>
+                                                </t>
+                                            </div>
+                                        </t>
+                                    </div>
+                                </t>
+                                
                                 <div class="popcorn-membership-plan-card">
+                                    
                                     <!-- Cover Image Section -->
                                     <div class="popcorn-plan-cover">
                                         <t t-if="plan.cover_image">
@@ -37,15 +71,29 @@
                                         
                                         <!-- Price Badge -->
                                         <div class="popcorn-price-badge">
-                                            <!-- Use first-timer status from controller -->
-                                            
-                                            <t t-if="plan.price_first_timer and plan.price_first_timer != plan.price_normal and is_first_timer">
-                                                <div class="popcorn-original-price"><t t-esc="plan.currency_id.symbol"/><t t-esc="plan.price_normal"/></div>
-                                                <div class="popcorn-discount-price"><t t-esc="plan.currency_id.symbol"/><t t-esc="plan.price_first_timer"/></div>
-                                                <div class="popcorn-discount-label">First Timer</div>
+                                            <!-- Use discount system pricing -->
+                                            <t t-if="plan_discounts[plan.id]['best_price'] != plan_discounts[plan.id]['original_price']">
+                                                <div class="popcorn-original-price"><t t-esc="plan.currency_id.symbol"/><t t-esc="plan_discounts[plan.id]['original_price']"/></div>
+                                                <div class="popcorn-discount-price"><t t-esc="plan.currency_id.symbol"/><t t-esc="plan_discounts[plan.id]['best_price']"/></div>
+                                                <div class="popcorn-discount-label">
+                                                    <t t-if="plan_discounts[plan.id]['best_discount']">
+                                                        <t t-esc="plan_discounts[plan.id]['best_discount'].name"/>
+                                                    </t>
+                                                    <t t-else="">
+                                                        Discount
+                                                    </t>
+                                                </div>
                                             </t>
                                             <t t-else="">
-                                                <div class="popcorn-normal-price"><t t-esc="plan.currency_id.symbol"/><t t-esc="plan.price_normal"/></div>
+                                                <div class="popcorn-normal-price"><t t-esc="plan.currency_id.symbol"/><t t-esc="plan_discounts[plan.id]['original_price']"/></div>
+                                            </t>
+                                            
+                                            <!-- Extra Days Display -->
+                                            <t t-if="plan_discounts[plan.id]['extra_days'] and plan_discounts[plan.id]['extra_days'] > 0">
+                                                <div class="popcorn-extra-days-badge">
+                                                    <i class="fa fa-calendar-plus-o"></i>
+                                                    +<t t-esc="plan_discounts[plan.id]['extra_days']"/> <span t-translation="on">Extra Days</span>
+                                                </div>
                                             </t>
                                         </div>
                                     </div>
@@ -59,7 +107,12 @@
                                             <!-- Duration -->
                                             <div class="popcorn-feature-item">
                                                 <i class="fa fa-calendar popcorn-feature-icon"></i>
-                                                <span class="popcorn-feature-text"><t t-esc="plan.duration_days"/> days</span>
+                                                <span class="popcorn-feature-text">
+                                                    <t t-esc="plan.duration_days"/> days
+                                                    <t t-if="plan_discounts[plan.id]['extra_days'] and plan_discounts[plan.id]['extra_days'] > 0">
+                                                        + <t t-esc="plan_discounts[plan.id]['extra_days']"/> extra days
+                                                    </t>
+                                                </span>
                                             </div>
                                             
                                             <!-- Quota Mode -->
@@ -245,7 +298,12 @@
                                 <div class="popcorn-summary-item">
                                     <div class="popcorn-summary-plan">
                                         <h4 class="popcorn-plan-name"><t t-esc="plan.display_name"/></h4>
-                                        <p class="popcorn-plan-duration"><t t-esc="plan.duration_days"/> <span t-translation="on">days</span></p>
+                                        <p class="popcorn-plan-duration">
+                                            <t t-esc="plan.duration_days"/> <span t-translation="on">days</span>
+                                            <t t-if="plan_discounts[plan.id]['extra_days'] and plan_discounts[plan.id]['extra_days'] > 0">
+                                                + <t t-esc="plan_discounts[plan.id]['extra_days']"/> <span t-translation="on">extra days</span>
+                                            </t>
+                                        </p>
                                     </div>
                                 </div>
                                 
@@ -266,33 +324,46 @@
                                         </div>
                                     </t>
                                     <t t-else="">
-                                        <!-- Regular pricing -->
-                                        <!-- Use first-timer status from controller -->
-                                        
+                                        <!-- Regular pricing with discount system -->
                                         <div class="popcorn-price-row">
                                             <span class="popcorn-price-label" t-translation="on">Membership Fee:</span>
                                             <span class="popcorn-price-value">
-                                                <t t-esc="plan.currency_id.symbol"/><t t-esc="plan.price_normal"/>
+                                                <t t-esc="plan.currency_id.symbol"/><t t-esc="plan_discounts[plan.id]['original_price']"/>
                                             </span>
                                         </div>
-                                        <t t-if="plan.price_first_timer and plan.price_first_timer != plan.price_normal and is_first_timer">
+                                        <t t-if="plan_discounts[plan.id]['best_discount']">
                                             <div class="popcorn-price-row popcorn-discount-row">
-                                                <span class="popcorn-price-label" t-translation="on">First Timer Discount:</span>
+                                                <span class="popcorn-price-label">
+                                                    <t t-if="plan_discounts[plan.id]['best_discount'].discount_type == 'percentage'">
+                                                        <t t-esc="plan_discounts[plan.id]['best_discount'].discount_value"/>% Discount:
+                                                    </t>
+                                                    <t t-elif="plan_discounts[plan.id]['best_discount'].discount_type == 'fixed_amount'">
+                                                        $<t t-esc="plan_discounts[plan.id]['best_discount'].discount_value"/> Discount:
+                                                    </t>
+                                                    <t t-elif="plan_discounts[plan.id]['best_discount'].discount_type == 'first_timer'">
+                                                        First Timer Discount:
+                                                    </t>
+                                                    <t t-elif="plan_discounts[plan.id]['best_discount'].discount_type == 'extra_days'">
+                                                        <t t-esc="plan_discounts[plan.id]['extra_days']"/> Extra Days:
+                                                    </t>
+                                                    <t t-else="">
+                                                        <t t-esc="plan_discounts[plan.id]['best_discount'].name"/>:
+                                                    </t>
+                                                </span>
                                                 <span class="popcorn-price-value popcorn-discount">
-                                                    -<t t-esc="plan.currency_id.symbol"/><t t-esc="plan.price_normal - plan.price_first_timer"/>
+                                                    <t t-if="plan_discounts[plan.id]['best_discount'].discount_type == 'extra_days'">
+                                                        FREE
+                                                    </t>
+                                                    <t t-else="">
+                                                        -<t t-esc="plan.currency_id.symbol"/><t t-esc="plan_discounts[plan.id]['original_price'] - plan_discounts[plan.id]['best_price']"/>
+                                                    </t>
                                                 </span>
                                             </div>
                                         </t>
                                         <div class="popcorn-price-row popcorn-total-row">
                                             <span class="popcorn-price-label" t-translation="on">Total:</span>
                                             <span class="popcorn-price-value popcorn-total">
-                                                <t t-esc="plan.currency_id.symbol"/>
-                                                <t t-if="plan.price_first_timer and plan.price_first_timer != plan.price_normal and is_first_timer">
-                                                    <t t-esc="plan.price_first_timer"/>
-                                                </t>
-                                                <t t-else="">
-                                                    <t t-esc="plan.price_normal"/>
-                                                </t>
+                                                <t t-esc="plan.currency_id.symbol"/><t t-esc="plan_discounts[plan.id]['best_price']"/>
                                             </span>
                                         </div>
                                     </t>
@@ -435,5 +506,43 @@
         </t>
     </template>
 
+    <!-- Payment Failed Page Template -->
+    <template id="membership_payment_failed_page" name="Membership Payment Failed">
+        <t t-call="website.layout">
+            <div class="popcorn-payment-failed-page">
+                <div class="popcorn-container">
+                    <div class="popcorn-payment-failed-content">
+                        <div class="popcorn-payment-failed-icon">
+                            <i class="fa fa-times-circle"></i>
+                        </div>
+                        
+                        <h1 class="popcorn-payment-failed-title" t-translation="on">Payment Failed</h1>
+                        
+                        <div class="popcorn-payment-failed-message">
+                            <p t-esc="error_message"/>
+                        </div>
+                        
+                        <div class="popcorn-payment-failed-actions">
+                            <a href="/memberships" class="btn btn-primary popcorn-retry-payment-btn">
+                                <i class="fa fa-refresh"></i>
+                                Try Again
+                            </a>
+                            
+                            <a href="/my/cards" class="btn btn-secondary popcorn-view-cards-btn">
+                                <i class="fa fa-credit-card"></i>
+                                View My Cards
+                            </a>
+                        </div>
+                        
+                        <div class="popcorn-payment-failed-help">
+                            <p t-translation="on">
+                                If you continue to experience issues, please contact our support team.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
 
 </odoo>
