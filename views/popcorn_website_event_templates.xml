@@ -476,11 +476,7 @@
                         </div>
                     </div>
                 </div>
-                
-                <!-- Pager -->
-                <div t-if="pager" class="mt-4">
-                    <t t-call="website.pager" t-with="pager"/>
-                </div>
+            
             </t>
         </xpath>
     </template>

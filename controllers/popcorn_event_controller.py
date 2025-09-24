@@ -3,6 +3,7 @@
 from odoo import http, fields, _
 from odoo.http import request
 from odoo.exceptions import ValidationError
+from odoo.osv import expression
 import json
 import werkzeug
 import logging
@@ -15,6 +16,143 @@ _logger = logging.getLogger(__name__)
 
 class PopcornEventController(http.Controller):
     """Controller for Popcorn Club membership-gated event registration"""
+    
+    @http.route(['/event', '/event/page/<int:page>', '/events', '/events/page/<int:page>'], type='http', auth="public", website=True)
+    def events_list(self, page=1, **searches):
+        """Override events list to show ALL events on one page without pagination"""
+        from odoo.addons.website_event.controllers.main import WebsiteEventController
+        from odoo.addons.website.controllers.main import QueryURL
+        
+        # Call the original controller method but override the step parameter
+        original_controller = WebsiteEventController()
+        
+        # Store original method
+        original_method = original_controller.events
+        
+        def events_without_pagination(self, page=1, **searches):
+            """Events method showing all events without pagination"""
+            Event = request.env['event.event']
+            SudoEventType = request.env['event.type'].sudo()
+
+            searches.setdefault('search', '')
+            searches.setdefault('date', 'upcoming')
+            searches.setdefault('tags', '')
+            searches.setdefault('type', 'all')
+            searches.setdefault('country', 'all')
+
+            website = request.website
+
+            # OVERRIDE: Show all events without pagination
+            step = 100  # Not used since we show all events
+
+            options = self._get_events_search_options(**searches)
+            order = 'date_begin'
+            if searches.get('date', 'upcoming') == 'old':
+                order = 'date_begin desc'
+            order = 'is_published desc, ' + order + ', id desc'
+            search = searches.get('search')
+            
+            # Use original search logic but with limit=None to get all events
+            event_count, details, fuzzy_search_term = website._search_with_fuzzy("events", search,
+                limit=None, order=order, options=options)  # Remove limit to get all events
+            
+            if details:
+                event_details = details[0]
+                events = event_details.get('results', Event)
+            else:
+                # Fallback to direct search
+                events = Event.search([('website_published', '=', True)], order=order)
+                event_count = len(events)
+                fuzzy_search_term = search
+                event_details = {'results': events}
+            
+            # Remove pagination slicing - show all events
+            # events = events[(page - 1) * step:page * step]  # Commented out to show all events
+
+            # count by domains without self search
+            domain_search = [('name', 'ilike', fuzzy_search_term or searches['search'])] if searches['search'] else []
+
+            # Safe access to event_details with fallbacks
+            no_date_domain = event_details.get('no_date_domain', [])
+            dates = event_details.get('dates', [['upcoming', 'Upcoming', [], 0], ['old', 'Past', [], 0]])
+            for date in dates:
+                if date[0] not in ['all', 'old']:
+                    date[3] = Event.search_count(expression.AND(no_date_domain) + domain_search + date[2])
+
+            no_country_domain = event_details.get('no_country_domain', [])
+            countries = event_details.get('countries', [['all', 'All Countries', [], 0]])
+            for country in countries:
+                if country[0] != 'all':
+                    country[3] = Event.search_count(expression.AND(no_country_domain) + domain_search + country[2])
+
+            no_type_domain = event_details.get('no_type_domain', [])
+            types = event_details.get('types', [['all', 'All Types', [], 0]])
+            for event_type in types:
+                if event_type[0] != 'all':
+                    event_type[3] = Event.search_count(expression.AND(no_type_domain) + domain_search + event_type[2])
+
+            no_tag_domain = event_details.get('no_tag_domain', [])
+            tags = event_details.get('tags', [['all', 'All Tags', [], 0]])
+            for tag in tags:
+                if tag[0] != 'all':
+                    tag[3] = Event.search_count(expression.AND(no_tag_domain) + domain_search + tag[2])
+
+            # Keep only the search results count
+            search_results = event_details.get('search_results', ['search', 'Search Results', [], event_count])
+            search_results[3] = event_count
+
+            search_tags = event_details.get('search_tags', [])
+            current_date = event_details.get('current_date', 'upcoming')
+            current_type = None
+            current_country = None
+
+            if searches["type"] != 'all':
+                current_type = SudoEventType.browse(int(searches['type']))
+
+            if searches["country"] != 'all' and searches["country"] != 'online':
+                current_country = request.env['res.country'].browse(int(searches['country']))
+
+            # Disable pagination - set pager to None
+            pager = None
+
+            keep = QueryURL('/event', **{
+                key: value for key, value in searches.items() if (
+                    key == 'search' or
+                    (value != 'upcoming' if key == 'date' else value != 'all'))
+                })
+
+            searches['search'] = fuzzy_search_term or search
+
+            values = {
+                'current_date': current_date,
+                'current_country': current_country,
+                'current_type': current_type,
+                'event_ids': events,  # event_ids used in website_event_track so we keep name as it is
+                'dates': dates,
+                'categories': request.env['event.tag.category'].search([
+                    ('is_published', '=', True), '|', ('website_id', '=', website.id), ('website_id', '=', False)
+                ]),
+                'countries': countries,
+                'pager': pager,
+                'searches': searches,
+                'search_tags': search_tags,
+                'keep': keep,
+                'search_count': event_count,
+                'original_search': fuzzy_search_term and search,
+                'website': website
+            }
+
+            return request.render("website_event.index", values)
+
+        # Apply the patch
+        original_controller.events = events_without_pagination.__get__(original_controller, WebsiteEventController)
+        
+        try:
+            return original_controller.events(page=page, **searches)
+        finally:
+            # Restore original method
+            original_controller.events = original_method
+    
     
     def _check_membership_access(self, event):
         """
