@@ -70,5 +70,90 @@
                 </aside>
             </xpath>
         </template>
+
+        <!-- Include popup templates in the main event page -->
+        <template id="popcorn_event_popups" name="Popcorn Event Popups" inherit_id="website.layout">
+            <xpath expr="//body" position="inside">
+                <!-- Confirmation Popup -->
+                <div class="modal fade popcorn-popup-modal" id="popcorn_confirmation_popup" tabindex="-1" role="dialog" aria-labelledby="confirmationModalLabel" aria-hidden="true" style="display: none;">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="confirmationModalLabel">
+                                    <i class="fa fa-question-circle text-warning me-2"></i><span t-translation="on">Confirm Cancellation</span>
+                                </h5>
+                                <button type="button" class="btn-close" onclick="hideConfirmationPopup(false)" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="alert alert-warning">
+                                    <i class="fa fa-exclamation-triangle me-2"></i>
+                                    <strong><span t-translation="on">Are you sure you want to cancel your registration for</span></strong>
+                                    <strong id="confirmation-event-name" class="d-block mt-2"></strong>
+                                </div>
+                                <p class="text-muted small mb-0">
+                                    <i class="fa fa-info-circle me-1"></i>
+                                    <span t-translation="on">This action cannot be undone.</span>
+                                </p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" onclick="hideConfirmationPopup(false)">
+                                    <i class="fa fa-times me-1"></i><span t-translation="on">Cancel</span>
+                                </button>
+                                <button type="button" class="btn btn-danger" onclick="hideConfirmationPopup(true)">
+                                    <i class="fa fa-check me-1"></i><span t-translation="on">Yes, Cancel Registration</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Success Popup -->
+                <div class="modal fade popcorn-popup-modal" id="popcorn_success_popup" tabindex="-1" role="dialog" aria-labelledby="successModalLabel" aria-hidden="true" style="display: none;">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header bg-success text-white">
+                                <h5 class="modal-title" id="successModalLabel">
+                                    <i class="fa fa-check-circle me-2"></i><span t-translation="on">Success!</span>
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" onclick="$('#popcorn_success_popup').modal('hide')" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body text-center">
+                                <div class="mb-3">
+                                    <i class="fa fa-check-circle text-success" style="font-size: 3rem;"></i>
+                                </div>
+                                <p class="card-text mb-3" id="success-message"></p>
+                                <div class="progress" style="height: 4px;">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: 100%; animation: progressBar 2s linear;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error Popup -->
+                <div class="modal fade popcorn-popup-modal" id="popcorn_error_popup" tabindex="-1" role="dialog" aria-labelledby="errorModalLabel" aria-hidden="true" style="display: none;">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header bg-danger text-white">
+                                <h5 class="modal-title" id="errorModalLabel">
+                                    <i class="fa fa-exclamation-circle me-2"></i><span t-translation="on">Error</span>
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" onclick="$('#popcorn_error_popup').modal('hide')" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body text-center">
+                                <div class="mb-3">
+                                    <i class="fa fa-exclamation-circle text-danger" style="font-size: 3rem;"></i>
+                                </div>
+                                <p class="card-text mb-3" id="error-message"></p>
+                                <div class="progress" style="height: 4px;">
+                                    <div class="progress-bar bg-danger" role="progressbar" style="width: 100%; animation: progressBar 2s linear;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+        </template>
+
     </data>
 </odoo>

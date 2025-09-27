@@ -573,6 +573,249 @@
     }
 }
 
+/* Event Content Wrapper - Single Column */
+.popcorn-event-content-wrapper {
+    display: block;
+}
+
+.popcorn-event-details {
+    width: 100%;
+}
+
+/* Event Details Row Layout */
+.popcorn-event-details-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 1rem;
+}
+
+.popcorn-event-details-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.popcorn-event-details-right {
+    flex-shrink: 0;
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-end;
+}
+
+/* Registered Status Box - Inline with Details */
+.popcorn-registered-status {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3);
+    text-align: center;
+    min-width: 80px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popcorn-registered-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.popcorn-registered-content i {
+    font-size: 1rem;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.popcorn-registered-content span {
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    font-size: 0.7rem;
+}
+
+/* Waitlist Status Box - Yellow Theme */
+.popcorn-waitlist-status {
+    background: linear-gradient(135deg, #ffc107, #ff8f00);
+    color: #212529;
+    padding: 6px 12px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(255, 193, 7, 0.3);
+    text-align: center;
+    min-width: 80px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popcorn-waitlist-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.popcorn-waitlist-content i {
+    font-size: 1rem;
+    color: #212529;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
+}
+
+.popcorn-waitlist-content span {
+    color: #212529;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.popcorn-waitlist-content small {
+    color: #000000;
+    text-shadow: none;
+    font-size: 0.6rem;
+    font-weight: 500;
+}
+
+/* Responsive adjustments for inline layout */
+@media (max-width: 768px) {
+    .popcorn-event-details-row {
+        flex-direction: row;
+        gap: 0.75rem;
+        align-items: stretch;
+    }
+    
+    .popcorn-event-details-left {
+        flex: 2; /* Takes up 66% of the space */
+    }
+    
+    .popcorn-event-details-right {
+        flex: 1; /* Takes up 33% of the space */
+        justify-content: flex-end;
+        align-self: stretch;
+    }
+    
+    .popcorn-registered-status {
+        padding: 8px 12px;
+        min-width: auto;
+        width: 100%;
+        border-radius: 4px;
+        height: 100%;
+        min-height: 40px;
+    }
+    
+    .popcorn-registered-content {
+        font-size: 0.75rem;
+        gap: 4px;
+    }
+    
+    .popcorn-registered-content i {
+        font-size: 1rem;
+    }
+    
+    .popcorn-registered-content span {
+        font-size: 0.7rem;
+    }
+    
+    .popcorn-waitlist-status {
+        padding: 8px 12px;
+        min-width: auto;
+        width: 100%;
+        border-radius: 4px;
+        height: 100%;
+        min-height: 40px;
+    }
+    
+    .popcorn-waitlist-content {
+        font-size: 0.75rem;
+        gap: 3px;
+    }
+    
+    .popcorn-waitlist-content i {
+        font-size: 1rem;
+    }
+    
+    .popcorn-waitlist-content span {
+        font-size: 0.75rem;
+    }
+    
+    .popcorn-waitlist-content small {
+        font-size: 0.65rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .popcorn-event-details-row {
+        gap: 0.5rem;
+        flex-direction: row;
+    }
+    
+    .popcorn-event-details-left {
+        flex: 2; /* Takes up 66% of the space */
+    }
+    
+    .popcorn-event-details-right {
+        flex: 1; /* Takes up 33% of the space */
+        justify-content: flex-end;
+    }
+    
+    .popcorn-registered-status {
+        padding: 6px 10px;
+        min-width: auto;
+        width: 100%;
+        min-height: 35px;
+    }
+    
+    .popcorn-registered-content {
+        font-size: 0.7rem;
+        gap: 3px;
+    }
+    
+    .popcorn-registered-content i {
+        font-size: 0.9rem;
+    }
+    
+    .popcorn-registered-content span {
+        font-size: 0.65rem;
+    }
+    
+    .popcorn-waitlist-status {
+        padding: 6px 10px;
+        min-width: auto;
+        width: 100%;
+        min-height: 35px;
+    }
+    
+    .popcorn-waitlist-content {
+        font-size: 0.7rem;
+        gap: 2px;
+    }
+    
+    .popcorn-waitlist-content i {
+        font-size: 0.9rem;
+    }
+    
+    .popcorn-waitlist-content span {
+        font-size: 0.7rem;
+    }
+    
+    .popcorn-waitlist-content small {
+        font-size: 0.6rem;
+    }
+}
+
 /* Ensure smooth scrolling behavior */
 html {
     scroll-behavior: smooth;

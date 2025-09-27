@@ -1589,3 +1589,43 @@ class PopcornPortalController(CustomerPortal):
             # Redirect with error message
             error_param = url_quote(str(e))
             return request.redirect('/my/clubs?error=cancellation_failed&message=' + error_param)
+    
+    @http.route(['/my/clubs/cancel-conflicting'], type='http', auth="user", website=True, methods=['POST'])
+    def cancel_conflicting_registration(self, **kwargs):
+        """Cancel a conflicting registration via AJAX"""
+        try:
+            # Debug logging
+            _logger.info(f"Cancel conflicting registration called with params: {request.params}")
+            _logger.info(f"Cancel conflicting registration called with kwargs: {kwargs}")
+            
+            # Get data from request - in Odoo 18, use request.params for JSON data
+            event_id = request.params.get('event_id')
+            
+            _logger.info(f"Event ID from request: {event_id}")
+            
+            if not event_id:
+                _logger.warning("No event_id provided in request")
+                return request.make_json_response({'success': False, 'message': 'Event ID is required'})
+            
+            # Get the current user's registration for this event
+            registration = request.env['event.registration'].sudo().search([
+                ('event_id', '=', int(event_id)),
+                ('partner_id', '=', request.env.user.partner_id.id),
+                ('state', 'in', ['open', 'confirmed'])
+            ], limit=1)
+            
+            _logger.info(f"Found registration: {registration}")
+            
+            if not registration:
+                _logger.warning(f"No registration found for event {event_id} and partner {request.env.user.partner_id.id}")
+                return request.make_json_response({'success': False, 'message': 'Registration not found'})
+            
+            # Cancel the registration
+            registration.action_cancel_registration()
+            
+            _logger.info(f"Successfully cancelled registration {registration.id}")
+            return request.make_json_response({'success': True, 'message': 'Registration cancelled successfully'})
+            
+        except Exception as e:
+            _logger.error(f"Failed to cancel conflicting registration: {str(e)}")
+            return request.make_json_response({'success': False, 'message': str(e)})

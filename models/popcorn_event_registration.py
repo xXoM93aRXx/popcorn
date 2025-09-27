@@ -140,29 +140,7 @@ class PopcornEventRegistration(models.Model):
             if registration.membership_id and registration.membership_id.partner_id != registration.partner_id:
                 raise ValidationError(_('Membership must belong to the registration partner'))
     
-    @api.constrains('partner_id', 'event_id', 'state')
-    def _check_no_double_booking(self):
-        """Prevent users from booking two events at the same time"""
-        for registration in self:
-            if not registration.partner_id or not registration.event_id or registration.state in ['cancel']:
-                continue
-                
-            # Find other registrations for the same partner that overlap in time
-            overlapping_registrations = self.search([
-                ('partner_id', '=', registration.partner_id.id),
-                ('event_id', '!=', registration.event_id.id),
-                ('state', 'in', ['draft', 'open', 'done']),  # Active registrations
-                ('id', '!=', registration.id)  # Exclude current registration
-            ])
-            
-            for other_reg in overlapping_registrations:
-                # Check if events overlap in time
-                if self._events_overlap(registration.event_id, other_reg.event_id):
-                    raise ValidationError(
-                        _('You cannot register for two events at the same time. '
-                          'You are already registered for "%s" which overlaps with "%s".') % 
-                        (other_reg.event_id.name, registration.event_id.name)
-                    )
+
     
     def _events_overlap(self, event1, event2):
         """Check if two events overlap in time"""

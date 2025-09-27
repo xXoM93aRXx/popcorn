@@ -222,9 +222,6 @@
                                         </div>
                                     </div>
                                     
-                                    <small t-if="event.is_participating" class="o_wevent_participating position-absolute bottom-0 px-3 py-2 w-100 text-bg-success">
-                                        <i class="fa fa-check me-2"/>Registered
-                                    </small>
                                     <small t-if="not event.website_published" class="o_wevent_unpublished position-absolute bottom-0 px-3 py-2 w-100 text-bg-danger">
                                         <i class="fa fa-ban me-2"/>Unpublished
                                     </small>
@@ -233,65 +230,87 @@
                             
                             <!-- Body -->
                             <main class="popcorn-event-body col-12 py-3">
-                                <div id="event_details">
-                                    <div class="popcorn-event-tags">
-                                        <t t-foreach="event.tag_ids.filtered(lambda tag: tag.category_id.website_id == website or not tag.category_id.website_id)" t-as="tag">
-                                            <span t-if="tag.color" t-attf-class="popcorn-event-tag badge #{'o_color_%s' % tag.color if tag.color else 'text-bg-light'}">
-                                                <t t-out="tag.name"/>
-                                            </span>
-                                        </t>
-                                    </div>
-                                    <!-- Title -->
-                                    <h5 t-attf-class="popcorn-event-title #{(not event.website_published) and 'text-danger'}">
-                                        <span t-field="event.name" itemprop="name"/>
-                                    </h5>
-                                    <!-- Event Date and Time -->
-                                    <div class="popcorn-event-datetime mb-2">
-                                        <i class="fa fa-clock-o me-2" style="color: #6c757d;"></i>
-                                        <small class="text-muted">
-                                            <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
-                                            <span t-if="event.date_begin != event.date_end"> - </span>
-                                            <span t-if="event.date_begin != event.date_end" t-out="event.date_end" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
-                                        </small>
-                                    </div>
-                                    <!-- Subtitle -->
-                                    <small class="popcorn-event-subtitle" itemprop="description" t-field="event.subtitle"/>
-                                    
-                                    <!-- Seat Availability -->
-                                    <div class="popcorn-event-seats mt-2">
-                                        <i class="fa fa-users me-1" style="color: #6c757d;"></i>
-                                        <small class="text-muted">
-                                            <t t-if="event.seats_limited">
-                                                <t t-esc="event.seats_taken"/> / <t t-esc="event.seats_max"/> seats
-                                                <t t-if="event.seats_available > 0">
-                                                    (<t t-esc="event.seats_available"/> available)
-                                                </t>
-                                                <t t-elif="event.seats_available == 0 and event.waitlist_count > 0">
-                                                    (Waitlist: <t t-esc="event.waitlist_count"/>)
-                                                </t>
-                                                <t t-else="">
-                                                    (Full)
-                                                </t>
+                                <div class="popcorn-event-content-wrapper">
+                                    <!-- Left Column: Event Details -->
+                                    <div class="popcorn-event-details">
+                                        <div class="popcorn-event-tags">
+                                            <t t-foreach="event.tag_ids.filtered(lambda tag: tag.category_id.website_id == website or not tag.category_id.website_id)" t-as="tag">
+                                                <span t-if="tag.color" t-attf-class="popcorn-event-tag badge #{'o_color_%s' % tag.color if tag.color else 'text-bg-light'}">
+                                                    <t t-out="tag.name"/>
+                                                </span>
                                             </t>
-                                            <t t-else="">
-                                                Unlimited seats
-                                            </t>
-                                        </small>
+                                        </div>
+                                        <!-- Title -->
+                                        <h5 t-attf-class="popcorn-event-title #{(not event.website_published) and 'text-danger'}">
+                                            <span t-field="event.name" itemprop="name"/>
+                                        </h5>
+                                        <!-- Event Date and Time -->
+                                        <div class="popcorn-event-datetime mb-2">
+                                            <i class="fa fa-clock-o me-2" style="color: #6c757d;"></i>
+                                            <small class="text-muted">
+                                                <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
+                                                <span t-if="event.date_begin != event.date_end"> - </span>
+                                                <span t-if="event.date_begin != event.date_end" t-out="event.date_end" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
+                                            </small>
+                                        </div>
+                                        <!-- Subtitle -->
+                                        <small class="popcorn-event-subtitle" itemprop="description" t-field="event.subtitle"/>
+                                        
+                                        <!-- Event Details Row: Seats, Location, and Registered Status -->
+                                        <div class="popcorn-event-details-row mt-2">
+                                            <!-- Left Side: Seats and Location -->
+                                            <div class="popcorn-event-details-left">
+                                                <!-- Seat Availability -->
+                                                <div class="popcorn-event-seats">
+                                                    <i class="fa fa-users me-1" style="color: #6c757d;"></i>
+                                                    <small class="text-muted">
+                                                        <t t-if="event.seats_limited">
+                                                            <t t-esc="event.seats_taken"/> / <t t-esc="event.seats_max"/> seats
+                                                            <t t-if="event.seats_available > 0">
+                                                                (<t t-esc="event.seats_available"/> available)
+                                                            </t>
+                                                            <t t-elif="event.seats_available == 0 and event.waitlist_count > 0">
+                                                                (Waitlist: <t t-esc="event.waitlist_count"/>)
+                                                            </t>
+                                                            <t t-else="">
+                                                                (Full)
+                                                            </t>
+                                                        </t>
+                                                        <t t-else="">
+                                                            Unlimited seats
+                                                        </t>
+                                                    </small>
+                                                </div>
+                                                
+                                                <!-- Location -->
+                                                <div t-if="not event.is_online_event or event.event_city" class="popcorn-event-location">
+                                                    <i class="fa fa-map-marker popcorn-event-location-icon" title="Location"/>
+                                                    <small t-if="event.event_city" class="popcorn-event-location-text o_not_editable" itemprop="location" t-out="event.event_city"/>
+                                                    <small t-else="" class="popcorn-event-location-text o_not_editable" itemprop="location">Online event</small>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Right Side: Registration Status -->
+                                            <div class="popcorn-event-details-right">
+                                                <!-- Registered Status -->
+                                                <div t-if="event.is_participating and event.user_waitlist_position == 0" class="popcorn-registered-status">
+                                                    <div class="popcorn-registered-content">
+                                                        <i class="fa fa-check-circle"></i>
+                                                        <span>Registered</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Waitlist Status -->
+                                                <div t-if="event.user_waitlist_position > 0" class="popcorn-waitlist-status">
+                                                    <div class="popcorn-waitlist-content">
+                                                        <i class="fa fa-clock-o"></i>
+                                                        <span>#<t t-esc="event.user_waitlist_position"/></span>
+                                                        <small>Waitlist</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    
-                                    <!-- User's Waitlist Position -->
-                                    <div t-if="event.user_waitlist_position > 0" class="popcorn-event-waitlist mt-1">
-                                        <i class="fa fa-clock-o me-1 text-warning"></i>
-                                        <small class="text-warning">
-                                            You are #<t t-esc="event.user_waitlist_position"/> on the waitlist
-                                        </small>
-                                    </div>
-                                </div>
-                                <!-- Location -->
-                                <div t-if="not event.is_online_event or event.event_city" class="popcorn-event-location">
-                                    <i class="fa fa-map-marker popcorn-event-location-icon" title="Location"/>
-                                    <small t-if="event.event_city" class="popcorn-event-location-text o_not_editable" itemprop="location" t-out="event.event_city"/>
-                                    <small t-else="" class="popcorn-event-location-text o_not_editable" itemprop="location">Online event</small>
                                 </div>
                             </main>
                         </div>
@@ -398,9 +417,6 @@
                                             </div>
                                         </div>
                                         
-                                        <small t-if="event.is_participating" class="o_wevent_participating position-absolute bottom-0 px-3 py-2 w-100 text-bg-success">
-                                            <i class="fa fa-check me-2"/>Registered
-                                        </small>
                                         <small t-if="not event.website_published" class="o_wevent_unpublished position-absolute bottom-0 px-3 py-2 w-100 text-bg-danger">
                                             <i class="fa fa-ban me-2"/>Unpublished
                                         </small>
@@ -409,65 +425,87 @@
                                 
                                 <!-- Body -->
                                 <main t-attf-class="popcorn-event-body #{opt_events_list_columns and 'col-12 py-3' or 'col-8 col-lg-9 px-4'} #{not opt_events_list_cards and opt_events_list_columns and 'bg-transparent px-0'} #{not opt_events_list_cards and not opt_events_list_columns and 'bg-transparent py-0'}">
-                                    <div id="event_details">
-                                        <div class="popcorn-event-tags">
-                                            <t t-foreach="event.tag_ids.filtered(lambda tag: tag.category_id.website_id == website or not tag.category_id.website_id)" t-as="tag">
-                                                <span t-if="tag.color" t-attf-class="popcorn-event-tag badge #{'o_color_%s' % tag.color if tag.color else 'text-bg-light'}">
-                                                    <t t-out="tag.name"/>
-                                                </span>
-                                            </t>
-                                        </div>
-                                        <!-- Title -->
-                                        <h5 t-attf-class="popcorn-event-title #{(not event.website_published) and 'text-danger'}">
-                                            <span t-field="event.name" itemprop="name"/>
-                                        </h5>
-                                        <!-- Event Date and Time -->
-                                        <div class="popcorn-event-datetime mb-2">
-                                            <i class="fa fa-clock-o me-2" style="color: #6c757d;"></i>
-                                            <small class="text-muted">
-                                                <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
-                                                <span t-if="event.date_begin != event.date_end"> - </span>
-                                                <span t-if="event.date_begin != event.date_end" t-out="event.date_end" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
-                                            </small>
-                                        </div>
-                                        <!-- Subtitle -->
-                                        <small class="popcorn-event-subtitle" itemprop="description" t-field="event.subtitle"/>
-                                        
-                                        <!-- Seat Availability -->
-                                        <div class="popcorn-event-seats mt-2">
-                                            <i class="fa fa-users me-1" style="color: #6c757d;"></i>
-                                            <small class="text-muted">
-                                                <t t-if="event.seats_limited">
-                                                    <t t-esc="event.seats_taken"/> / <t t-esc="event.seats_max"/> seats
-                                                    <t t-if="event.seats_available > 0">
-                                                        (<t t-esc="event.seats_available"/> available)
-                                                    </t>
-                                                    <t t-elif="event.seats_available == 0 and event.waitlist_count > 0">
-                                                        (Waitlist: <t t-esc="event.waitlist_count"/>)
-                                                    </t>
-                                                    <t t-else="">
-                                                        (Full)
-                                                    </t>
+                                    <div class="popcorn-event-content-wrapper">
+                                        <!-- Left Column: Event Details -->
+                                        <div class="popcorn-event-details">
+                                            <div class="popcorn-event-tags">
+                                                <t t-foreach="event.tag_ids.filtered(lambda tag: tag.category_id.website_id == website or not tag.category_id.website_id)" t-as="tag">
+                                                    <span t-if="tag.color" t-attf-class="popcorn-event-tag badge #{'o_color_%s' % tag.color if tag.color else 'text-bg-light'}">
+                                                        <t t-out="tag.name"/>
+                                                    </span>
                                                 </t>
-                                                <t t-else="">
-                                                    Unlimited seats
-                                                </t>
-                                            </small>
-                                        </div>
-                                        
-                                        <!-- User's Waitlist Position -->
-                                        <div t-if="event.user_waitlist_position > 0" class="popcorn-event-waitlist mt-1">
-                                            <i class="fa fa-clock-o me-1 text-warning"></i>
-                                            <small class="text-warning">
-                                                You are #<t t-esc="event.user_waitlist_position"/> on the waitlist
-                                            </small>
+                                            </div>
+                                            <!-- Title -->
+                                            <h5 t-attf-class="popcorn-event-title #{(not event.website_published) and 'text-danger'}">
+                                                <span t-field="event.name" itemprop="name"/>
+                                            </h5>
+                                            <!-- Event Date and Time -->
+                                            <div class="popcorn-event-datetime mb-2">
+                                                <i class="fa fa-clock-o me-2" style="color: #6c757d;"></i>
+                                                <small class="text-muted">
+                                                    <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
+                                                    <span t-if="event.date_begin != event.date_end"> - </span>
+                                                    <span t-if="event.date_begin != event.date_end" t-out="event.date_end" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
+                                                </small>
+                                            </div>
+                                            <!-- Subtitle -->
+                                            <small class="popcorn-event-subtitle" itemprop="description" t-field="event.subtitle"/>
+                                            
+                                        <!-- Event Details Row: Seats, Location, and Registered Status -->
+                                        <div class="popcorn-event-details-row mt-2">
+                                            <!-- Left Side: Seats and Location -->
+                                            <div class="popcorn-event-details-left">
+                                                <!-- Seat Availability -->
+                                                <div class="popcorn-event-seats">
+                                                    <i class="fa fa-users me-1" style="color: #6c757d;"></i>
+                                                    <small class="text-muted">
+                                                        <t t-if="event.seats_limited">
+                                                            <t t-esc="event.seats_taken"/> / <t t-esc="event.seats_max"/> seats
+                                                            <t t-if="event.seats_available > 0">
+                                                                (<t t-esc="event.seats_available"/> available)
+                                                            </t>
+                                                            <t t-elif="event.seats_available == 0 and event.waitlist_count > 0">
+                                                                (Waitlist: <t t-esc="event.waitlist_count"/>)
+                                                            </t>
+                                                            <t t-else="">
+                                                                (Full)
+                                                            </t>
+                                                        </t>
+                                                        <t t-else="">
+                                                            Unlimited seats
+                                                        </t>
+                                                    </small>
+                                                </div>
+                                                
+                                                <!-- Location -->
+                                                <div t-if="not event.is_online_event or event.event_city" class="popcorn-event-location">
+                                                    <i class="fa fa-map-marker popcorn-event-location-icon" title="Location"/>
+                                                    <small t-if="event.event_city" class="popcorn-event-location-text o_not_editable" itemprop="location" t-out="event.event_city"/>
+                                                    <small t-else="" class="popcorn-event-location-text o_not_editable" itemprop="location">Online event</small>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Right Side: Registration Status -->
+                                            <div class="popcorn-event-details-right">
+                                                <!-- Registered Status -->
+                                                <div t-if="event.is_participating and event.user_waitlist_position == 0" class="popcorn-registered-status">
+                                                    <div class="popcorn-registered-content">
+                                                        <i class="fa fa-check-circle"></i>
+                                                        <span>Registered</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Waitlist Status -->
+                                                <div t-if="event.user_waitlist_position > 0" class="popcorn-waitlist-status">
+                                                    <div class="popcorn-waitlist-content">
+                                                        <i class="fa fa-clock-o"></i>
+                                                        <span>#<t t-esc="event.user_waitlist_position"/></span>
+                                                        <small>Waitlist</small>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                    <!-- Location -->
-                                    <div t-if="not event.is_online_event or event.event_city" class="popcorn-event-location">
-                                        <i class="fa fa-map-marker popcorn-event-location-icon" title="Location"/>
-                                        <small t-if="event.event_city" class="popcorn-event-location-text o_not_editable" itemprop="location" t-out="event.event_city"/>
-                                        <small t-else="" class="popcorn-event-location-text o_not_editable" itemprop="location">Online event</small>
                                     </div>
                                 </main>
                             </div>

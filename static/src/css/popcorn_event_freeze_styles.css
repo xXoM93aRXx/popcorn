@@ -82,6 +82,51 @@
     margin-right: 4px;
 }
 
+/* Popup Modal Styling - matching freeze modal */
+.popcorn-popup-modal .modal-content {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.popcorn-popup-modal .modal-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px 8px 0 0;
+}
+
+.popcorn-popup-modal .modal-footer {
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 0 0 8px 8px;
+}
+
+.popcorn-popup-modal .modal-body {
+    padding: 1.5rem;
+}
+
+.popcorn-popup-modal .alert {
+    border-radius: 6px;
+    margin-bottom: 1rem;
+}
+
+.popcorn-popup-modal .btn {
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.popcorn-popup-modal .btn-close {
+    opacity: 0.7;
+}
+
+.popcorn-popup-modal .btn-close:hover {
+    opacity: 1;
+}
+
+/* Progress bar animation */
+@keyframes progressBar {
+    0% { width: 0%; }
+    100% { width: 100%; }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .popcorn-freeze-status {
@@ -91,5 +136,13 @@
     
     .popcorn-freeze-status small {
         font-size: 0.7em;
+    }
+    
+    .popcorn-popup-modal .modal-dialog {
+        margin: 1rem;
+    }
+    
+    .popcorn-popup-modal .modal-body {
+        padding: 1rem;
     }
 }

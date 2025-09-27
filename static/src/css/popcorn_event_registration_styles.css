@@ -563,6 +563,83 @@
     text-align: center;
 }
 
+/* Fixed Registration Button Styles - Fixed at bottom only on mobile */
+.popcorn-fixed-registration-container {
+    position: static; /* Default: normal flow for desktop */
+    z-index: 1001;
+}
+
+/* Mobile: Fixed at bottom above sticky footer */
+@media (max-width: 767px) {
+    .popcorn-fixed-registration-container {
+        position: fixed;
+        bottom: 72px; /* Position above sticky footer (matches --sticky-nav-h) */
+        left: 0;
+        right: 0;
+        background: white;
+        border-top: 1px solid #dee2e6;
+        padding: 15px;
+    }
+}
+
+.popcorn-fixed-registration-button {
+    width: 100%;
+    display: block;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.popcorn-fixed-registration-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Ensure the button maintains its styling when fixed */
+.popcorn-fixed-registration-button.btn {
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+    width: 100%;
+}
+
+/* Conflict buttons container styling */
+.popcorn-conflict-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.popcorn-conflict-buttons .btn {
+    width: 100%;
+    text-align: center;
+}
+
+/* Responsive button adjustments */
+@media (max-width: 768px) {
+    .popcorn-fixed-registration-button {
+        font-size: 14px;
+    }
+    
+    .popcorn-fixed-registration-button.btn {
+        padding: 10px 20px;
+    }
+}
+
+@media (max-width: 576px) {
+    .popcorn-fixed-registration-button {
+        font-size: 13px;
+    }
+    
+    .popcorn-fixed-registration-button.btn {
+        padding: 8px 16px;
+    }
+}
+
 /* Responsive adjustments for registration options */
 @media (max-width: 768px) {
     .popcorn-registration-options {

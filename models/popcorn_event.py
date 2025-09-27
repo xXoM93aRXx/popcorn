@@ -1,5 +1,6 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import AccessError
+from odoo.http import request
 import logging
 from datetime import timedelta
 
@@ -636,6 +637,35 @@ class EventEvent(models.Model):
         for event in self:
             event.has_conflicting_registration = False
             event.conflicting_event = False
+            
+            # Only check for logged-in users
+            if request and request.env.user and request.env.user.id != request.env.ref('base.public_user').id:
+                current_user_partner = request.env.user.partner_id
+                
+                # Check if current user has any registrations for events that overlap with this event
+                if event.date_begin and event.date_end:
+                    # Find all events where the user has ACTIVE registrations that overlap with this event's time
+                    # First, find all active registrations for this user
+                    active_registrations = request.env['event.registration'].search([
+                        ('partner_id', '=', current_user_partner.id),
+                        ('state', 'in', ['open', 'done'])  # Only active registrations
+                    ])
+                    
+                    # Get the event IDs from these active registrations
+                    active_event_ids = active_registrations.mapped('event_id.id')
+                    
+                    # Now find events that overlap in time with the current event
+                    overlapping_events = request.env['event.event'].search([
+                        ('id', '!=', event.id),  # Exclude current event
+                        ('id', 'in', active_event_ids),  # Only events where user has active registrations
+                        ('website_published', '=', True),
+                        ('date_begin', '<', event.date_end),  # Other event starts before this one ends
+                        ('date_end', '>', event.date_begin),  # Other event ends after this one starts
+                    ])
+                    
+                    if overlapping_events:
+                        event.has_conflicting_registration = True
+                        event.conflicting_event = overlapping_events[0]  # Show the first conflicting event
     
     
     def action_mark_as_ended(self):
