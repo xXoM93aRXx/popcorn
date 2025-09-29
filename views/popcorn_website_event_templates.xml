@@ -205,11 +205,6 @@
                                         </t>
                                     </div>
                                     
-                                    <!-- Waitlist overlay (separate from status overlay) -->
-                                    <div t-if="event.event_registrations_sold_out" class="popcorn-waitlist-overlay">
-                                        <i class="fa fa-clock-o me-2"></i>
-                                        Join the Waitlist
-                                    </div>
                                     
                                     <!-- Freeze status overlay -->
                                     <div t-if="is_frozen" class="popcorn-event-freeze-overlay">
@@ -240,10 +235,7 @@
                                                 </span>
                                             </t>
                                         </div>
-                                        <!-- Title -->
-                                        <h5 t-attf-class="popcorn-event-title #{(not event.website_published) and 'text-danger'}">
-                                            <span t-field="event.name" itemprop="name"/>
-                                        </h5>
+                                  
                                         <!-- Event Date and Time -->
                                         <div class="popcorn-event-datetime mb-2">
                                             <i class="fa fa-clock-o me-2" style="color: #6c757d;"></i>
@@ -288,6 +280,16 @@
                                                     <small t-if="event.event_city" class="popcorn-event-location-text o_not_editable" itemprop="location" t-out="event.event_city"/>
                                                     <small t-else="" class="popcorn-event-location-text o_not_editable" itemprop="location">Online event</small>
                                                 </div>
+                                                
+                                                <!-- Event Price -->
+                                                <t t-if="event.event_price and event.event_price > 0">
+                                                    <div class="popcorn-event-price mt-2">
+                                                        <i class="fa fa-money me-2" style="color: #28a745;"></i>
+                                                        <span class="text-success fw-bold">
+                                                            <span t-esc="event.currency_id.symbol"/><span t-esc="event.event_price"/>
+                                                        </span>
+                                                    </div>
+                                                </t>
                                             </div>
                                             
                                             <!-- Right Side: Registration Status -->
@@ -306,6 +308,14 @@
                                                         <i class="fa fa-clock-o"></i>
                                                         <span>#<t t-esc="event.user_waitlist_position"/></span>
                                                         <small>Waitlist</small>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Join Waitlist Status -->
+                                                <div t-if="event.event_registrations_sold_out and not event.is_participating" class="popcorn-join-waitlist-status">
+                                                    <div class="popcorn-join-waitlist-content" style="background-color: #ff8c00; color: white; padding: 4px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+                                                        <i class="fa fa-clock-o"></i>
+                                                        <span>Join Waitlist</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -400,11 +410,6 @@
                                             </t>
                                         </div>
                                         
-                                        <!-- Waitlist overlay (separate from status overlay) -->
-                                        <div t-if="event.event_registrations_sold_out" class="popcorn-waitlist-overlay">
-                                            <i class="fa fa-clock-o me-2"></i>
-                                            Join the Waitlist
-                                        </div>
                                         
                                         <!-- Freeze status overlay -->
                                         <div t-if="is_frozen" class="popcorn-event-freeze-overlay">
@@ -437,7 +442,6 @@
                                             </div>
                                             <!-- Title -->
                                             <h5 t-attf-class="popcorn-event-title #{(not event.website_published) and 'text-danger'}">
-                                                <span t-field="event.name" itemprop="name"/>
                                             </h5>
                                             <!-- Event Date and Time -->
                                             <div class="popcorn-event-datetime mb-2">
@@ -483,6 +487,16 @@
                                                     <small t-if="event.event_city" class="popcorn-event-location-text o_not_editable" itemprop="location" t-out="event.event_city"/>
                                                     <small t-else="" class="popcorn-event-location-text o_not_editable" itemprop="location">Online event</small>
                                                 </div>
+                                                
+                                                <!-- Event Price -->
+                                                <t t-if="event.event_price and event.event_price > 0">
+                                                    <div class="popcorn-event-price mt-2">
+                                                        <i class="fa fa-money me-2" style="color: #28a745;"></i>
+                                                        <span class="text-success fw-bold">
+                                                            <span t-esc="event.currency_id.symbol"/><span t-esc="event.event_price"/>
+                                                        </span>
+                                                    </div>
+                                                </t>
                                             </div>
                                             
                                             <!-- Right Side: Registration Status -->
@@ -501,6 +515,14 @@
                                                         <i class="fa fa-clock-o"></i>
                                                         <span>#<t t-esc="event.user_waitlist_position"/></span>
                                                         <small>Waitlist</small>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Join Waitlist Status -->
+                                                <div t-if="event.event_registrations_sold_out and not event.is_participating and event.user_waitlist_position == 0" class="popcorn-join-waitlist-status">
+                                                    <div class="popcorn-join-waitlist-content">
+                                                        <i class="fa fa-clock-o"></i>
+                                                        <span>Join Waitlist</span>
                                                     </div>
                                                 </div>
                                             </div>

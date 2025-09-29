@@ -657,6 +657,21 @@
     justify-content: center;
 }
 
+/* Join Waitlist Status Box - Orange Theme */
+.popcorn-join-waitlist-status {
+    background: linear-gradient(135deg, #ff8c00, #ff6b35);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(255, 140, 0, 0.3);
+    text-align: center;
+    min-width: 80px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .popcorn-waitlist-content {
     display: flex;
     flex-direction: column;
@@ -687,6 +702,29 @@
     text-shadow: none;
     font-size: 0.6rem;
     font-weight: 500;
+}
+
+.popcorn-join-waitlist-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.popcorn-join-waitlist-content i {
+    font-size: 1rem;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.popcorn-join-waitlist-content span {
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    font-size: 0.7rem;
 }
 
 /* Responsive adjustments for inline layout */
@@ -754,6 +792,28 @@
     .popcorn-waitlist-content small {
         font-size: 0.65rem;
     }
+    
+    .popcorn-join-waitlist-status {
+        padding: 8px 12px;
+        min-width: auto;
+        width: 100%;
+        border-radius: 4px;
+        height: 100%;
+        min-height: 40px;
+    }
+    
+    .popcorn-join-waitlist-content {
+        font-size: 0.75rem;
+        gap: 4px;
+    }
+    
+    .popcorn-join-waitlist-content i {
+        font-size: 1rem;
+    }
+    
+    .popcorn-join-waitlist-content span {
+        font-size: 0.7rem;
+    }
 }
 
 @media (max-width: 576px) {
@@ -813,6 +873,26 @@
     
     .popcorn-waitlist-content small {
         font-size: 0.6rem;
+    }
+    
+    .popcorn-join-waitlist-status {
+        padding: 6px 10px;
+        min-width: auto;
+        width: 100%;
+        min-height: 35px;
+    }
+    
+    .popcorn-join-waitlist-content {
+        font-size: 0.7rem;
+        gap: 3px;
+    }
+    
+    .popcorn-join-waitlist-content i {
+        font-size: 0.9rem;
+    }
+    
+    .popcorn-join-waitlist-content span {
+        font-size: 0.65rem;
     }
 }
 

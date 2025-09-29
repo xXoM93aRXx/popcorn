@@ -45,6 +45,36 @@
         </xpath>
     </template>
 
+    <!-- Add Popcorn Money to Portal Side Content -->
+    <template id="portal_side_content_popcorn_money" inherit_id="portal.side_content">
+        <xpath expr="//div[@class='o_portal_my_details']" position="after">
+            <div class="mt-3">
+                <div class="d-flex align-items-center">
+                    <i class="fa fa-money me-2 text-success"></i>
+                    <strong>Popcorn Money:</strong>
+                    <span class="text-success ms-2">
+                        <span t-esc="request.env.user.partner_id.currency_id.symbol"/><span t-esc="request.env.user.partner_id.popcorn_money_balance"/>
+                    </span>
+                </div>
+            </div>
+        </xpath>
+    </template>
+
+    <!-- Add Popcorn Money to Portal Layout for Mobile -->
+    <template id="portal_layout_popcorn_money_mobile" inherit_id="portal.portal_layout">
+        <xpath expr="//div[@class='wrapper col-12 d-flex flex-wrap justify-content-between align-items-center']" position="after">
+            <div class="d-lg-none mb-3">
+                <div class="d-flex align-items-center">
+                    <i class="fa fa-money me-2 text-success"></i>
+                    <strong>Popcorn Money:</strong>
+                    <span class="text-success ms-2">
+                        <span t-esc="request.env.user.partner_id.currency_id.symbol"/><span t-esc="request.env.user.partner_id.popcorn_money_balance"/>
+                    </span>
+                </div>
+            </div>
+        </xpath>
+    </template>
+
          <!-- My Clubs Portal Section -->
      <template id="portal_my_clubs" name="My Clubs">
          <t t-call="portal.portal_docs_entry">
