@@ -8,7 +8,7 @@ class PopcornMembership(models.Model):
     """Membership instances for customers"""
     _name = 'popcorn.membership'
     _description = 'Popcorn Club Membership'
-    _order = 'create_date desc'
+    _order = 'activation_date desc nulls last'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _rec_name = 'display_name'
 
@@ -332,15 +332,13 @@ class PopcornMembership(models.Model):
         if not self.freeze_active:
             raise UserError(_('Membership is not currently frozen'))
         
-        # Calculate actual freeze days used
-        freeze_end = self.freeze_end or fields.Date.today()
-        actual_freeze_days = (freeze_end - self.freeze_start).days
-        
+        # Just clear the freeze state - freeze_total_days_used already contains the freeze days
+        # that were added when the freeze was initiated, so we don't need to add them again
         self.write({
             'freeze_active': False,
             'freeze_start': False,
             'freeze_end': False,
-            'freeze_total_days_used': self.freeze_total_days_used + actual_freeze_days
+            # freeze_total_days_used remains unchanged - it already contains the correct total
         })
     
     def action_expire(self):

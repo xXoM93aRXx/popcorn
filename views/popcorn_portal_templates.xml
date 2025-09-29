@@ -741,6 +741,15 @@
                               </div>
                               
                               <div class="mb-3">
+                                  <label for="freezeStartDate" class="form-label"><span t-translation="on">Start Freeze Date</span></label>
+                                  <input type="date" class="form-control" id="freezeStartDate" name="freeze_start_date" 
+                                         required="required"/>
+                                  <div class="form-text">
+                                      <span t-translation="on">Select today or a future date when you want to start the freeze period</span>
+                                  </div>
+                              </div>
+                              
+                              <div class="mb-3">
                                   <label for="freezeDays" class="form-label"><span t-translation="on">Freeze Duration (Days)</span></label>
                                   <input type="number" class="form-control" id="freezeDays" name="freeze_days" 
                                          min="7" max="30" required="required"/>
@@ -751,9 +760,10 @@
                               </div>
                               
                               <div class="mb-3">
-                                  <label class="form-label"><span t-translation="on">Freeze Period</span></label>
+                                  <label class="form-label"><span t-translation="on">Freeze Period Summary</span></label>
                                   <div class="form-control-plaintext">
-                                      <span id="freezeStartDate"></span> <span t-translation="on">to</span> <span id="freezeEndDate"></span>
+                                      <span t-translation="on">From:</span> <span id="freezeStartDateDisplay"></span> <br/>
+                                      <span t-translation="on">To:</span> <span id="freezeEndDateDisplay"></span>
                                   </div>
                               </div>
                           </div>

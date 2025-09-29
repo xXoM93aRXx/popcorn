@@ -58,6 +58,13 @@ function setupFreezeFunctionality() {
             maxDaysElement.textContent = maxDays;
         }
         
+        // Initialize freeze start date to today
+        const freezeStartDateInput = document.getElementById('freezeStartDate');
+        if (freezeStartDateInput) {
+          const today = new Date();
+          freezeStartDateInput.value = today.toISOString().split('T')[0];
+          freezeStartDateInput.min = today.toISOString().split('T')[0]; // Allow today and future dates
+        }
         
         // Update freeze period preview
         updateFreezePeriodPreview();
@@ -101,15 +108,37 @@ function setupFreezeFunctionality() {
     // Setup freeze days input change
     freezeDaysInput.addEventListener('input', updateFreezePeriodPreview);
     
+    // Setup freeze start date input change
+    const freezeStartDateInput = document.getElementById('freezeStartDate');
+    if (freezeStartDateInput) {
+      freezeStartDateInput.addEventListener('change', updateFreezePeriodPreview);
+    }
+    
     // Setup form submission
     freezeForm.addEventListener('submit', function(evt) {
       evt.preventDefault();
       
       const formData = new FormData(freezeForm);
       const freezeDays = formData.get('freeze_days');
+      const freezeStartDate = formData.get('freeze_start_date');
       
       if (!freezeDays || freezeDays < parseInt(freezeDaysInput.min) || freezeDays > parseInt(freezeDaysInput.max)) {
         alert('Please enter a valid freeze duration.');
+        return;
+      }
+      
+      if (!freezeStartDate) {
+        alert('Please select a start date for the freeze.');
+        return;
+      }
+      
+      // Check if start date is in the future
+      const selectedDate = new Date(freezeStartDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to start of day
+      
+      if (selectedDate < today) {
+        alert('The freeze start date must be today or in the future.');
         return;
       }
       
@@ -196,30 +225,48 @@ function hideModal() {
 
 function updateFreezePeriodPreview() {
   const freezeDaysInput = document.getElementById('freezeDays');
-  const freezeStartDateElement = document.getElementById('freezeStartDate');
-  const freezeEndDateElement = document.getElementById('freezeEndDate');
+  const freezeStartDateInput = document.getElementById('freezeStartDate');
+  const freezeStartDateDisplay = document.getElementById('freezeStartDateDisplay');
+  const freezeEndDateDisplay = document.getElementById('freezeEndDateDisplay');
   
   console.log('updateFreezePeriodPreview called');
   console.log('Elements found:', {
     freezeDaysInput: !!freezeDaysInput,
-    freezeStartDateElement: !!freezeStartDateElement,
-    freezeEndDateElement: !!freezeEndDateElement
+    freezeStartDateInput: !!freezeStartDateInput,
+    freezeStartDateDisplay: !!freezeStartDateDisplay,
+    freezeEndDateDisplay: !!freezeEndDateDisplay
   });
   
-  if (!freezeDaysInput || !freezeStartDateElement || !freezeEndDateElement) {
+  if (!freezeDaysInput || !freezeStartDateInput || !freezeStartDateDisplay || !freezeEndDateDisplay) {
     console.log('Some elements not found, exiting updateFreezePeriodPreview');
     return; // Exit early if elements are not found
   }
   
   const freezeDays = parseInt(freezeDaysInput.value) || 0;
-  const startDate = new Date();
-  const endDate = new Date();
-  endDate.setDate(endDate.getDate() + freezeDays);
   
-  console.log('Updating dates:', { freezeDays, startDate: startDate.toLocaleDateString(), endDate: endDate.toLocaleDateString() });
+  // Get the selected start date from the date picker
+  let startDate;
+  if (freezeStartDateInput.value) {
+    startDate = new Date(freezeStartDateInput.value);
+  } else {
+    // Default to today if no date selected
+    startDate = new Date();
+    freezeStartDateInput.value = startDate.toISOString().split('T')[0];
+  }
   
-  freezeStartDateElement.textContent = startDate.toLocaleDateString();
-  freezeEndDateElement.textContent = endDate.toLocaleDateString();
+  // Calculate end date (inclusive of the freeze duration)
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + freezeDays - 1);
+  
+  console.log('Updating dates:', { 
+    freezeDays, 
+    startDate: startDate.toLocaleDateString(), 
+    endDate: endDate.toLocaleDateString() 
+  });
+  
+  // Update display elements
+  freezeStartDateDisplay.textContent = startDate.toLocaleDateString();
+  freezeEndDateDisplay.textContent = endDate.toLocaleDateString();
 }
 
 
