@@ -112,6 +112,9 @@
                                                     <t t-if="plan_discounts[plan.id]['extra_days'] and plan_discounts[plan.id]['extra_days'] > 0">
                                                         + <t t-esc="plan_discounts[plan.id]['extra_days']"/> extra days
                                                     </t>
+                                                    <t t-if="plan.activation_policy_notes">
+                                                        - <t t-esc="plan.activation_policy_notes"/>
+                                                    </t>
                                                 </span>
                                             </div>
                                             

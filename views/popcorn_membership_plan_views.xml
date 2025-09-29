@@ -45,6 +45,7 @@
                                 <field name="quota_mode"/>
                                 <field name="duration_days"/>
                                 <field name="activation_policy"/>
+                                <field name="activation_policy_notes"/>
                             </group>
                             
                             <group string="Club Access">

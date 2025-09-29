@@ -30,6 +30,8 @@ class PopcornMembershipPlan(models.Model):
         ('first_attendance', 'First Attendance'),
         ('manual', 'Manual')
     ], string='Activation Policy', default='immediate', required=True, tracking=True)
+    activation_policy_notes = fields.Text(string='Activation Policy Notes', tracking=True, translate=True,
+                                         help='Additional notes about the activation policy that will be displayed on the website')
     
     # Club Type Permissions
     allowed_regular_offline = fields.Boolean(string='Allows Regular Offline', default=True, tracking=True)
