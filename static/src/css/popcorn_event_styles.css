@@ -97,6 +97,13 @@
     font-weight: bold;
 }
 
+.popcorn-event-weekday {
+    font-size: 0.65rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    font-weight: 500;
+}
+
 
 /* Status overlay styles */
 .popcorn-event-status-overlay {
@@ -266,6 +273,10 @@
     
     .popcorn-event-day {
         font-size: 1rem;
+    }
+    
+    .popcorn-event-weekday {
+        font-size: 0.55rem;
     }
     
     

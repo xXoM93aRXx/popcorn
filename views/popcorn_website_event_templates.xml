@@ -193,6 +193,7 @@
                                     <div t-attf-class="popcorn-event-date-overlay o_wevent_event_date o_not_editable bottom-left">
                                         <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'LLL'}" class="popcorn-event-month"/>
                                         <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'dd'}" class="popcorn-event-day oe_hide_on_date_edit"/>
+                                        <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'EEE'}" class="popcorn-event-weekday"/>
                                     </div>
                                     
                                     <!-- Status overlays -->
@@ -240,8 +241,10 @@
                                         <div class="popcorn-event-datetime mb-2">
                                             <i class="fa fa-clock-o me-2" style="color: #6c757d;"></i>
                                             <small class="text-muted">
+                                                <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'EEE M/d'}"/>
+                                                <span> </span>
                                                 <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
-                                                <span t-if="event.date_begin != event.date_end"> - </span>
+                                                <span t-if="event.date_begin != event.date_end">-</span>
                                                 <span t-if="event.date_begin != event.date_end" t-out="event.date_end" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
                                             </small>
                                         </div>
@@ -397,6 +400,7 @@
                                     <div t-attf-class="popcorn-event-date-overlay o_wevent_event_date o_not_editable bottom-left">
                                         <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'LLL'}" class="popcorn-event-month"/>
                                         <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'dd'}" class="popcorn-event-day oe_hide_on_date_edit"/>
+                                        <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'EEE'}" class="popcorn-event-weekday"/>
                                     </div>
                                         
                                         
@@ -447,8 +451,10 @@
                                             <div class="popcorn-event-datetime mb-2">
                                                 <i class="fa fa-clock-o me-2" style="color: #6c757d;"></i>
                                                 <small class="text-muted">
+                                                    <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'EEE M/d'}"/>
+                                                    <span> </span>
                                                     <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
-                                                    <span t-if="event.date_begin != event.date_end"> - </span>
+                                                    <span t-if="event.date_begin != event.date_end">-</span>
                                                     <span t-if="event.date_begin != event.date_end" t-out="event.date_end" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
                                                 </small>
                                             </div>
