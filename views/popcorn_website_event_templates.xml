@@ -540,4 +540,76 @@
             </t>
         </xpath>
     </template>
+    
+    <!-- Add Day of Week Filter -->
+    <template id="popcorn_event_day_filter" inherit_id="website_event.index_topbar" name="Day of Week Filter">
+        <!-- Desktop dropdown filter -->
+        <xpath expr="//div[hasclass('o_wevent_search')]" position="before">
+            <div class="dropdown d-none d-lg-block popcorn-day-filter">
+                <a href="#" role="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" title="Filter by Day of Week">
+                    <t t-if="selected_days and len(selected_days) > 0">
+                        <t t-if="len(selected_days) == 1">
+                            <t t-foreach="day_of_week_options" t-as="day_option">
+                                <t t-if="day_option[0] in selected_days" t-out="day_option[1]"/>
+                            </t>
+                        </t>
+                        <t t-else="">
+                            <t t-esc="len(selected_days)"/> Days
+                        </t>
+                    </t>
+                    <t t-else="">All Days</t>
+                </a>
+                <div class="dropdown-menu">
+                    <t t-foreach="day_of_week_options" t-as="day_option">
+                        <t t-set="is_selected" t-value="day_option[0] in selected_days"/>
+                        <t t-set="new_selected_days" t-value="selected_days.copy() if selected_days else []"/>
+                        <t t-if="is_selected">
+                            <t t-set="new_selected_days" t-value="[d for d in selected_days if d != day_option[0]]"/>
+                        </t>
+                        <t t-else="">
+                            <t t-set="new_selected_days" t-value="selected_days + [day_option[0]]"/>
+                        </t>
+                        <t t-set="new_day_param" t-value="','.join(new_selected_days) if new_selected_days else ''"/>
+                        <div class="dropdown-item d-flex align-items-center justify-content-between">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" t-att-checked="is_selected" t-att-data-day="day_option[0]"/>
+                                <label class="form-check-label" t-out="day_option[1]"/>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+            </div>
+        </xpath>
+        
+        <!-- Mobile offcanvas filter -->
+        <xpath expr="//span[hasclass('o_wevent_offcanvas_country')]" position="after">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target=".o_wevent_offcanvas_day"
+                        aria-expanded="false"
+                        aria-controls="o_wevent_offcanvas_day">
+                        Day of Week
+                    </button>
+                </h2>
+                <div id="o_wevent_offcanvas_day" class="o_wevent_offcanvas_day accordion-collapse collapse" aria-labelledby="offcanvas_day">
+                    <div class="accordion-body pt-0">
+                        <ul class="list-group list-group-flush popcorn-day-filter">
+                            <t t-foreach="day_of_week_options" t-as="day_option">
+                                <li class="list-group-item px-0 border-0">
+                                    <t t-set="is_selected" t-value="day_option[0] in selected_days"/>
+                                    <div class="form-check flex-basis-100">
+                                        <input class="form-check-input" type="checkbox" t-att-checked="is_selected" t-att-data-day="day_option[0]"/>
+                                        <label class="form-check-label" t-out="day_option[1]"/>
+                                    </div>
+                                </li>
+                            </t>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </xpath>
+    </template>
 </odoo>

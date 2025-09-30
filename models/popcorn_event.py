@@ -50,6 +50,17 @@ class EventEvent(models.Model):
         help='Host name for website display'
     )
     
+    # Day of week field for filtering (computed from start date)
+    day_of_week = fields.Selection([
+        ('0', 'Monday'),
+        ('1', 'Tuesday'),
+        ('2', 'Wednesday'),
+        ('3', 'Thursday'),
+        ('4', 'Friday'),
+        ('5', 'Saturday'),
+        ('6', 'Sunday'),
+    ], string='Day of the Week', compute='_compute_day_of_week', store=True, help='Day of the week when the event occurs')
+    
     # Searchable host name field for search functionality
     host_search_name = fields.Char(
         string='Host Search Name',
@@ -241,6 +252,16 @@ class EventEvent(models.Model):
                 event.host_image = False
                 event.host_function = ''
                 event.host_bio = ''
+    
+    @api.depends('date_begin')
+    def _compute_day_of_week(self):
+        """Compute day of the week from event start date"""
+        for event in self:
+            if event.date_begin:
+                # weekday() returns 0 for Monday, 1 for Tuesday, etc.
+                event.day_of_week = str(event.date_begin.weekday())
+            else:
+                event.day_of_week = False
     
     @api.depends('host_id')
     def _compute_host_search_name(self):

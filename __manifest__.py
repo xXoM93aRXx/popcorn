@@ -75,6 +75,7 @@
             'popcorn/static/src/js/popcorn_language_switcher.js',
             'popcorn/static/src/js/popcorn_sticky_footer.js',
             'popcorn/static/src/js/popcorn_host_dropdown.js',
+            'popcorn/static/src/js/popcorn_day_filter.js',
         ],
     
     },

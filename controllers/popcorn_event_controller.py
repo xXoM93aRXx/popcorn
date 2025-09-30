@@ -18,7 +18,7 @@ _logger = logging.getLogger(__name__)
 class PopcornEventController(http.Controller):
     """Controller for Popcorn Club membership-gated event registration"""
     
-    @http.route(['/event', '/event/page/<int:page>', '/events', '/events/page/<int:page>'], type='http', auth="public", website=True)
+    @http.route(['/event', '/event/page/<int:page>', '/events', '/events/page/<int:page>'], type='http', auth="public", website=True, methods=['GET', 'POST'])
     def events_list(self, page=1, **searches):
         """Override events list to show ALL events on one page without pagination"""
         from odoo.addons.website_event.controllers.main import WebsiteEventController
@@ -40,13 +40,17 @@ class PopcornEventController(http.Controller):
             searches.setdefault('tags', '')
             searches.setdefault('type', 'all')
             searches.setdefault('country', 'all')
+            searches.setdefault('day_of_week', '')
 
             website = request.website
 
             # OVERRIDE: Show all events without pagination
             step = 100  # Not used since we show all events
 
-            options = self._get_events_search_options(**searches)
+            # Add day_of_week to search options
+            search_options = self._get_events_search_options(**searches)
+            search_options['day_of_week'] = searches.get('day_of_week')
+            options = search_options
             order = 'date_begin'
             if searches.get('date', 'upcoming') == 'old':
                 order = 'date_begin desc'
@@ -83,6 +87,16 @@ class PopcornEventController(http.Controller):
                     cutoff_time = current_time - timedelta(minutes=event.hide_after_minutes)
                     if event.date_begin > cutoff_time:
                         filtered_events.append(event)
+            
+            # Apply day of week filter if specified (support multiple days)
+            if searches.get('day_of_week'):
+                selected_days = searches.get('day_of_week').split(',') if isinstance(searches.get('day_of_week'), str) else searches.get('day_of_week')
+                if selected_days and selected_days != ['']:
+                    day_filtered_events = []
+                    for event in filtered_events:
+                        if event.day_of_week in selected_days:
+                            day_filtered_events.append(event)
+                    filtered_events = day_filtered_events
             
             events = Event.browse([e.id for e in filtered_events])
             event_count = len(events)
@@ -144,6 +158,23 @@ class PopcornEventController(http.Controller):
 
             searches['search'] = fuzzy_search_term or search
 
+            # Prepare day of week options for the filter
+            day_of_week_options = [
+                ('0', 'Monday'),
+                ('1', 'Tuesday'),
+                ('2', 'Wednesday'),
+                ('3', 'Thursday'),
+                ('4', 'Friday'),
+                ('5', 'Saturday'),
+                ('6', 'Sunday'),
+            ]
+            
+            # Parse selected days
+            selected_days = []
+            if searches.get('day_of_week'):
+                selected_days = searches.get('day_of_week').split(',') if isinstance(searches.get('day_of_week'), str) else searches.get('day_of_week')
+                selected_days = [day.strip() for day in selected_days if day.strip()]
+            
             values = {
                 'current_date': current_date,
                 'current_country': current_country,
@@ -154,6 +185,8 @@ class PopcornEventController(http.Controller):
                     ('is_published', '=', True), '|', ('website_id', '=', website.id), ('website_id', '=', False)
                 ]),
                 'countries': countries,
+                'day_of_week_options': day_of_week_options,
+                'selected_days': selected_days,
                 'pager': pager,
                 'searches': searches,
                 'search_tags': search_tags,
