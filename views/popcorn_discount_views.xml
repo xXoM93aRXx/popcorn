@@ -172,7 +172,7 @@
                                             <field name="discount_value"/>% Off
                                         </div>
                                         <div t-elif="record.discount_type.raw_value == 'fixed_amount'">
-                                            $<field name="discount_value"/> Off
+                                            <t t-esc="request.env.company.currency_id.symbol"/><field name="discount_value"/> Off
                                         </div>
                                         <div t-elif="record.discount_type.raw_value == 'first_timer'">
                                             First Timer Price

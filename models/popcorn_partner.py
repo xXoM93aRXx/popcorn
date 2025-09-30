@@ -159,10 +159,13 @@ class ResPartner(models.Model):
         old_balance = self.popcorn_money_balance
         new_balance = old_balance + amount
         
+        # Ensure popcorn_money_notes is a string
+        current_notes = str(self.popcorn_money_notes) if self.popcorn_money_notes else ""
+        
         self.with_context(skip_popcorn_money_logging=True).write({
             'popcorn_money_balance': new_balance,
             'popcorn_money_last_updated': fields.Datetime.now(),
-            'popcorn_money_notes': self.popcorn_money_notes + f"\n{fields.Datetime.now().strftime('%Y-%m-%d %H:%M')}: Added {amount} Popcorn money. {notes}" if notes else self.popcorn_money_notes + f"\n{fields.Datetime.now().strftime('%Y-%m-%d %H:%M')}: Added {amount} Popcorn money."
+            'popcorn_money_notes': current_notes + f"\n{fields.Datetime.now().strftime('%Y-%m-%d %H:%M')}: Added {amount} Popcorn money. {notes}" if notes else current_notes + f"\n{fields.Datetime.now().strftime('%Y-%m-%d %H:%M')}: Added {amount} Popcorn money."
         })
         
         # Post message in chatter
@@ -186,10 +189,13 @@ class ResPartner(models.Model):
         old_balance = self.popcorn_money_balance
         new_balance = old_balance - amount
         
+        # Ensure popcorn_money_notes is a string
+        current_notes = str(self.popcorn_money_notes) if self.popcorn_money_notes else ""
+        
         self.with_context(skip_popcorn_money_logging=True).write({
             'popcorn_money_balance': new_balance,
             'popcorn_money_last_updated': fields.Datetime.now(),
-            'popcorn_money_notes': self.popcorn_money_notes + f"\n{fields.Datetime.now().strftime('%Y-%m-%d %H:%M')}: Deducted {amount} Popcorn money. {notes}" if notes else self.popcorn_money_notes + f"\n{fields.Datetime.now().strftime('%Y-%m-%d %H:%M')}: Deducted {amount} Popcorn money."
+            'popcorn_money_notes': current_notes + f"\n{fields.Datetime.now().strftime('%Y-%m-%d %H:%M')}: Deducted {amount} Popcorn money. {notes}" if notes else current_notes + f"\n{fields.Datetime.now().strftime('%Y-%m-%d %H:%M')}: Deducted {amount} Popcorn money."
         })
         
         # Post message in chatter
@@ -213,10 +219,13 @@ class ResPartner(models.Model):
         old_balance = self.popcorn_money_balance
         new_balance = amount
         
+        # Ensure popcorn_money_notes is a string
+        current_notes = str(self.popcorn_money_notes) if self.popcorn_money_notes else ""
+        
         self.with_context(skip_popcorn_money_logging=True).write({
             'popcorn_money_balance': new_balance,
             'popcorn_money_last_updated': fields.Datetime.now(),
-            'popcorn_money_notes': self.popcorn_money_notes + f"\n{fields.Datetime.now().strftime('%Y-%m-%d %H:%M')}: Set balance to {amount} Popcorn money. {notes}" if notes else self.popcorn_money_notes + f"\n{fields.Datetime.now().strftime('%Y-%m-%d %H:%M')}: Set balance to {amount} Popcorn money."
+            'popcorn_money_notes': current_notes + f"\n{fields.Datetime.now().strftime('%Y-%m-%d %H:%M')}: Set balance to {amount} Popcorn money. {notes}" if notes else current_notes + f"\n{fields.Datetime.now().strftime('%Y-%m-%d %H:%M')}: Set balance to {amount} Popcorn money."
         })
         
         # Post message in chatter

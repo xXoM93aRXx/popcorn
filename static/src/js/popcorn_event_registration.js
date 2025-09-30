@@ -4,16 +4,17 @@ odoo.define('@popcorn/js/popcorn_event_registration', ['@web/legacy/js/public/pu
     var publicWidget = require('@web/legacy/js/public/public_widget');
 
     publicWidget.registry.PopcornEventRegistration = publicWidget.Widget.extend({
-        selector: '.o_wevent_registration_form',
+        selector: '.popcorn-checkout-form',
         
         events: {
-            'click .o_wevent_registration_submit': '_onSubmitClick',
+            'click .popcorn-checkout-submit-btn': '_onSubmitClick',
+            'change #use_popcorn_money': '_onPopcornMoneyChange',
         },
 
         _onSubmitClick: function (ev) {
             var self = this;
             var $form = this.$el.find('form');
-            var $submitBtn = this.$el.find('.o_wevent_registration_submit');
+            var $submitBtn = this.$el.find('.popcorn-checkout-submit-btn');
             
             // Disable submit button to prevent double submission
             $submitBtn.prop('disabled', true);
@@ -65,6 +66,107 @@ odoo.define('@popcorn/js/popcorn_event_registration', ['@web/legacy/js/public/pu
             setTimeout(function() {
                 $errorDiv.fadeOut();
             }, 5000);
+        },
+
+        _onPopcornMoneyChange: function (ev) {
+            var self = this;
+            var $checkbox = $(ev.currentTarget);
+            var isChecked = $checkbox.is(':checked');
+            var $popcornMoneyRow = $('#popcorn-money-row');
+            var $popcornMoneyUsed = $('#popcorn-money-used');
+            var $totalPrice = $('#popcorn-total-price');
+            
+            console.log('Popcorn Money checkbox changed:', isChecked);
+            console.log('Elements found:', {
+                popcornMoneyRow: $popcornMoneyRow.length,
+                popcornMoneyUsed: $popcornMoneyUsed.length,
+                totalPrice: $totalPrice.length
+            });
+            
+            // Store original price if not already stored
+            if (!self.originalPrice) {
+                // Get the original event price from the registration fee row
+                var $registrationFeeRow = $('.popcorn-price-row').first();
+                var originalPriceText = $registrationFeeRow.find('.popcorn-price-value').text();
+                var originalPrice = parseFloat(originalPriceText.replace(/[^\d.-]/g, ''));
+                
+                // Fallback: if no price found in first row, look for "Registration Fee" row
+                if (!originalPriceText || originalPrice === 0) {
+                    $('.popcorn-price-row').each(function() {
+                        var $label = $(this).find('.popcorn-price-label');
+                        if ($label.text().includes('Registration Fee')) {
+                            originalPriceText = $(this).find('.popcorn-price-value').text();
+                            originalPrice = parseFloat(originalPriceText.replace(/[^\d.-]/g, ''));
+                            return false; // break the loop
+                        }
+                    });
+                }
+                
+                self.originalPrice = originalPrice;
+                self.originalPriceText = originalPriceText;
+                console.log('Stored original price:', originalPriceText, 'Parsed:', originalPrice);
+            }
+            
+            var originalPrice = self.originalPrice;
+            var originalPriceText = self.originalPriceText;
+            console.log('Using stored original price:', originalPriceText, 'Parsed:', originalPrice);
+            
+            // Get popcorn money balance from the checkbox label
+            var $label = $('label[for="use_popcorn_money"]');
+            var balanceText = $label.find('.popcorn-money-balance').text();
+            var balance = balanceText ? parseFloat(balanceText.match(/[\d.-]+/)[0]) : 0;
+            
+            console.log('Balance text:', balanceText, 'Parsed:', balance);
+            
+            if (isChecked) {
+                // Show popcorn money row
+                $popcornMoneyRow.show();
+                
+                // Calculate how much popcorn money to use (minimum of balance and price)
+                var popcornMoneyToUse = Math.min(balance, originalPrice);
+                var remainingPrice = originalPrice - popcornMoneyToUse;
+                
+                console.log('Calculations:', {
+                    popcornMoneyToUse: popcornMoneyToUse,
+                    remainingPrice: remainingPrice
+                });
+                
+                // Update popcorn money used display
+                var currencySymbol = originalPriceText.match(/[^\d.-]/)[0] || '$';
+                $popcornMoneyUsed.text('-' + currencySymbol + popcornMoneyToUse.toFixed(2));
+                
+                // Update total price
+                $totalPrice.text(currencySymbol + remainingPrice.toFixed(2));
+                
+                console.log('Updated total price to:', currencySymbol + remainingPrice.toFixed(2));
+                
+                // If popcorn money covers the full amount, hide payment methods
+                if (remainingPrice <= 0) {
+                    $('.popcorn-payment-methods').hide();
+                    $('.popcorn-form-label').text('Payment Method (Not Required)');
+                    // Remove required attribute from payment method inputs
+                    $('.popcorn-payment-methods input[type="radio"]').removeAttr('required');
+                } else {
+                    $('.popcorn-payment-methods').show();
+                    $('.popcorn-form-label').text('Select Payment Method *');
+                    // Add required attribute back to payment method inputs
+                    $('.popcorn-payment-methods input[type="radio"]').attr('required', 'required');
+                }
+            } else {
+                // Hide popcorn money row
+                $popcornMoneyRow.hide();
+                
+                // Reset total price to original
+                $totalPrice.text(originalPriceText);
+                
+                console.log('Reset total price to:', originalPriceText);
+                
+                // Show payment methods
+                $('.popcorn-payment-methods').show();
+                $('.popcorn-form-label').text('Select Payment Method *');
+                // Add required attribute back to payment method inputs
+                $('.popcorn-payment-methods input[type="radio"]').attr('required', 'required');
+            }
         }
     });
 

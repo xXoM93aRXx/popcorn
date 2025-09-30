@@ -36,7 +36,7 @@
                                                     <t t-esc="plan_discounts[plan.id]['best_discount'].discount_value"/>% OFF
                                                 </t>
                                                 <t t-elif="plan_discounts[plan.id]['best_discount'].discount_type == 'fixed_amount'">
-                                                    $<t t-esc="plan_discounts[plan.id]['best_discount'].discount_value"/> OFF
+                                                    <t t-esc="plan.currency_id.symbol"/><t t-esc="plan_discounts[plan.id]['best_discount'].discount_value"/> OFF
                                                 </t>
                                                 <t t-elif="plan_discounts[plan.id]['best_discount'].discount_type == 'first_timer'">
                                                     FIRST TIMER
@@ -230,6 +230,24 @@
                                         </div>
                                     </div>
                                     
+                                    <!-- Popcorn Money Section -->
+                                    <t t-if="request.env.user.partner_id.popcorn_money_balance > 0">
+                                        <div class="popcorn-form-section">
+                                            <h3 class="popcorn-section-title">Popcorn Money</h3>
+                                            <div class="popcorn-form-group">
+                                                <div class="popcorn-checkbox-group">
+                                                    <input type="checkbox" id="use_popcorn_money" name="use_popcorn_money" class="popcorn-checkbox"/>
+                                                    <label for="use_popcorn_money" class="popcorn-checkbox-label">
+                                                        <span t-translation="on">Use Popcorn Money</span>
+                                                        <span class="popcorn-money-balance">
+                                                            (<t t-esc="request.env.user.partner_id.popcorn_money_balance"/> <span t-translation="on">available</span>)
+                                                        </span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </t>
+                                    
                                     <!-- Payment Methods -->
                                     <div class="popcorn-form-section">
                                         <h3 class="popcorn-section-title">Payment Method</h3>
@@ -239,7 +257,6 @@
                                                 <!-- Dynamic Payment Methods from Active Providers -->
                                                 <t t-set="payment_providers" t-value="request.env['payment.provider'].search([('state', '=', 'enabled')])"/>
                                                 
-                                                
                                                 <t t-if="payment_providers">
                                                     <t t-foreach="payment_providers" t-as="provider">
                                                         <div class="popcorn-payment-method-item">
@@ -247,17 +264,14 @@
                                                                    t-att-value="provider.id" class="popcorn-radio" required="required"/>
                                                             <label t-att-for="'payment_method_' + str(provider.id)" class="popcorn-radio-label">
                                                                 <span class="popcorn-payment-method-name">
-                                                                    <t t-if="provider.name == 'Stripe'">Credit Card (Stripe)</t>
-                                                                    <t t-elif="provider.name == 'PayPal'">PayPal</t>
-                                                                    <t t-elif="provider.name == 'Bank Transfer'">Bank Transfer</t>
-                                                                    <t t-else=""><t t-esc="provider.name"/></t>
+                                                                    <t t-esc="provider.name"/>
                                                                 </span>
                                                             </label>
                                                         </div>
                                                     </t>
                                                 </t>
                                                 <t t-else="">
-                                                    <!-- Fallback if no payment providers are configured -->
+                                                    <!-- Manual Payment (only if no payment providers are configured) -->
                                                     <div class="popcorn-payment-method-item">
                                                         <input type="radio" id="payment_method_manual" name="payment_method_id" 
                                                                value="manual" class="popcorn-radio" required="required"/>
@@ -319,9 +333,17 @@
                                                 <t t-esc="plan.currency_id.symbol"/><t t-esc="upgrade_details.get('upgrade_price', 0)"/>
                                             </span>
                                         </div>
+                                        <t t-if="request.env.user.partner_id.popcorn_money_balance > 0">
+                                            <div class="popcorn-price-row popcorn-popcorn-money-row" id="popcorn-money-row" style="display: none;">
+                                                <span class="popcorn-price-label">Popcorn Money Used:</span>
+                                                <span class="popcorn-price-value popcorn-popcorn-money" id="popcorn-money-used">
+                                                    -<t t-esc="plan.currency_id.symbol"/>0.00
+                                                </span>
+                                            </div>
+                                        </t>
                                         <div class="popcorn-price-row popcorn-total-row">
                                             <span class="popcorn-price-label">Total:</span>
-                                            <span class="popcorn-price-value popcorn-total">
+                                            <span class="popcorn-price-value popcorn-total" id="popcorn-total-price">
                                                 <t t-esc="plan.currency_id.symbol"/><t t-esc="upgrade_details.get('upgrade_price', 0)"/>
                                             </span>
                                         </div>
@@ -341,7 +363,7 @@
                                                         <t t-esc="plan_discounts[plan.id]['best_discount'].discount_value"/>% Discount:
                                                     </t>
                                                     <t t-elif="plan_discounts[plan.id]['best_discount'].discount_type == 'fixed_amount'">
-                                                        $<t t-esc="plan_discounts[plan.id]['best_discount'].discount_value"/> Discount:
+                                                        <t t-esc="plan.currency_id.symbol"/><t t-esc="plan_discounts[plan.id]['best_discount'].discount_value"/> Discount:
                                                     </t>
                                                     <t t-elif="plan_discounts[plan.id]['best_discount'].discount_type == 'first_timer'">
                                                         First Timer Discount:
@@ -363,9 +385,17 @@
                                                 </span>
                                             </div>
                                         </t>
+                                        <t t-if="request.env.user.partner_id.popcorn_money_balance > 0">
+                                            <div class="popcorn-price-row popcorn-popcorn-money-row" id="popcorn-money-row" style="display: none;">
+                                                <span class="popcorn-price-label">Popcorn Money Used:</span>
+                                                <span class="popcorn-price-value popcorn-popcorn-money" id="popcorn-money-used">
+                                                    -<t t-esc="plan.currency_id.symbol"/>0.00
+                                                </span>
+                                            </div>
+                                        </t>
                                         <div class="popcorn-price-row popcorn-total-row">
                                             <span class="popcorn-price-label" t-translation="on">Total:</span>
-                                            <span class="popcorn-price-value popcorn-total">
+                                            <span class="popcorn-price-value popcorn-total" id="popcorn-total-price">
                                                 <t t-esc="plan.currency_id.symbol"/><t t-esc="plan_discounts[plan.id]['best_price']"/>
                                             </span>
                                         </div>

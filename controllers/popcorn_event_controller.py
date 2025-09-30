@@ -724,6 +724,10 @@ class PopcornEventController(http.Controller):
     @http.route(['/popcorn/event/<model("event.event"):event>/process_checkout'], type='http', auth="user", website=True, methods=['POST'])
     def event_process_checkout(self, event, **kwargs):
         """Process event checkout and initiate payment transaction"""
+        _logger.info(f"=== Event checkout processing started ===")
+        _logger.info(f"Event ID: {event.id}, Event name: {event.name}")
+        _logger.info(f"Form data: {kwargs}")
+        
         # Check if user is logged in
         if request.env.user.id == request.env.ref('base.public_user').id:
             return redirect('/web/login?redirect=' + request.httprequest.url)
@@ -748,8 +752,25 @@ class PopcornEventController(http.Controller):
             })
         
         try:
+            # Check if user wants to use popcorn money
+            use_popcorn_money = kwargs.get('use_popcorn_money') == 'on'
+            popcorn_money_balance = partner.popcorn_money_balance
+            event_price = event.event_price
+            
+            _logger.info(f"Popcorn money check: use={use_popcorn_money}, balance={popcorn_money_balance}, event_price={event_price}")
+            
+            # Calculate how much popcorn money to use and remaining amount
+            popcorn_money_to_use = 0
+            remaining_amount = event_price
+            
+            if use_popcorn_money and popcorn_money_balance > 0:
+                popcorn_money_to_use = min(popcorn_money_balance, event_price)
+                remaining_amount = event_price - popcorn_money_to_use
+            
+            _logger.info(f"Calculated: popcorn_money_to_use={popcorn_money_to_use}, remaining_amount={remaining_amount}")
+            
             # Validate form data
-            if not kwargs.get('payment_method_id'):
+            if not kwargs.get('payment_method_id') and remaining_amount > 0:
                 return request.redirect(f'/popcorn/event/{event.id}/checkout?error=missing_payment_method')
             
             if not kwargs.get('terms_accepted'):
@@ -758,31 +779,63 @@ class PopcornEventController(http.Controller):
             # Get payment method/provider ID
             payment_method_id = kwargs.get('payment_method_id')
             
+            # If popcorn money covers the full amount, treat as manual payment
+            if remaining_amount <= 0:
+                payment_method_id = 'manual'
+            
+            _logger.info(f"Payment method: {payment_method_id}")
+            
             # Check if it's a manual payment (fallback)
             if payment_method_id == 'manual':
-                # For manual payment, create registration directly but mark as pending payment
+                # Determine registration state based on payment status
+                if remaining_amount <= 0:
+                    # Fully paid with Popcorn Money - mark as registered
+                    registration_state = 'open'
+                    _logger.info("Registration will be marked as 'open' (fully paid with Popcorn Money)")
+                else:
+                    # Partial payment or manual payment required - mark as draft
+                    registration_state = 'draft'
+                    _logger.info("Registration will be marked as 'draft' (manual payment required)")
+                
+                # For manual payment, create registration directly
                 registration_vals = {
                     'event_id': event.id,
                     'partner_id': partner.id,
                     'name': partner.name,
                     'email': partner.email,
                     'phone': partner.phone,
-                    'state': 'draft',
+                    'state': registration_state,
                 }
                 
                 registration = request.env['event.registration'].sudo().create(registration_vals)
+                _logger.info(f"Registration created: {registration.id} with state: {registration_state}")
                 
-                # Log the manual payment request
-                registration.message_post(
-                    body=_('Manual payment requested for club: %s. Price: $%s. Payment method: Manual') % (event.name, event.event_price)
-                )
+                # Deduct popcorn money if used
+                if use_popcorn_money and popcorn_money_to_use > 0:
+                    _logger.info(f"Deducting popcorn money: {popcorn_money_to_use}")
+                    partner.deduct_popcorn_money(popcorn_money_to_use, f'Event registration: {event.name}')
                 
-                # Redirect to success page with pending payment status
-                return request.redirect(f'/popcorn/event/{event.id}/purchase/success?registration_id={registration.id}&payment_pending=true')
+                # Log the payment request
+                if remaining_amount <= 0:
+                    payment_message = _('Event registration completed using Popcorn Money for club: %s. Price: %s%s. Popcorn money used: %s%s. No additional payment required.') % (event.name, event.currency_id.symbol, event.event_price, event.currency_id.symbol, popcorn_money_to_use)
+                else:
+                    payment_message = _('Manual payment requested for club: %s. Price: %s%s. Payment method: Manual') % (event.name, event.currency_id.symbol, event.event_price)
+                    if use_popcorn_money and popcorn_money_to_use > 0:
+                        payment_message += _('. Popcorn money used: %s%s. Remaining: %s%s') % (event.currency_id.symbol, popcorn_money_to_use, event.currency_id.symbol, remaining_amount)
+                
+                registration.message_post(body=payment_message)
+                _logger.info(f"Registration message posted, redirecting to success page")
+                
+                # Redirect based on payment status
+                if remaining_amount <= 0:
+                    return request.redirect(f'/popcorn/event/{event.id}/purchase/success?registration_id={registration.id}&payment_completed=true')
+                else:
+                    return request.redirect(f'/popcorn/event/{event.id}/purchase/success?registration_id={registration.id}&payment_pending=true')
             
             # Otherwise, it should be a payment provider ID
             try:
                 provider_id = int(payment_method_id)
+                _logger.info(f"Processing payment provider: {provider_id}")
                 
                 # Use payment.provider (Odoo 18)
                 payment_provider = None
@@ -790,12 +843,14 @@ class PopcornEventController(http.Controller):
                     payment_provider = request.env['payment.provider'].browse(provider_id)
                     
                     if not payment_provider or not payment_provider.exists() or payment_provider.state != 'enabled':
+                        _logger.error(f"Invalid payment provider: {provider_id}")
                         return request.redirect(f'/popcorn/event/{event.id}/checkout?error=invalid_payment_method')
                 except Exception as e:
                     _logger.error(f"Failed to access payment provider: {str(e)}")
                     return request.redirect(f'/popcorn/event/{event.id}/checkout?error=payment_access_denied')
                     
-            except (ValueError, TypeError):
+            except (ValueError, TypeError) as e:
+                _logger.error(f"Invalid payment method ID: {payment_method_id}, error: {str(e)}")
                 return request.redirect(f'/popcorn/event/{event.id}/checkout?error=invalid_payment_method')
             
             # Store event purchase details in session for after payment
@@ -805,6 +860,9 @@ class PopcornEventController(http.Controller):
                 'event_price': event.event_price,
                 'payment_provider_id': payment_provider.id,
                 'payment_provider_name': payment_provider.name,
+                'use_popcorn_money': use_popcorn_money,
+                'popcorn_money_to_use': popcorn_money_to_use,
+                'remaining_amount': remaining_amount,
             }
             
             _logger.info(f"Stored pending event purchase in session: {request.session['event_purchase_details']}")
@@ -826,7 +884,7 @@ class PopcornEventController(http.Controller):
                 
                 # Log the bank transfer payment request
                 registration.message_post(
-                    body=_('Bank transfer payment requested for club: %s. Price: $%s. Payment method: %s') % (event.name, event.event_price, payment_provider.name)
+                    body=_('Bank transfer payment requested for club: %s. Price: %s%s. Payment method: %s') % (event.name, event.currency_id.symbol, event.event_price, payment_provider.name)
                 )
                 
                 # Redirect to success page with pending payment status
@@ -857,7 +915,7 @@ class PopcornEventController(http.Controller):
                 payment_transaction = request.env['payment.transaction'].sudo().create({
                     'provider_id': payment_provider.id,
                     'payment_method_id': payment_method.id,
-                    'amount': event.event_price,
+                    'amount': remaining_amount,
                     'currency_id': event.currency_id.id if hasattr(event, 'currency_id') and event.currency_id else request.env.ref('base.USD').id,
                     'partner_id': partner.id,
                     'reference': f'EVENT-{event.id}-{partner.id}-{timestamp}',
@@ -877,6 +935,9 @@ class PopcornEventController(http.Controller):
                     'event_price': event.event_price,
                     'payment_provider_id': payment_provider.id,
                     'payment_provider_name': payment_provider.name,
+                    'use_popcorn_money': use_popcorn_money,
+                    'popcorn_money_to_use': popcorn_money_to_use,
+                    'remaining_amount': remaining_amount,
                 }
                 
                 # Redirect to WeChat OAuth2 flow
@@ -909,7 +970,7 @@ class PopcornEventController(http.Controller):
                 payment_transaction = request.env['payment.transaction'].sudo().create({
                     'provider_id': payment_provider.id,
                     'payment_method_id': payment_method.id,
-                    'amount': event.event_price,
+                    'amount': remaining_amount,
                     'currency_id': event.currency_id.id if hasattr(event, 'currency_id') and event.currency_id else request.env.ref('base.USD').id,
                     'partner_id': partner.id,
                     'reference': f'EVENT-{event.id}-{partner.id}-{timestamp}',
@@ -937,7 +998,7 @@ class PopcornEventController(http.Controller):
                 return request.redirect(f'/popcorn/event/{event.id}/checkout?error=gateway_unavailable')
             
         except Exception as e:
-            _logger.error(f"Failed to process event checkout: {str(e)}")
+            _logger.error(f"Failed to process event checkout: {str(e)}", exc_info=True)
             return request.redirect(f'/popcorn/event/{event.id}/checkout?error=processing_failed')
     
     @http.route(['/popcorn/event/<model("event.event"):event>/checkout/success'], type='http', auth="user", website=True)
@@ -1028,6 +1089,10 @@ class PopcornEventController(http.Controller):
             # Create event registration now
             _logger.info(f"Creating event registration with data: {pending_event_purchase}")
             partner = request.env['res.partner'].sudo().browse(pending_event_purchase['partner_id'])
+            
+            # Deduct popcorn money if used
+            if pending_event_purchase.get('use_popcorn_money') and pending_event_purchase.get('popcorn_money_to_use', 0) > 0:
+                partner.deduct_popcorn_money(pending_event_purchase['popcorn_money_to_use'], f'Event registration: {event.name}')
             
             _logger.info(f"Partner exists: {partner.exists()}")
             _logger.info(f"Partner name: {partner.name if partner.exists() else 'N/A'}")

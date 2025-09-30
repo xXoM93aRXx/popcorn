@@ -137,15 +137,16 @@ class PopcornMembershipController(http.Controller):
             return request.redirect('/web/login?redirect=' + request.httprequest.url)
         
         try:
-            # Validate form data
-            if not post.get('name') or not post.get('phone') or not post.get('payment_method_id'):
-                return request.redirect('/memberships/%s/checkout?error=missing_fields' % plan.id)
+            # Check if this is an upgrade
+            upgrade_details = request.session.get('upgrade_details', {})
+            is_upgrade = upgrade_details.get('is_upgrade', False)
             
-            if not post.get('terms_accepted'):
-                return request.redirect('/memberships/%s/checkout?error=terms_not_accepted' % plan.id)
+            # Check if user wants to use popcorn money
+            use_popcorn_money = post.get('use_popcorn_money') == 'on'
+            partner = request.env.user.partner_id
+            popcorn_money_balance = partner.popcorn_money_balance
             
             # Update or create partner information
-            partner = request.env.user.partner_id
             partner_vals = {
                 'name': post.get('name'),
                 'phone': post.get('phone'),
@@ -153,22 +154,114 @@ class PopcornMembershipController(http.Controller):
             
             partner.write(partner_vals)
             
+            # Calculate the amount to charge
+            if is_upgrade:
+                amount = upgrade_details.get('upgrade_price', 0)
+            else:
+                # Use discount system to determine best price
+                best_price, best_discount = plan.get_best_discount_price(partner)
+                amount = best_price
+            
+            # Calculate how much popcorn money to use and remaining amount
+            popcorn_money_to_use = 0
+            remaining_amount = amount
+            
+            if use_popcorn_money and popcorn_money_balance > 0:
+                popcorn_money_to_use = min(popcorn_money_balance, amount)
+                remaining_amount = amount - popcorn_money_to_use
+            
+            # Validate form data
+            if not post.get('name') or not post.get('phone'):
+                return request.redirect('/memberships/%s/checkout?error=missing_fields' % plan.id)
+            
+            if not post.get('payment_method_id') and remaining_amount > 0:
+                return request.redirect('/memberships/%s/checkout?error=missing_payment_method' % plan.id)
+            
+            if not post.get('terms_accepted'):
+                return request.redirect('/memberships/%s/checkout?error=terms_not_accepted' % plan.id)
+            
             # Get payment method/provider ID
             payment_method_id = post.get('payment_method_id')
             
+            # If popcorn money covers the full amount, treat as manual payment
+            if remaining_amount <= 0:
+                payment_method_id = 'manual'
+            
             # Check if it's a manual payment (fallback)
             if payment_method_id == 'manual':
-                # For manual payment, create membership directly but mark as pending payment
-                membership = self._create_membership_from_plan(plan, partner)
-                membership.write({'state': 'pending_payment'})
-                
-                # Log the manual payment request
-                membership.message_post(
-                    body=_('Manual payment requested. Payment method: Manual')
-                )
-                
-                # Redirect to success page with pending payment status
-                return request.redirect('/memberships/success?membership_id=%s&payment_pending=true' % membership.id)
+                # Handle upgrade vs new membership
+                if is_upgrade:
+                    # Upgrade existing membership
+                    membership = self._create_upgrade_membership(plan, partner, upgrade_details)
+                    _logger.info(f"Upgrade membership created with ID: {membership.id}")
+                    
+                    # Clear upgrade details from session
+                    if 'upgrade_details' in request.session:
+                        del request.session['upgrade_details']
+                    
+                    # Deduct popcorn money if used
+                    if use_popcorn_money and popcorn_money_to_use > 0:
+                        _logger.info(f"Deducting popcorn money: {popcorn_money_to_use}")
+                        partner.deduct_popcorn_money(popcorn_money_to_use, f'Membership upgrade: {plan.display_name}')
+                    
+                    # Log the upgrade
+                    if remaining_amount <= 0:
+                        payment_message = _('Membership upgrade completed using Popcorn Money. Price: %s%s. Popcorn money used: %s%s. No additional payment required.') % (plan.currency_id.symbol, amount, plan.currency_id.symbol, popcorn_money_to_use)
+                    else:
+                        payment_message = _('Manual payment requested for upgrade. Payment method: Manual')
+                        if use_popcorn_money and popcorn_money_to_use > 0:
+                            payment_message += _('. Popcorn money used: %s%s. Remaining: %s%s') % (plan.currency_id.symbol, popcorn_money_to_use, plan.currency_id.symbol, remaining_amount)
+                    
+                    membership.message_post(body=payment_message)
+                    
+                    # Redirect to upgrade success page
+                    if remaining_amount <= 0:
+                        return request.redirect('/my/cards/upgrade/success?membership_id=%s&payment_completed=true' % membership.id)
+                    else:
+                        return request.redirect('/my/cards/upgrade/success?membership_id=%s&payment_pending=true' % membership.id)
+                else:
+                    # Create new membership
+                    membership = self._create_membership_from_plan(plan, partner)
+                    
+                    # Respect the plan's activation policy instead of forcing state
+                    if remaining_amount <= 0:
+                        # Fully paid with Popcorn Money - follow plan's activation policy
+                        if plan.activation_policy == 'immediate':
+                            membership.write({'state': 'active', 'activation_date': fields.Date.today()})
+                            _logger.info("Membership activated immediately (plan policy)")
+                        elif plan.activation_policy == 'first_attendance':
+                            membership.write({'state': 'pending'})  # Will be activated on first event registration
+                            _logger.info("Membership set to pending (will activate on first event registration)")
+                        elif plan.activation_policy == 'manual':
+                            membership.write({'state': 'pending'})  # Requires manual activation
+                            _logger.info("Membership set to pending (requires manual activation)")
+                    else:
+                        # Partial payment - mark as pending payment
+                        membership.write({'state': 'pending_payment'})
+                        _logger.info("Membership set to pending_payment (partial payment)")
+                    
+                    _logger.info(f"Membership created: {membership.id} with state: {membership.state}, activation_date: {membership.activation_date}")
+                    
+                    # Deduct popcorn money if used
+                    if use_popcorn_money and popcorn_money_to_use > 0:
+                        _logger.info(f"Deducting popcorn money: {popcorn_money_to_use}")
+                        partner.deduct_popcorn_money(popcorn_money_to_use, f'Membership purchase: {plan.display_name}')
+                    
+                    # Log the payment request
+                    if remaining_amount <= 0:
+                        payment_message = _('Membership purchase completed using Popcorn Money. Price: %s%s. Popcorn money used: %s%s. No additional payment required.') % (plan.currency_id.symbol, amount, plan.currency_id.symbol, popcorn_money_to_use)
+                    else:
+                        payment_message = _('Manual payment requested. Payment method: Manual')
+                        if use_popcorn_money and popcorn_money_to_use > 0:
+                            payment_message += _('. Popcorn money used: %s%s. Remaining: %s%s') % (plan.currency_id.symbol, popcorn_money_to_use, plan.currency_id.symbol, remaining_amount)
+                    
+                    membership.message_post(body=payment_message)
+                    
+                    # Redirect based on payment status
+                    if remaining_amount <= 0:
+                        return request.redirect('/memberships/success?membership_id=%s&payment_completed=true' % membership.id)
+                    else:
+                        return request.redirect('/memberships/success?membership_id=%s&payment_pending=true' % membership.id)
             
             # Otherwise, it should be a payment provider ID
             try:
@@ -188,18 +281,6 @@ class PopcornMembershipController(http.Controller):
             except (ValueError, TypeError):
                 return request.redirect('/memberships/%s/checkout?error=invalid_payment_method' % plan.id)
             
-            # Check if this is an upgrade
-            upgrade_details = request.session.get('upgrade_details', {})
-            is_upgrade = upgrade_details.get('is_upgrade', False)
-            
-            # Calculate the amount to charge
-            if is_upgrade:
-                amount = upgrade_details.get('upgrade_price', 0)
-            else:
-                # Use discount system to determine best price
-                best_price, best_discount = plan.get_best_discount_price(partner)
-                amount = best_price
-            
             # Check if this is an event purchase
             is_event_purchase = request.params.get('event_purchase') == 'true'
             
@@ -213,6 +294,9 @@ class PopcornMembershipController(http.Controller):
                 'is_upgrade': is_upgrade,
                 'upgrade_details': upgrade_details if is_upgrade else None,
                 'is_event_purchase': is_event_purchase,
+                'use_popcorn_money': use_popcorn_money,
+                'popcorn_money_to_use': popcorn_money_to_use,
+                'remaining_amount': remaining_amount,
             }
             
             _logger.info(f"Stored pending membership in session: {request.session['pending_membership']}")
@@ -257,7 +341,7 @@ class PopcornMembershipController(http.Controller):
                 payment_transaction = request.env['payment.transaction'].sudo().create({
                     'provider_id': payment_provider.id,
                     'payment_method_id': payment_method.id,
-                    'amount': amount,
+                    'amount': remaining_amount,
                     'currency_id': plan.currency_id.id,
                     'partner_id': partner.id,
                     'reference': f'MEMBERSHIP-{plan.id}-{partner.id}-{timestamp}',
@@ -279,6 +363,9 @@ class PopcornMembershipController(http.Controller):
                     'payment_provider_name': payment_provider.name,
                     'is_upgrade': is_upgrade,
                     'upgrade_details': upgrade_details if is_upgrade else None,
+                    'use_popcorn_money': use_popcorn_money,
+                    'popcorn_money_to_use': popcorn_money_to_use,
+                    'remaining_amount': remaining_amount,
                 }
                 
                 # Redirect to WeChat OAuth2 flow
@@ -311,7 +398,7 @@ class PopcornMembershipController(http.Controller):
                 payment_transaction = request.env['payment.transaction'].sudo().create({
                     'provider_id': payment_provider.id,
                     'payment_method_id': payment_method.id,
-                    'amount': amount,
+                    'amount': remaining_amount,
                     'currency_id': plan.currency_id.id,
                     'partner_id': partner.id,
                     'reference': f'MEMBERSHIP-{plan.id}-{partner.id}-{timestamp}',
@@ -507,27 +594,43 @@ class PopcornMembershipController(http.Controller):
                 plan = request.env['popcorn.membership.plan'].browse(pending_membership['plan_id'])
                 partner = request.env['res.partner'].browse(pending_membership['partner_id'])
                 
+                # Deduct popcorn money if used
+                if pending_membership.get('use_popcorn_money') and pending_membership.get('popcorn_money_to_use', 0) > 0:
+                    partner.deduct_popcorn_money(pending_membership['popcorn_money_to_use'], f'Membership purchase: {plan.display_name}')
+                
                 if pending_membership['is_upgrade']:
                     membership = self._create_upgrade_membership(plan, partner, pending_membership['upgrade_details'])
                     membership.write({
                         'payment_transaction_id': transaction.id,
                         'payment_reference': transaction.reference
                     })
-                    membership.message_post(
-                        body=_('Payment successful via %s. Transaction: %s. Membership upgraded and activated.') % (transaction.provider_id.name, transaction.reference)
-                    )
+                    payment_message = _('Payment successful via %s. Transaction: %s. Membership upgraded and activated.') % (transaction.provider_id.name, transaction.reference)
+                    if pending_membership.get('use_popcorn_money') and pending_membership.get('popcorn_money_to_use', 0) > 0:
+                        payment_message += _('. Popcorn money used: %s%s. Remaining: %s%s') % (plan.currency_id.symbol, pending_membership['popcorn_money_to_use'], plan.currency_id.symbol, pending_membership.get('remaining_amount', 0))
+                    membership.message_post(body=payment_message)
                     redirect_url = '/my/cards/upgrade/success?membership_id=%s' % membership.id
                 else:
                     membership = self._create_membership_from_plan(plan, partner)
-                    membership.write({
+                    
+                    # Respect the plan's activation policy
+                    membership_vals = {
                         'payment_transaction_id': transaction.id,
                         'payment_reference': transaction.reference,
-                        'state': 'active',
-                        'activation_date': fields.Date.today()
-                    })
-                    membership.message_post(
-                        body=_('Payment successful via %s. Transaction: %s. Membership created and activated.') % (transaction.provider_id.name, transaction.reference)
-                    )
+                    }
+                    
+                    if plan.activation_policy == 'immediate':
+                        membership_vals['state'] = 'active'
+                        membership_vals['activation_date'] = fields.Date.today()
+                    elif plan.activation_policy == 'first_attendance':
+                        membership_vals['state'] = 'pending'  # Will be activated on first event registration
+                    elif plan.activation_policy == 'manual':
+                        membership_vals['state'] = 'pending'  # Requires manual activation
+                    
+                    membership.write(membership_vals)
+                    payment_message = _('Payment successful via %s. Transaction: %s. Membership created and activated.') % (transaction.provider_id.name, transaction.reference)
+                    if pending_membership.get('use_popcorn_money') and pending_membership.get('popcorn_money_to_use', 0) > 0:
+                        payment_message += _('. Popcorn money used: %s%s. Remaining: %s%s') % (plan.currency_id.symbol, pending_membership['popcorn_money_to_use'], plan.currency_id.symbol, pending_membership.get('remaining_amount', 0))
+                    membership.message_post(body=payment_message)
                     redirect_url = '/memberships/success?membership_id=%s' % membership.id
                 
                 # Clear session data
@@ -560,6 +663,11 @@ class PopcornMembershipController(http.Controller):
                 plan = request.env['popcorn.membership.plan'].browse(pending_membership['plan_id'])
                 partner = request.env['res.partner'].browse(pending_membership['partner_id'])
                 
+                # Deduct popcorn money if used
+                if pending_membership.get('use_popcorn_money') and pending_membership.get('popcorn_money_to_use', 0) > 0:
+                    _logger.info(f"Deducting popcorn money: {pending_membership['popcorn_money_to_use']}")
+                    partner.deduct_popcorn_money(pending_membership['popcorn_money_to_use'], f'Membership purchase: {plan.display_name}')
+                
                 # Check if this is an event purchase
                 if pending_membership.get('is_event_purchase', False):
                     # Handle event purchase
@@ -574,21 +682,33 @@ class PopcornMembershipController(http.Controller):
                         'payment_transaction_id': transaction.id,
                         'payment_reference': transaction.reference
                     })
-                    membership.message_post(
-                        body=_('Payment successful via %s. Transaction: %s. Membership upgraded and activated.') % (transaction.provider_id.name, transaction.reference)
-                    )
+                    payment_message = _('Payment successful via %s. Transaction: %s. Membership upgraded and activated.') % (transaction.provider_id.name, transaction.reference)
+                    if pending_membership.get('use_popcorn_money') and pending_membership.get('popcorn_money_to_use', 0) > 0:
+                        payment_message += _('. Popcorn money used: %s%s. Remaining: %s%s') % (plan.currency_id.symbol, pending_membership['popcorn_money_to_use'], plan.currency_id.symbol, pending_membership.get('remaining_amount', 0))
+                    membership.message_post(body=payment_message)
                     redirect_url = '/my/cards/upgrade/success?membership_id=%s' % membership.id
                 else:
                     membership = self._create_membership_from_plan(plan, partner)
-                    membership.write({
+                    
+                    # Respect the plan's activation policy
+                    membership_vals = {
                         'payment_transaction_id': transaction.id,
                         'payment_reference': transaction.reference,
-                        'state': 'active',
-                        'activation_date': fields.Date.today()
-                    })
-                    membership.message_post(
-                        body=_('Payment successful via %s. Transaction: %s. Membership created and activated.') % (transaction.provider_id.name, transaction.reference)
-                    )
+                    }
+                    
+                    if plan.activation_policy == 'immediate':
+                        membership_vals['state'] = 'active'
+                        membership_vals['activation_date'] = fields.Date.today()
+                    elif plan.activation_policy == 'first_attendance':
+                        membership_vals['state'] = 'pending'  # Will be activated on first event registration
+                    elif plan.activation_policy == 'manual':
+                        membership_vals['state'] = 'pending'  # Requires manual activation
+                    
+                    membership.write(membership_vals)
+                    payment_message = _('Payment successful via %s. Transaction: %s. Membership created and activated.') % (transaction.provider_id.name, transaction.reference)
+                    if pending_membership.get('use_popcorn_money') and pending_membership.get('popcorn_money_to_use', 0) > 0:
+                        payment_message += _('. Popcorn money used: %s%s. Remaining: %s%s') % (plan.currency_id.symbol, pending_membership['popcorn_money_to_use'], plan.currency_id.symbol, pending_membership.get('remaining_amount', 0))
+                    membership.message_post(body=payment_message)
                     redirect_url = '/memberships/success?membership_id=%s' % membership.id
                 
                 # Clear session data
@@ -763,6 +883,10 @@ class PopcornMembershipController(http.Controller):
             plan = request.env['popcorn.membership.plan'].browse(pending_membership['plan_id'])
             partner = request.env['res.partner'].browse(pending_membership['partner_id'])
             
+            # Deduct popcorn money if used
+            if pending_membership.get('use_popcorn_money') and pending_membership.get('popcorn_money_to_use', 0) > 0:
+                partner.deduct_popcorn_money(pending_membership['popcorn_money_to_use'], f'Membership purchase: {plan.display_name}')
+            
             _logger.info(f"Plan exists: {plan.exists()}, Partner exists: {partner.exists()}")
             _logger.info(f"Plan name: {plan.name if plan.exists() else 'N/A'}, Partner name: {partner.name if partner.exists() else 'N/A'}")
             
@@ -788,12 +912,20 @@ class PopcornMembershipController(http.Controller):
                 membership = self._create_membership_from_plan(plan, partner)
                 _logger.info(f"Membership created with ID: {membership.id}, State: {membership.state}")
                 
-                membership.write({
+                membership_vals = {
                     'payment_transaction_id': transaction.id,
                     'payment_reference': transaction.reference,
-                    'state': 'active',
-                    'activation_date': fields.Date.today()
-                })
+                }
+                
+                if plan.activation_policy == 'immediate':
+                    membership_vals['state'] = 'active'
+                    membership_vals['activation_date'] = fields.Date.today()
+                elif plan.activation_policy == 'first_attendance':
+                    membership_vals['state'] = 'pending'  # Will be activated on first event registration
+                elif plan.activation_policy == 'manual':
+                    membership_vals['state'] = 'pending'  # Requires manual activation
+                
+                membership.write(membership_vals)
                 _logger.info(f"Membership updated - State: {membership.state}, Activation Date: {membership.activation_date}")
                 
                 membership.message_post(
@@ -899,6 +1031,10 @@ class PopcornMembershipController(http.Controller):
             plan = request.env['popcorn.membership.plan'].browse(wechat_pending_membership['plan_id'])
             partner = request.env['res.partner'].browse(wechat_pending_membership['partner_id'])
             
+            # Deduct popcorn money if used
+            if wechat_pending_membership.get('use_popcorn_money') and wechat_pending_membership.get('popcorn_money_to_use', 0) > 0:
+                partner.deduct_popcorn_money(wechat_pending_membership['popcorn_money_to_use'], f'Membership purchase: {plan.display_name}')
+            
             _logger.info(f"Plan exists: {plan.exists()}, Partner exists: {partner.exists()}")
             _logger.info(f"Plan name: {plan.name if plan.exists() else 'N/A'}, Partner name: {partner.name if partner.exists() else 'N/A'}")
             
@@ -913,9 +1049,10 @@ class PopcornMembershipController(http.Controller):
                     'payment_transaction_id': transaction.id,
                     'payment_reference': transaction.reference
                 })
-                membership.message_post(
-                    body=_('Payment successful via %s. Transaction: %s. Membership upgraded and activated.') % (transaction.provider_id.name, transaction.reference)
-                )
+                payment_message = _('Payment successful via %s. Transaction: %s. Membership upgraded and activated.') % (transaction.provider_id.name, transaction.reference)
+                if wechat_pending_membership.get('use_popcorn_money') and wechat_pending_membership.get('popcorn_money_to_use', 0) > 0:
+                    payment_message += _('. Popcorn money used: %s%s. Remaining: %s%s') % (plan.currency_id.symbol, wechat_pending_membership['popcorn_money_to_use'], plan.currency_id.symbol, wechat_pending_membership.get('remaining_amount', 0))
+                membership.message_post(body=payment_message)
                 # Clear upgrade details from session
                 request.session.pop('upgrade_details', None)
                 _logger.info(f"Upgrade membership created with ID: {membership.id}")
@@ -924,12 +1061,21 @@ class PopcornMembershipController(http.Controller):
                 membership = self._create_membership_from_plan(plan, partner)
                 _logger.info(f"Membership created with ID: {membership.id}, State: {membership.state}")
                 
-                membership.write({
+                # Respect the plan's activation policy
+                membership_vals = {
                     'payment_transaction_id': transaction.id,
                     'payment_reference': transaction.reference,
-                    'state': 'active',
-                    'activation_date': fields.Date.today()
-                })
+                }
+                
+                if plan.activation_policy == 'immediate':
+                    membership_vals['state'] = 'active'
+                    membership_vals['activation_date'] = fields.Date.today()
+                elif plan.activation_policy == 'first_attendance':
+                    membership_vals['state'] = 'pending'  # Will be activated on first event registration
+                elif plan.activation_policy == 'manual':
+                    membership_vals['state'] = 'pending'  # Requires manual activation
+                
+                membership.write(membership_vals)
                 _logger.info(f"Membership updated - State: {membership.state}, Activation Date: {membership.activation_date}")
                 
                 membership.message_post(
@@ -1171,6 +1317,10 @@ class PopcornMembershipController(http.Controller):
                 _logger.error(f"Invalid event or partner - Event ID: {pending_event_purchase.get('event_id')}, Partner ID: {pending_event_purchase.get('partner_id')}")
                 return request.redirect('/event?error=invalid_data')
             
+            # Deduct popcorn money if used
+            if pending_event_purchase.get('use_popcorn_money') and pending_event_purchase.get('popcorn_money_to_use', 0) > 0:
+                partner.deduct_popcorn_money(pending_event_purchase['popcorn_money_to_use'], f'Event registration: {event.name}')
+            
             # Create the event registration (using only standard fields)
             _logger.info("Creating event registration with vals:")
             registration_vals = {
@@ -1186,9 +1336,11 @@ class PopcornMembershipController(http.Controller):
             registration = request.env['event.registration'].sudo().create(registration_vals)
             _logger.info(f"Event registration created with ID: {registration.id}, State: {registration.state}")
             
-            registration.message_post(
-                body=_('Direct purchase registration for event: %s. Price: %s. Payment successful via %s. Transaction: %s. Event registration created and activated.') % (event.name, pending_event_purchase['event_price'], transaction.provider_id.name, transaction.reference)
-            )
+            payment_message = _('Direct purchase registration for event: %s. Price: %s. Payment successful via %s. Transaction: %s. Event registration created and activated.') % (event.name, pending_event_purchase['event_price'], transaction.provider_id.name, transaction.reference)
+            if pending_event_purchase.get('use_popcorn_money') and pending_event_purchase.get('popcorn_money_to_use', 0) > 0:
+                payment_message += _('. Popcorn money used: %s%s. Remaining: %s%s') % (event.currency_id.symbol, pending_event_purchase['popcorn_money_to_use'], event.currency_id.symbol, pending_event_purchase.get('remaining_amount', 0))
+            
+            registration.message_post(body=payment_message)
             _logger.info(f"Event registration message posted")
             
             # Clear session data
@@ -1226,6 +1378,10 @@ class PopcornMembershipController(http.Controller):
             _logger.error(f"Event {event_purchase_details['event_id']} not found")
             return None
         
+        # Deduct popcorn money if used
+        if event_purchase_details.get('use_popcorn_money') and event_purchase_details.get('popcorn_money_to_use', 0) > 0:
+            partner.deduct_popcorn_money(event_purchase_details['popcorn_money_to_use'], f'Event registration: {event.name}')
+        
         # Create the event registration (using only standard fields)
         registration_vals = {
             'event_id': event.id,
@@ -1241,7 +1397,7 @@ class PopcornMembershipController(http.Controller):
         
         # Log the direct purchase
         registration.message_post(
-            body=_('Direct purchase registration for club: %s. Price: $%s') % (event.name, event.event_price)
+            body=_('Direct purchase registration for club: %s. Price: %s%s') % (event.name, event.currency_id.symbol, event.event_price)
         )
         
         # Clear the session data

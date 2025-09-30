@@ -1103,6 +1103,24 @@ textarea.popcorn-form-control {
     }
 }
 
+/* Mobile: Show order summary first on checkout pages */
+@media (max-width: 768px) {
+    .popcorn-membership-checkout-page .popcorn-row {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .popcorn-membership-checkout-page .popcorn-col-md-4 {
+        order: -1; /* Move order summary to top */
+        margin-bottom: 1rem; /* Reduced margin */
+        margin-top: 0; /* Remove top margin */
+    }
+    
+    .popcorn-membership-checkout-page .popcorn-col-md-8 {
+        order: 1; /* Move form to bottom */
+    }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .popcorn-page-title {
@@ -1674,6 +1692,11 @@ textarea.popcorn-form-control {
 .popcorn-price-value {
     font-weight: 600;
     color: var(--popcorn-dark);
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    text-align: right;
+    min-width: 80px;
 }
 
 .popcorn-discount-row {
@@ -2207,6 +2230,24 @@ textarea.popcorn-form-control {
     
     .popcorn-payment-failed-help p {
         font-size: 0.9rem;
+    }
+}
+
+/* Mobile: Show order summary first on checkout pages */
+@media (max-width: 768px) {
+    .popcorn-membership-checkout-page .popcorn-row {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .popcorn-membership-checkout-page .popcorn-col-md-4 {
+        order: -1; /* Move order summary to top */
+        margin-bottom: 1rem; /* Reduced margin */
+        margin-top: 0; /* Remove top margin */
+    }
+    
+    .popcorn-membership-checkout-page .popcorn-col-md-8 {
+        order: 1; /* Move form to bottom */
     }
 }
 

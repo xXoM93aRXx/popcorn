@@ -87,9 +87,6 @@
                                         <div class="popcorn-membership-info">
                                             <h4><span t-translation="on">Get Membership</span></h4>
                                             <p class="popcorn-membership-desc"><span t-translation="on">Check out the membership plans for big savings and awesome benefits!</span></p>
-                                            <t t-if="membership_error">
-                                                <p class="popcorn-error-text"><span t-esc="membership_error"/></p>
-                                            </t>
                                         </div>
                                         <a href="/memberships" class="popcorn-event-btn popcorn-event-btn-secondary">
                                             <i class="fa fa-id-card"></i> <span t-translation="on">View Memberships</span>
@@ -326,6 +323,24 @@
                                         </script>
                                     </div>
                                     
+                                    <!-- Popcorn Money Section -->
+                                    <t t-if="request.env.user.partner_id.popcorn_money_balance > 0">
+                                        <div class="popcorn-form-section">
+                                            <h3 class="popcorn-section-title">Popcorn Money</h3>
+                                            <div class="popcorn-form-group">
+                                                <div class="popcorn-checkbox-group">
+                                                    <input type="checkbox" id="use_popcorn_money" name="use_popcorn_money" class="popcorn-checkbox"/>
+                                                    <label for="use_popcorn_money" class="popcorn-checkbox-label">
+                                                        <span t-translation="on">Use Popcorn Money</span>
+                                                        <span class="popcorn-money-balance">
+                                                            (<t t-esc="request.env.user.partner_id.popcorn_money_balance"/> <span t-translation="on">available</span>)
+                                                        </span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </t>
+                                    
                                     <!-- Payment Methods -->
                                     <div class="popcorn-form-section">
                                         <h3 class="popcorn-section-title">Payment Method</h3>
@@ -411,9 +426,17 @@
                                             <t t-esc="event.currency_id.symbol"/><t t-esc="'{:,.2f}'.format(event.event_price)"/>
                                         </span>
                                     </div>
+                                    <t t-if="request.env.user.partner_id.popcorn_money_balance > 0">
+                                        <div class="popcorn-price-row popcorn-popcorn-money-row" id="popcorn-money-row" style="display: none;">
+                                            <span class="popcorn-price-label">Popcorn Money Used:</span>
+                                            <span class="popcorn-price-value popcorn-popcorn-money" id="popcorn-money-used">
+                                                -<t t-esc="event.currency_id.symbol"/>0.00
+                                            </span>
+                                        </div>
+                                    </t>
                                     <div class="popcorn-price-row popcorn-total-row">
                                         <span class="popcorn-price-label">Total:</span>
-                                        <span class="popcorn-price-value popcorn-total">
+                                        <span class="popcorn-price-value popcorn-total" id="popcorn-total-price">
                                             <t t-esc="event.currency_id.symbol"/><t t-esc="'{:,.2f}'.format(event.event_price)"/>
                                         </span>
                                     </div>
