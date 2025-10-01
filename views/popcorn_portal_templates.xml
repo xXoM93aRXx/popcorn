@@ -109,7 +109,10 @@
                 <div class="container">
                     <div class="row">
                         <div class="col-12">
-                            <h2 class="mb-4">My Clubs</h2>
+                            <h2 class="mb-4">
+                                <t t-if="is_host">My Hosted Events</t>
+                                <t t-else="">My Clubs</t>
+                            </h2>
                             
                             <!-- Success/Error Messages -->
                             <t t-if="success_message">
@@ -132,7 +135,12 @@
                                 <div class="card-header">
                                     <h5 class="mb-0">
                                         <i class="fa fa-calendar-check-o me-2"></i>
+                                        <t t-if="is_host">
+                                            <span t-translation="on">Upcoming Events</span>
+                                        </t>
+                                        <t t-else="">
                                             <span t-translation="on">Upcoming Clubs</span>
+                                        </t>
                                     </h5>
                                 </div>
                                 <div class="card-body">
@@ -175,7 +183,7 @@
                                                                    class="btn btn-sm btn-outline-primary me-2">
                                                                     <i class="fa fa-eye"></i> View Details
                                                                 </a>
-                                                                <t t-if="registration.can_cancel">
+                                                                <t t-if="registration.can_cancel and not is_host">
                                                                     <button type="button" 
                                                                             class="btn btn-sm btn-outline-danger btn-cancel-registration"
                                                                             t-att-data-registration-id="registration.id"
@@ -193,10 +201,15 @@
                                     <t t-else="">
                                         <div class="text-center py-4">
                                             <i class="fa fa-calendar-times-o fa-3x text-muted mb-3"></i>
-                                            <p class="text-muted">No upcoming clubs found.</p>
-                                            <a href="/event" class="btn btn-primary">
-                                                <i class="fa fa-search"></i> <span t-translation="on">Browse Clubs</span>
-                                            </a>
+                                            <t t-if="is_host">
+                                                <p class="text-muted">No upcoming events found.</p>
+                                            </t>
+                                            <t t-else="">
+                                                <p class="text-muted">No upcoming clubs found.</p>
+                                                <a href="/event" class="btn btn-primary">
+                                                    <i class="fa fa-search"></i> <span t-translation="on">Browse Clubs</span>
+                                                </a>
+                                            </t>
                                         </div>
                                     </t>
                                 </div>
@@ -207,7 +220,12 @@
                                 <div class="card-header">
                                     <h5 class="mb-0">
                                         <i class="fa fa-history me-2"></i>
-                                        <span t-translation="on">Past Clubs</span>
+                                        <t t-if="is_host">
+                                            <span t-translation="on">Past Events</span>
+                                        </t>
+                                        <t t-else="">
+                                            <span t-translation="on">Past Clubs</span>
+                                        </t>
                                     </h5>
                                 </div>
                                 <div class="card-body">
@@ -260,7 +278,12 @@
                                     <t t-else="">
                                         <div class="text-center py-4">
                                             <i class="fa fa-history fa-3x text-muted mb-3"></i>
-                                            <p class="text-muted">No past clubs found.</p>
+                                            <t t-if="is_host">
+                                                <p class="text-muted">No past events found.</p>
+                                            </t>
+                                            <t t-else="">
+                                                <p class="text-muted">No past clubs found.</p>
+                                            </t>
                                         </div>
                                     </t>
                                 </div>

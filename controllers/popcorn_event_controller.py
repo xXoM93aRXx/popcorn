@@ -24,6 +24,19 @@ class PopcornEventController(http.Controller):
         from odoo.addons.website_event.controllers.main import WebsiteEventController
         from odoo.addons.website.controllers.main import QueryURL
         
+        # Handle clear filters request
+        if 'clear_filters' in searches:
+            request.session.pop('event_filters', None)
+            return request.redirect('/events')
+        
+        # Load filters from session if no new filters provided
+        session_filters = request.session.get('event_filters', {})
+        if not any(searches.values()):  # No new filters provided
+            searches = session_filters.copy()
+        else:
+            # Store current filters in session for persistence
+            request.session['event_filters'] = searches.copy()
+        
         # Call the original controller method but override the step parameter
         original_controller = WebsiteEventController()
         
@@ -175,6 +188,16 @@ class PopcornEventController(http.Controller):
                 selected_days = searches.get('day_of_week').split(',') if isinstance(searches.get('day_of_week'), str) else searches.get('day_of_week')
                 selected_days = [day.strip() for day in selected_days if day.strip()]
             
+            # Check if any filters are active
+            has_active_filters = any([
+                searches.get('search'),
+                searches.get('date') and searches.get('date') != 'upcoming',
+                searches.get('tags'),
+                searches.get('type') and searches.get('type') != 'all',
+                searches.get('country') and searches.get('country') != 'all',
+                searches.get('day_of_week')
+            ])
+            
             values = {
                 'current_date': current_date,
                 'current_country': current_country,
@@ -193,7 +216,8 @@ class PopcornEventController(http.Controller):
                 'keep': keep,
                 'search_count': event_count,
                 'original_search': fuzzy_search_term and search,
-                'website': website
+                'website': website,
+                'has_active_filters': has_active_filters
             }
 
             return request.render("website_event.index", values)
@@ -206,6 +230,12 @@ class PopcornEventController(http.Controller):
         finally:
             # Restore original method
             original_controller.events = original_method
+    
+    @http.route(['/events/clear-filters'], type='http', auth="public", website=True)
+    def clear_event_filters(self, **kwargs):
+        """Clear all event filters and redirect to events page"""
+        request.session.pop('event_filters', None)
+        return request.redirect('/events')
     
     
     def _check_membership_access(self, event):
@@ -1180,31 +1210,81 @@ class PopcornPortalController(CustomerPortal):
     
     @http.route(['/my/clubs'], type='http', auth="user", website=True)
     def portal_my_clubs(self, **kwargs):
-        """Display user's registered clubs"""
+        """Display user's registered clubs or hosted events if user is a host"""
         partner = request.env.user.partner_id
         
         # Get current datetime for comparison
         now = fields.Datetime.now()
         
-        # Get upcoming registrations (events that haven't ended yet)
-        upcoming_registrations = request.env['event.registration'].sudo().search([
-            ('partner_id', '=', partner.id),
-            ('event_id.date_end', '>', now),  # Event hasn't ended yet
-            ('state', 'in', ['open', 'confirmed', 'done'])
-        ])
+        # Check if user is a host
+        is_host = partner.is_host
         
-        # Get past registrations (events that have ended)
-        past_registrations = request.env['event.registration'].sudo().search([
-            ('partner_id', '=', partner.id),
-            ('event_id.date_end', '<=', now),  # Event has ended
-            ('state', 'in', ['open', 'confirmed', 'done'])
-        ])
-        
-
-        
-        # Sort the registrations manually
-        upcoming_registrations = upcoming_registrations.sorted(key=lambda r: r.event_id.date_begin)
-        past_registrations = past_registrations.sorted(key=lambda r: r.event_id.date_begin, reverse=True)
+        if is_host:
+            # For hosts, show their hosted events
+            # Use sudo() to bypass record rules that might prevent reading ended events
+            try:
+                upcoming_events = request.env['event.event'].sudo().search([
+                    ('host_id', '=', partner.id),
+                    ('date_end', '>', now)  # Event hasn't ended yet
+                ])
+                
+                past_events = request.env['event.event'].sudo().search([
+                    ('host_id', '=', partner.id),
+                    ('date_end', '<=', now)  # Event has ended
+                ])
+            except Exception as e:
+                # If there are still access issues, try a different approach
+                _logger.warning(f"Access issue when fetching host events: {e}")
+                # Get all events for the host and filter in Python
+                all_events = request.env['event.event'].sudo().search([
+                    ('host_id', '=', partner.id)
+                ])
+                upcoming_events = all_events.filtered(lambda e: e.date_end > now)
+                past_events = all_events.filtered(lambda e: e.date_end <= now)
+            
+            # Sort the events manually
+            upcoming_events = upcoming_events.sorted(key=lambda e: e.date_begin)
+            past_events = past_events.sorted(key=lambda e: e.date_begin, reverse=True)
+            
+            # Convert events to registration-like objects for template compatibility
+            upcoming_registrations = []
+            for event in upcoming_events:
+                # Create a mock registration object with event data
+                mock_registration = type('MockRegistration', (), {
+                    'id': event.id,
+                    'event_id': event,
+                    'can_cancel': False,  # Hosts can't cancel their own events
+                    'partner_id': partner
+                })()
+                upcoming_registrations.append(mock_registration)
+            
+            past_registrations = []
+            for event in past_events:
+                # Create a mock registration object with event data
+                mock_registration = type('MockRegistration', (), {
+                    'id': event.id,
+                    'event_id': event,
+                    'can_cancel': False,  # Hosts can't cancel their own events
+                    'partner_id': partner
+                })()
+                past_registrations.append(mock_registration)
+        else:
+            # For regular users, show their registrations
+            upcoming_registrations = request.env['event.registration'].sudo().search([
+                ('partner_id', '=', partner.id),
+                ('event_id.date_end', '>', now),  # Event hasn't ended yet
+                ('state', 'in', ['open', 'confirmed', 'done'])
+            ])
+            
+            past_registrations = request.env['event.registration'].sudo().search([
+                ('partner_id', '=', partner.id),
+                ('event_id.date_end', '<=', now),  # Event has ended
+                ('state', 'in', ['open', 'confirmed', 'done'])
+            ])
+            
+            # Sort the registrations manually
+            upcoming_registrations = upcoming_registrations.sorted(key=lambda r: r.event_id.date_begin)
+            past_registrations = past_registrations.sorted(key=lambda r: r.event_id.date_begin, reverse=True)
         
         # Handle success and error messages
         success_message = None
@@ -1222,6 +1302,7 @@ class PopcornPortalController(CustomerPortal):
             'current_time': now,  # For debugging
             'success_message': success_message,
             'error_message': error_message,
+            'is_host': is_host,  # Pass host status to template
         }
         
         return request.render('popcorn.portal_my_clubs_page', values)

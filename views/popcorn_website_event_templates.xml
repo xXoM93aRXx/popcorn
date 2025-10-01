@@ -551,7 +551,7 @@
     <template id="popcorn_event_day_filter" inherit_id="website_event.index_topbar" name="Day of Week Filter">
         <!-- Desktop dropdown filter -->
         <xpath expr="//div[hasclass('o_wevent_search')]" position="before">
-            <div class="dropdown d-none d-lg-block popcorn-day-filter">
+            <div class="dropdown d-none d-lg-block popcorn-day-filter me-2">
                 <a href="#" role="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" title="Filter by Day of Week">
                     <t t-if="selected_days and len(selected_days) > 0">
                         <t t-if="len(selected_days) == 1">
@@ -587,6 +587,15 @@
             </div>
         </xpath>
         
+        <!-- Clear Filters Button for Desktop - after search area -->
+        <xpath expr="//div[hasclass('o_wevent_search')]" position="after">
+            <div t-if="has_active_filters" class="d-none d-lg-block">
+                <a href="/events/clear-filters" class="btn btn-outline-danger btn-sm">
+                    <i class="fa fa-times"></i> Clear All Filters
+                </a>
+            </div>
+        </xpath>
+        
         <!-- Mobile offcanvas filter -->
         <xpath expr="//span[hasclass('o_wevent_offcanvas_country')]" position="after">
             <div class="accordion-item">
@@ -615,6 +624,15 @@
                         </ul>
                     </div>
                 </div>
+            </div>
+        </xpath>
+        
+        <!-- Clear Filters Button for Mobile - in offcanvas body -->
+        <xpath expr="//div[@class='offcanvas-body p-0']" position="inside">
+            <div t-if="has_active_filters" class="d-lg-none mt-3 px-3">
+                <a href="/events/clear-filters" class="btn btn-outline-danger btn-sm w-100">
+                    <i class="fa fa-times"></i> Clear All Filters
+                </a>
             </div>
         </xpath>
     </template>
