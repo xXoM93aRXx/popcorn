@@ -164,6 +164,9 @@
                                                         <h5 t-attf-class="popcorn-event-title #{(not event.website_published) and 'text-danger'}">
                                                             <span t-field="event.name" itemprop="name"/>
                                                         </h5>
+                                                        <h5 t-if="event.event_chinese_name" t-attf-class="popcorn-event-title #{(not event.website_published) and 'text-danger'}">
+                                                            <span t-field="event.event_chinese_name"/>
+                                                        </h5>
                                                         <!-- Event Date and Time -->
                                                         <div class="popcorn-event-datetime mb-2">
                                                             <i class="fa fa-clock-o me-2" style="color: #6c757d;"></i>

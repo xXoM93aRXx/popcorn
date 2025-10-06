@@ -15,6 +15,7 @@ class PopcornMembershipPlan(models.Model):
     name = fields.Char(string='Plan Name', required=True, tracking=True)
     sequence = fields.Integer(string='Sequence', default=10, help='Order of display')
     active = fields.Boolean(string='Active', default=True, tracking=True)
+    anchor_tag = fields.Char(string='Anchor Tag', help='Anchor tag for direct linking on the website (e.g., "premium-plan")')
     
     # Plan Configuration
     quota_mode = fields.Selection([

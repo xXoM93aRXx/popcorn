@@ -96,8 +96,7 @@ class PopcornMoneyController(http.Controller):
             return {
                 'success': True,
                 'balance': partner.popcorn_money_balance,
-                'last_updated': partner.popcorn_money_last_updated.strftime('%Y-%m-%d %H:%M:%S') if partner.popcorn_money_last_updated else None,
-                'notes': partner.popcorn_money_notes
+                'last_updated': partner.popcorn_money_last_updated.strftime('%Y-%m-%d %H:%M:%S') if partner.popcorn_money_last_updated else None
             }
                 
         except Exception as e:

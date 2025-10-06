@@ -30,14 +30,16 @@
 }
 
 /* Host Section */
-.popcorn-hosts-section {
+.popcorn-hosts-section,
+.popcorn-event-host-section {
     background: white;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     overflow: hidden;
 }
 
-.popcorn-section-header {
+.popcorn-section-header,
+.popcorn-event-host-header {
     padding: 16px 20px;
     cursor: pointer;
     display: flex;
@@ -45,14 +47,10 @@
     align-items: center;
     font-size: 16px;
     font-weight: 500;
-    background: #f8f9fa;
     border-bottom: 1px solid #e9ecef;
     transition: background-color 0.2s ease;
 }
 
-.popcorn-section-header:hover {
-    background: #e9ecef;
-}
 
 .section-title {
     flex: 1;
@@ -82,23 +80,27 @@
     margin-right: 8px;
 }
 
-.popcorn-dropdown-arrow {
+.popcorn-dropdown-arrow,
+.popcorn-event-dropdown-arrow {
     font-size: 12px;
     transition: transform 0.2s ease;
     color: #6c757d;
 }
 
 .popcorn-dropdown-arrow.rotated,
-.popcorn-section-open .popcorn-dropdown-arrow {
+.popcorn-section-open .popcorn-dropdown-arrow,
+.popcorn-section-open .popcorn-event-dropdown-arrow {
     transform: rotate(180deg);
 }
 
 /* Dropdown Content */
-.popcorn-hosts-dropdown {
+.popcorn-hosts-dropdown,
+.popcorn-event-host-dropdown {
     display: none;
 }
 
-.popcorn-hosts-dropdown.open {
+.popcorn-hosts-dropdown.open,
+.popcorn-event-host-dropdown.open {
     display: block;
     animation: slideDown 0.3s ease;
     max-height: 80vh;
@@ -201,6 +203,89 @@
     color: #6c757d;
 }
 
+/* Event Host Bio Card */
+.popcorn-event-host-card {
+    background: transparent;
+    border: 2px solid #000;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.popcorn-event-host-body {
+    padding: 0;
+    background: transparent;
+}
+
+.popcorn-event-host-header {
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 0;
+}
+
+.popcorn-event-dropdown-arrow {
+    font-size: 12px;
+    transition: transform 0.2s ease;
+    color: #6c757d;
+    margin-left: 0.5rem;
+}
+
+.popcorn-section-open .popcorn-event-dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.popcorn-host-preview {
+    display: block;
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 0.5rem;
+}
+
+.popcorn-host-bio-text {
+    margin-top: 0.5rem;
+}
+
+.popcorn-host-full-bio {
+    font-size: 0.875rem;
+    color: #495057;
+    line-height: 1.6;
+}
+
+/* Event Description Dropdown */
+.popcorn-event-description-card {
+    border: 2px solid #000;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.popcorn-event-description-header {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.popcorn-event-description-preview {
+    margin-top: 0.5rem;
+}
+
+.popcorn-event-description-full {
+    margin-top: 0.5rem;
+}
+
+/* Host Club Banner on Event Description Page */
+.popcorn-host-club-banner {
+    width: 100%;
+    margin: 0;
+}
+
+.popcorn-host-club-banner-cover,
+.popcorn-host-banner-img {
+    width: 100%;
+    max-height: 300px;
+    display: block;
+    object-fit: cover;
+}
 
 /* Full Width Host Poster Image */
 .popcorn-poster-image {
@@ -322,7 +407,11 @@
         font-size: 12px;
     }
     
-    
+    /* Host club banner on mobile */
+    .popcorn-host-club-banner-wrapper,
+    .popcorn-host-banner-img {
+        max-height: 200px;
+    }
     
     .popcorn-flag-img {
         width: 40px;

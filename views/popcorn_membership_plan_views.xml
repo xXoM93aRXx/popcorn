@@ -42,6 +42,7 @@
                             <group string="Basic Information">
                                 <field name="sequence"/>
                                 <field name="active"/>
+                                <field name="anchor_tag" placeholder="e.g., premium-plan"/>
                                 <field name="quota_mode"/>
                                 <field name="duration_days"/>
                                 <field name="activation_policy"/>

@@ -1,25 +1,125 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <!-- Inherit the event description template to add host bio and replace sidebar -->
+        <!-- Inherit the event description template to add host club banner and host bio -->
         <template id="popcorn_event_description_full" inherit_id="website_event.event_description_full" name="Popcorn Event Description Full">
+            <!-- Hide the default cover completely -->
+            <xpath expr="//t[@t-if='not opt_event_description_cover_top']" position="attributes">
+                <attribute name="t-if">False</attribute>
+            </xpath>
+            
+            <!-- Add banner and title before the main column -->
+            <xpath expr="//div[@id='o_wevent_event_main_col']" position="before">
+                
+                <!-- Show banner image if available -->
+                <div t-if="event.host_banner_image" class="mb-4">
+                    <img t-att-src="'/web/image/event.event/' + str(event.id) + '/host_banner_image'" 
+                         class="img-fluid rounded" 
+                         style="width: 100%; height: 200px; object-fit: cover;" 
+                         t-att-alt="'Banner for ' + event.name"
+                         itemprop="image"/>
+                </div>
+                
+                <!-- Show title -->
+                <div class="mb-4">
+                    <span t-if="event.is_participating" class="badge text-bg-success o_wevent_badge mb-2">
+                        <i class="fa fa-check me-2" role="img"/>Registered
+                    </span>
+                    <h2 t-field="event.name" itemprop="name" placeholder="Event Title"/>
+                    <h2 t-if="event.event_chinese_name" itemprop="name" placeholder="Event Chinese Title">
+                        <span t-field="event.event_chinese_name"/>
+                    </h2>
+                    <p class="lead" t-field="event.subtitle" placeholder="Event Subtitle"/>
+                </div>
+            </xpath>
+            
+            <!-- Make event description a dropdown -->
+            <xpath expr="//div[@class='mt-4'][@t-field='event.description']" position="replace">
+                <div class="mt-4 popcorn-event-description-card">
+                    <div class="popcorn-event-description-header" data-target="event-description-content">
+                        <h5 class="mb-0">Description</h5>
+                        <span class="popcorn-event-dropdown-arrow">▼</span>
+                    </div>
+                    <div class="popcorn-event-description-preview">
+                        <t t-if="event.description">
+                            <t t-set="desc_text" t-value="event.description[:50] + '...' if len(event.description) > 50 else event.description"/>
+                            <small class="text-muted">
+                                <span t-esc="desc_text"/>
+                            </small>
+                        </t>
+                    </div>
+                    <div class="popcorn-event-description-full" style="display: none;">
+                        <div t-field="event.description" itemprop="description"/>
+                    </div>
+                </div>
+            </xpath>
+            
             <xpath expr="//div[@class='o_wevent_event_main_dates_mobile d-lg-none mt-3']" position="after">
+                <!-- Location (mobile only - before host bio) -->
+                <div class="d-lg-none mt-3 mb-4">
+                    <div class="popcorn-event-location-card">
+                        <h6 class="popcorn-event-location-title mb-3">Location</h6>
+                        <div t-if="event.address_id">
+                            <div class="mb-2" t-field="event.address_id"/>
+                            <small class="d-block mb-2" t-field="event.address_id" t-options="{                                 &quot;widget&quot;: &quot;contact&quot;,                                 &quot;fields&quot;: [&quot;address&quot;],                                 &quot;no_marker&quot;: True,                                 &quot;with_microdata&quot;: True,                             }"/>
+                            <div class="d-flex gap-2">
+                                <a t-if="event.venue_baidu_map_link" t-att-href="event.venue_baidu_map_link" target="_blank" class="btn btn-light" title="Baidu Maps">
+                                    <i class="fa fa-map-marker me-2"></i>
+                                    Baidu Maps
+                                </a>
+                                <a t-if="event.venue_amap_link" t-att-href="event.venue_amap_link" target="_blank" class="btn btn-light" title="Amap">
+                                    <i class="fa fa-map-marker me-2"></i>
+                                    Amap
+                                </a>
+                            </div>
+                            <!-- Event Tags -->
+                            <div t-if="event.tag_ids" class="mt-3">
+                                <div class="d-flex flex-wrap gap-1">
+                                    <span t-foreach="event.tag_ids" t-as="tag" t-key="tag.id" 
+                                          t-att-class="'badge popcorn-event-tag ' + (tag.color and ('o_color_' + str(tag.color)) or '')"
+                                          t-esc="tag.name"/>
+                                </div>
+                            </div>
+                        </div>
+                        <div t-else="">
+                            <i class="fa fa-map-marker" title="Location"/> Online event
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Host Bio -->
                 <div t-if="event.host_id" class="mt-3 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">About the Host</h5>
-                            <div class="d-flex align-items-start">
-                                <img t-if="event.host_image" t-att-src="'/web/image/event.event/' + str(event.id) + '/host_image'" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;" t-att-alt="event.host_name"/>
-                                <div t-else="" class="rounded-circle me-3 d-flex align-items-center justify-content-center bg-light" style="width: 60px; height: 60px;">
-                                    <i class="fa fa-user text-muted fa-2x"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-1" t-out="event.host_name"/>
-                                    <small class="text-muted mb-2 d-block" t-out="event.host_function"/>
-                                    <div t-if="event.host_bio" class="mb-0" t-field="event.host_bio" t-options="{'widget': 'text'}"/>
-                                    <div t-else="" class="mb-0 text-muted">
-                                        <em>Host biography not available</em>
+                    <div class="popcorn-event-host-card">
+                        <div class="popcorn-event-host-body">
+                            <h5 class="card-title mb-2">About the Host</h5>
+                            <div class="popcorn-event-host-header" data-target="event-host-bio">
+                                <div class="d-flex align-items-start flex-grow-1">
+                                    <img t-if="event.host_image" t-att-src="'/web/image/event.event/' + str(event.id) + '/host_image'" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;" t-att-alt="event.host_name"/>
+                                    <div t-else="" class="rounded-circle me-3 d-flex align-items-center justify-content-center bg-light" style="width: 60px; height: 60px;">
+                                        <i class="fa fa-user text-muted fa-2x"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-1" t-out="event.host_name"/>
+                                            <span class="popcorn-event-dropdown-arrow">▼</span>
+                                        </div>
+                                        <small class="text-muted mb-2 d-block" t-out="event.host_function"/>
+                                        <div class="popcorn-host-bio-text">
+                                            <t t-if="event.host_bio">
+                                                <t t-set="bio_text" t-value="event.host_bio[:20] + '...' if len(event.host_bio) > 20 else event.host_bio"/>
+                                                <small class="text-muted popcorn-host-preview">
+                                                    <span t-esc="bio_text"/>
+                                                </small>
+                                                <div class="popcorn-host-full-bio" style="display: none;">
+                                                    <div t-field="event.host_bio" t-options="{'widget': 'text'}"/>
+                                                </div>
+                                            </t>
+                                            <t t-else="">
+                                                <small class="text-muted">
+                                                    <em>Host biography not available</em>
+                                                </small>
+                                            </t>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -44,28 +144,43 @@
                         <meta itemprop="endDate" t-att-content="event.date_end.isoformat()"/>
                         <t t-call="website_event.event_description_dates"/>
                     </div>
-                    <header class="d-lg-none mt-4 mb-2 py-3 border-top">
-                        <h5 class="my-0">Event Info</h5>
-                        <meta itemprop="eventStatus" content="https://schema.org/EventScheduled"/>
-                    </header>
-                    <!-- Location -->
-                    <meta itemprop="eventAttendanceMode" t-attf-content="https://schema.org/{{'Offline' if event.address_id else 'Online'}}EventAttendanceMode"/>
-                    <div t-if="event.address_id" class="o_wevent_sidebar_block border-bottom pb-3 mb-4" itemprop="location" itemscope="itemscope" itemtype="https://schema.org/Place">
-                        <h6 class="o_wevent_sidebar_title">Location</h6>
-                        <div itemprop="name" class="mb-1" t-field="event.address_id"/>
-                        <small class="d-block mb-2" t-field="event.address_id" t-options="{                                 &quot;widget&quot;: &quot;contact&quot;,                                 &quot;fields&quot;: [&quot;address&quot;],                                 &quot;no_marker&quot;: True,                                 &quot;with_microdata&quot;: True,                             }"/>
-                        <small t-field="event.address_id" class="d-block mb-2" t-options="{                                 &quot;widget&quot;: &quot;contact&quot;,                                 &quot;fields&quot;: [&quot;phone&quot;, &quot;mobile&quot;, &quot;email&quot;]                             }"/>
-                        <a t-att-href="event._google_map_link()" target="_blank" class="btn btn-light" title="Get directions">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="align-text-top" role="img" style="height: 1em; width: 1em">
-                                <rect width="24" height="24" opacity="0"/>
-                                <path role="presentation" fill="currentColor" d="M13.67 22h-.06a1 1 0 0 1-.92-.8l-1.54-7.57a1 1 0 0 0-.78-.78L2.8 11.31a1 1 0 0 1-.12-1.93l16-5.33A1 1 0 0 1 20 5.32l-5.33 16a1 1 0 0 1-1 .68z"/>
-                            </svg>
-                            Get directions
-                        </a>
-                    </div>
-                    <div t-else="" class="o_wevent_sidebar_block border-bottom pb-3 mb-4">
-                        <h6 class="o_wevent_sidebar_title">Location</h6>
-                        <i class="fa fa-map-marker" title="Location"/> Online event
+                    <!-- Location (desktop only) -->
+                    <div class="d-none d-lg-block">
+                        <meta itemprop="eventAttendanceMode" t-attf-content="https://schema.org/{{'Offline' if event.address_id else 'Online'}}EventAttendanceMode"/>
+                        <div t-if="event.address_id" class="o_wevent_sidebar_block border-bottom pb-3 mb-4" itemprop="location" itemscope="itemscope" itemtype="https://schema.org/Place">
+                            <h6 class="o_wevent_sidebar_title">Location</h6>
+                            <div itemprop="name" class="mb-1" t-field="event.address_id"/>
+                            <small class="d-block mb-2" t-field="event.address_id" t-options="{                                 &quot;widget&quot;: &quot;contact&quot;,                                 &quot;fields&quot;: [&quot;address&quot;],                                 &quot;no_marker&quot;: True,                                 &quot;with_microdata&quot;: True,                             }"/>
+                            <small t-field="event.address_id" class="d-block mb-2" t-options="{                                 &quot;widget&quot;: &quot;contact&quot;,                                 &quot;fields&quot;: [&quot;phone&quot;, &quot;mobile&quot;, &quot;email&quot;]                             }"/>
+                            <div class="d-flex gap-2">
+                                <a t-if="event.venue_baidu_map_link" t-att-href="event.venue_baidu_map_link" target="_blank" class="btn btn-light" title="Baidu Maps">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="align-text-top" role="img" style="height: 1em; width: 1em">
+                                        <rect width="24" height="24" opacity="0"/>
+                                        <path role="presentation" fill="currentColor" d="M13.67 22h-.06a1 1 0 0 1-.92-.8l-1.54-7.57a1 1 0 0 0-.78-.78L2.8 11.31a1 1 0 0 1-.12-1.93l16-5.33A1 1 0 0 1 20 5.32l-5.33 16a1 1 0 0 1-1 .68z"/>
+                                    </svg>
+                                    Baidu Maps
+                                </a>
+                                <a t-if="event.venue_amap_link" t-att-href="event.venue_amap_link" target="_blank" class="btn btn-light" title="Amap">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="align-text-top" role="img" style="height: 1em; width: 1em">
+                                        <rect width="24" height="24" opacity="0"/>
+                                        <path role="presentation" fill="currentColor" d="M13.67 22h-.06a1 1 0 0 1-.92-.8l-1.54-7.57a1 1 0 0 0-.78-.78L2.8 11.31a1 1 0 0 1-.12-1.93l16-5.33A1 1 0 0 1 20 5.32l-5.33 16a1 1 0 0 1-1 .68z"/>
+                                    </svg>
+                                    Amap
+                                </a>
+                            </div>
+                            <!-- Event Tags -->
+                            <div t-if="event.tag_ids" class="mt-3">
+                                <div class="d-flex flex-wrap gap-1">
+                                    <span t-foreach="event.tag_ids" t-as="tag" t-key="tag.id" 
+                                          t-att-class="'badge popcorn-event-tag ' + (tag.color and ('o_color_' + str(tag.color)) or '')"
+                                          t-esc="tag.name"/>
+                                </div>
+                            </div>
+                        </div>
+                        <div t-else="" class="o_wevent_sidebar_block border-bottom pb-3 mb-4">
+                            <h6 class="o_wevent_sidebar_title">Location</h6>
+                            <i class="fa fa-map-marker" title="Location"/> Online event
+                        </div>
                     </div>
                 </aside>
             </xpath>

@@ -39,6 +39,7 @@
         'views/popcorn_contract_views.xml',
         'views/popcorn_partner_views.xml',
         'views/popcorn_badge_views.xml',
+        'views/popcorn_referral_views.xml',
         'views/popcorn_registration_button_override.xml',
         'views/popcorn_website_event_templates.xml',
         'views/popcorn_event_search_templates.xml',
@@ -76,6 +77,8 @@
             'popcorn/static/src/js/popcorn_sticky_footer.js',
             'popcorn/static/src/js/popcorn_host_dropdown.js',
             'popcorn/static/src/js/popcorn_day_filter.js',
+            'popcorn/static/src/js/popcorn_referral.js',
+            'popcorn/static/src/js/popcorn_membership_anchor_scroll.js',
         ],
     
     },

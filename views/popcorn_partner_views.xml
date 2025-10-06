@@ -12,18 +12,21 @@
                 <field name="book_club_automatically" widget="boolean_toggle"/>
                 <field name="popcorn_money_balance" widget="monetary"/>
                 <field name="popcorn_money_last_updated" readonly="1"/>
-                <field name="popcorn_money_notes" placeholder="Notes about Popcorn money transactions"/>
             </xpath>
             <xpath expr="//field[@name='is_first_timer']" position="after">
                 <field name="host_bio" placeholder="Enter host biography or description" invisible="not is_host"/>
-                
             </xpath>
             
             <!-- Host Profile Customization Fields -->
             <xpath expr="//field[@name='vat']" position="after">
+                <field name="baidu_map_link" placeholder="Enter Baidu Maps web link"/>
+                <field name="amap_link" placeholder="Enter Amap web link"/>
+            </xpath>
+            <xpath expr="//field[@name='amap_link']" position="after">
                 <field name="excerpt" placeholder="Enter a short excerpt for host listings" invisible="not is_host"/>
                 <field name="online_status" invisible="not is_host"/>
                 <field name="host_poster_image" widget="image" filename="host_poster_image_filename" invisible="not is_host"/>
+                <field name="banner_image" widget="image" filename="banner_image_filename" invisible="not is_host"/>
             </xpath>
         </field>
     </record>

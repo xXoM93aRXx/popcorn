@@ -4,23 +4,22 @@ odoo.define('popcorn.host_dropdown', [], function () {
     // Host Dropdown Functionality
     $(document).ready(function() {
         function initializeHostDropdowns() {
-            // Only initialize if we're on the hosts page
-            if (!$('.popcorn-hosts-page').length) {
-                console.log('Not on hosts page, skipping initialization');
+            // Initialize for both hosts page and event description page
+            if (!$('.popcorn-hosts-page').length && !$('.popcorn-event-host-section').length) {
                 return;
             }
             
             // Wait a bit for elements to be available (especially after language switch)
             setTimeout(function() {
                 // Set initial state - all dropdowns closed
-                $('.popcorn-hosts-dropdown').removeClass('open');
-                $('.popcorn-section-header').removeClass('popcorn-section-open');
+                $('.popcorn-hosts-dropdown, .popcorn-event-host-dropdown').removeClass('open');
+                $('.popcorn-section-header, .popcorn-event-host-header').removeClass('popcorn-section-open');
                 
                 // Remove any existing event listeners first
-                $('.popcorn-section-header').off('click.popcorn');
+                $('.popcorn-section-header, .popcorn-event-host-header').off('click.popcorn');
                 
                 // Add click event listeners to section headers
-                $('.popcorn-section-header').on('click.popcorn', function(e) {
+                $('.popcorn-section-header, .popcorn-event-host-header').on('click.popcorn', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
                     
@@ -29,14 +28,10 @@ odoo.define('popcorn.host_dropdown', [], function () {
                         toggleSection(sectionId);
                     }
                 });
-                
-                console.log('Host dropdowns initialized - found', $('.popcorn-section-header').length, 'section headers');
             }, 100);
         }
 
         function toggleSection(sectionId) {
-            console.log('toggleSection called with:', sectionId);
-            
             // Try multiple times to find elements (for language switch timing issues)
             var attempts = 0;
             var maxAttempts = 5;
@@ -45,35 +40,27 @@ odoo.define('popcorn.host_dropdown', [], function () {
                 var $dropdown = $('#' + sectionId);
                 var $sectionHeader = $('[data-target="' + sectionId + '"]');
                 
-                console.log('Attempt', attempts + 1, '- Looking for dropdown:', sectionId, 'found:', $dropdown.length);
-                console.log('Attempt', attempts + 1, '- Looking for section header:', $sectionHeader.length);
-                
                 if ($dropdown.length && $sectionHeader.length) {
                     performToggle($dropdown, $sectionHeader);
                 } else if (attempts < maxAttempts) {
                     attempts++;
                     setTimeout(findElements, 200);
-                } else {
-                    console.log('Elements not found after', maxAttempts, 'attempts, returning');
                 }
             }
             
             function performToggle($dropdown, $sectionHeader) {
                 if ($dropdown.hasClass('open')) {
-                    console.log('Closing dropdown');
                     // Close the dropdown
                     $dropdown.removeClass('open');
                     $sectionHeader.removeClass('popcorn-section-open');
                 } else {
-                    console.log('Opening dropdown');
                     // Close all other dropdowns first
-                    $('.popcorn-hosts-dropdown').removeClass('open');
-                    $('.popcorn-section-header').removeClass('popcorn-section-open');
+                    $('.popcorn-hosts-dropdown, .popcorn-event-host-dropdown').removeClass('open');
+                    $('.popcorn-section-header, .popcorn-event-host-header').removeClass('popcorn-section-open');
                     
                     // Open the selected dropdown
                     $dropdown.addClass('open');
                     $sectionHeader.addClass('popcorn-section-open');
-                    console.log('Added open class to dropdown');
                 }
             }
             
@@ -86,6 +73,51 @@ odoo.define('popcorn.host_dropdown', [], function () {
 
         // Initialize when DOM is ready
         initializeHostDropdowns();
+        
+        // Direct fallback event listener for event host bio
+        $(document).on('click', '.popcorn-event-host-header', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            var $header = $(this);
+            var $preview = $header.find('.popcorn-host-preview');
+            var $fullBio = $header.find('.popcorn-host-full-bio');
+            
+            if ($preview.is(':visible')) {
+                // Show full bio, hide preview
+                $preview.hide();
+                $fullBio.show();
+                $header.addClass('popcorn-section-open');
+            } else {
+                // Show preview, hide full bio
+                $fullBio.hide();
+                $preview.show();
+                $header.removeClass('popcorn-section-open');
+            }
+        });
+        
+        // Event listener for event description dropdown
+        $(document).on('click', '.popcorn-event-description-header', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            var $header = $(this);
+            var $card = $header.closest('.popcorn-event-description-card');
+            var $preview = $card.find('.popcorn-event-description-preview');
+            var $fullDesc = $card.find('.popcorn-event-description-full');
+            
+            if ($preview.is(':visible')) {
+                // Show full description, hide preview
+                $preview.hide();
+                $fullDesc.show();
+                $header.addClass('popcorn-section-open');
+            } else {
+                // Show preview, hide full description
+                $fullDesc.hide();
+                $preview.show();
+                $header.removeClass('popcorn-section-open');
+            }
+        });
         
         // Re-initialize on window load (for language switches)
         $(window).on('load', function() {
@@ -127,7 +159,8 @@ odoo.define('popcorn.host_dropdown', [], function () {
         
         // Additional check for when page content is fully loaded
         var checkInterval = setInterval(function() {
-            if ($('.popcorn-hosts-page').length && $('.popcorn-section-header').length) {
+            if (($('.popcorn-hosts-page').length && $('.popcorn-section-header').length) || 
+                $('.popcorn-event-host-header').length) {
                 initializeHostDropdowns();
                 clearInterval(checkInterval);
             }

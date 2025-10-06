@@ -49,7 +49,7 @@
                             <i class="fa fa-calendar-times-o me-2"/> 
                             <span t-translation="on">Oops! It looks like you already booked</span>
                             <t t-if="event.conflicting_event">
-                                <span t-translation="on"> (<t t-esc="event.conflicting_event.name"/>)</span>
+                                <span t-translation="on"> (<t t-esc="event.conflicting_event.name"/><t t-if="event.conflicting_event.event_chinese_name"> - <t t-esc="event.conflicting_event.event_chinese_name"/></t>)</span>
                             </t>
                         </button>
                         <t t-if="event.conflicting_event">
@@ -58,7 +58,7 @@
                                     style="width: 100%; margin-top: 8px;"
                                     t-att-data-conflicting-event-id="event.conflicting_event.id"
                                     onclick="confirmCancelConflictingRegistration(this)">
-                                <i class="fa fa-times me-1"/> <span t-translation="on">Cancel Registration:</span> <t t-esc="event.conflicting_event.name"/>
+                                <i class="fa fa-times me-1"/> <span t-translation="on">Cancel Registration:</span> <t t-esc="event.conflicting_event.name"/><t t-if="event.conflicting_event.event_chinese_name"> (<t t-esc="event.conflicting_event.event_chinese_name"/>)</t>
                             </button>
                         </t>
                     </div>

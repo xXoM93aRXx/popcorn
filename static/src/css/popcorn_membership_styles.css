@@ -1,6 +1,12 @@
 /* Popcorn Membership Styles */
 /* Following the same design principles as popcorn_event_styles.css */
 
+/* Ensure proper positioning for anchor targets */
+.popcorn-membership-plan-card[id] {
+    scroll-margin-top: 100px;
+    scroll-margin-bottom: 20px;
+}
+
 /* Discount Badge Styles */
 .popcorn-discount-badge {
     position: absolute;

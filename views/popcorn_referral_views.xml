@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Referral List View -->
+    <record id="popcorn_referral_view_list" model="ir.ui.view">
+        <field name="name">popcorn.referral.list</field>
+        <field name="model">popcorn.referral</field>
+        <field name="arch" type="xml">
+            <list string="Referrals" decoration-muted="status == 'expired'" decoration-info="status == 'pending'" decoration-success="status == 'completed'" decoration-warning="status == 'registered'">
+                <field name="name" string="Referral Code"/>
+                <field name="referrer_id" string="Referrer"/>
+                <field name="referee_id" string="Referee"/>
+                <field name="event_id" string="Event"/>
+                <field name="status"/>
+                <field name="referral_prize" string="Prize Amount"/>
+                <field name="created_date" string="Created"/>
+                <field name="expiry_date" string="Expires"/>
+                <field name="completed_date" string="Completed"/>
+                <field name="prize_awarded" string="Prize Awarded"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Referral Action -->
+    <record id="popcorn_referral_action" model="ir.actions.act_window">
+        <field name="name">Referrals</field>
+        <field name="res_model">popcorn.referral</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="popcorn_referral_view_list"/>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No referrals yet!
+            </p>
+            <p>
+                Referrals will appear here when users share referral links and others register using them.
+            </p>
+        </field>
+    </record>
+
+    <!-- Referral Search View -->
+    <record id="view_referral_search" model="ir.ui.view">
+        <field name="name">popcorn.referral.search</field>
+        <field name="model">popcorn.referral</field>
+        <field name="arch" type="xml">
+            <search string="Search Referrals">
+                <field name="name" string="Referral Code"/>
+                <field name="referrer_id" string="Referrer"/>
+                <field name="referee_id" string="Referee"/>
+                <field name="event_id" string="Event"/>
+                <field name="status"/>
+                <separator/>
+                <filter string="Pending" name="pending" domain="[('status', '=', 'pending')]"/>
+                <filter string="Registered" name="registered" domain="[('status', '=', 'registered')]"/>
+                <filter string="Attended" name="attended" domain="[('status', '=', 'attended')]"/>
+                <filter string="Completed" name="completed" domain="[('status', '=', 'completed')]"/>
+                <filter string="Expired" name="expired" domain="[('status', '=', 'expired')]"/>
+                <separator/>
+                <filter string="Prize Awarded" name="prize_awarded" domain="[('prize_awarded', '=', True)]"/>
+                <filter string="Prize Not Awarded" name="prize_not_awarded" domain="[('prize_awarded', '=', False)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Status" name="group_status" context="{'group_by': 'status'}"/>
+                    <filter string="Referrer" name="group_referrer" context="{'group_by': 'referrer_id'}"/>
+                    <filter string="Event" name="group_event" context="{'group_by': 'event_id'}"/>
+                    <filter string="Created Date" name="group_created" context="{'group_by': 'created_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Referral Menu Item -->
+    <menuitem id="menu_popcorn_referrals" 
+              name="Referrals" 
+              parent="menu_popcorn_root" 
+              action="popcorn_referral_action" 
+              sequence="50"/>
+</odoo>

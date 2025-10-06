@@ -109,7 +109,7 @@
                                 <hr/>
                                 <p class="mb-0">
                                     <strong>Your position:</strong> #<t t-esc="waitlist_position"/> on the waitlist<br/>
-                                    <strong>Event:</strong> <t t-esc="event.name"/><br/>
+                                    <strong>Event:</strong> <t t-esc="event.name"/><t t-if="event.event_chinese_name"> (<t t-esc="event.event_chinese_name"/>)</t><br/>
                                     <strong>Date:</strong> <t t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'LLL'}"/>
                                 </p>
                             </div>
@@ -124,7 +124,7 @@
                                 </p>
                                 <hr/>
                                 <p class="mb-0">
-                                    <strong>Event:</strong> <t t-esc="event.name"/><br/>
+                                    <strong>Event:</strong> <t t-esc="event.name"/><t t-if="event.event_chinese_name"> (<t t-esc="event.event_chinese_name"/>)</t><br/>
                                     <strong>Date:</strong> <t t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'LLL'}"/><br/>
                                     <t t-if="consumption_text">
                                         <strong>Membership Usage:</strong> <t t-esc="consumption_text"/>

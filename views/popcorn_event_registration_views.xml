@@ -19,6 +19,7 @@
                     <field name="consumption_state" invisible="not membership_id"/>
                     <field name="club_type" readonly="1" invisible="not event_id.seats_limited"/>
                     <field name="is_auto_booked" readonly="1"/>
+                    <field name="referral_id" readonly="1"/>
                 </xpath>
                 
                 <!-- Add waitlist alert after the header -->

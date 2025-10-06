@@ -39,6 +39,27 @@ class ResPartner(models.Model):
         help='Filename of the host poster image'
     )
     
+    banner_image = fields.Binary(
+        string='Banner Image',
+        help='Banner image for host profile display'
+    )
+    
+    banner_image_filename = fields.Char(
+        string='Banner Image Filename',
+        help='Filename of the banner image'
+    )
+    
+    baidu_map_link = fields.Char(
+        string='Baidu Map Link',
+        help='Baidu Maps web link for this location'
+    )
+    
+    amap_link = fields.Char(
+        string='Amap Link',
+        help='Amap web link for this location'
+    )
+    
+    
     # Computed field to show events hosted by this partner
     hosted_events_count = fields.Integer(
         string='Hosted Events Count',
@@ -72,11 +93,6 @@ class ResPartner(models.Model):
     popcorn_money_last_updated = fields.Datetime(
         string='Last Money Update',
         help='When the Popcorn money balance was last updated'
-    )
-    
-    popcorn_money_notes = fields.Text(
-        string='Money Notes',
-        help='Notes about Popcorn money transactions or adjustments'
     )
     
     @api.depends('is_host')
@@ -159,13 +175,9 @@ class ResPartner(models.Model):
         old_balance = self.popcorn_money_balance
         new_balance = old_balance + amount
         
-        # Ensure popcorn_money_notes is a string
-        current_notes = str(self.popcorn_money_notes) if self.popcorn_money_notes else ""
-        
         self.with_context(skip_popcorn_money_logging=True).write({
             'popcorn_money_balance': new_balance,
-            'popcorn_money_last_updated': fields.Datetime.now(),
-            'popcorn_money_notes': current_notes + f"\n{fields.Datetime.now().strftime('%Y-%m-%d %H:%M')}: Added {amount} Popcorn money. {notes}" if notes else current_notes + f"\n{fields.Datetime.now().strftime('%Y-%m-%d %H:%M')}: Added {amount} Popcorn money."
+            'popcorn_money_last_updated': fields.Datetime.now()
         })
         
         # Post message in chatter
@@ -189,13 +201,9 @@ class ResPartner(models.Model):
         old_balance = self.popcorn_money_balance
         new_balance = old_balance - amount
         
-        # Ensure popcorn_money_notes is a string
-        current_notes = str(self.popcorn_money_notes) if self.popcorn_money_notes else ""
-        
         self.with_context(skip_popcorn_money_logging=True).write({
             'popcorn_money_balance': new_balance,
-            'popcorn_money_last_updated': fields.Datetime.now(),
-            'popcorn_money_notes': current_notes + f"\n{fields.Datetime.now().strftime('%Y-%m-%d %H:%M')}: Deducted {amount} Popcorn money. {notes}" if notes else current_notes + f"\n{fields.Datetime.now().strftime('%Y-%m-%d %H:%M')}: Deducted {amount} Popcorn money."
+            'popcorn_money_last_updated': fields.Datetime.now()
         })
         
         # Post message in chatter
@@ -219,13 +227,9 @@ class ResPartner(models.Model):
         old_balance = self.popcorn_money_balance
         new_balance = amount
         
-        # Ensure popcorn_money_notes is a string
-        current_notes = str(self.popcorn_money_notes) if self.popcorn_money_notes else ""
-        
         self.with_context(skip_popcorn_money_logging=True).write({
             'popcorn_money_balance': new_balance,
-            'popcorn_money_last_updated': fields.Datetime.now(),
-            'popcorn_money_notes': current_notes + f"\n{fields.Datetime.now().strftime('%Y-%m-%d %H:%M')}: Set balance to {amount} Popcorn money. {notes}" if notes else current_notes + f"\n{fields.Datetime.now().strftime('%Y-%m-%d %H:%M')}: Set balance to {amount} Popcorn money."
+            'popcorn_money_last_updated': fields.Datetime.now()
         })
         
         # Post message in chatter

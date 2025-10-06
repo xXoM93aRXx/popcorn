@@ -453,14 +453,44 @@ class PopcornEventController(http.Controller):
         
         return request.render('popcorn.membership_required_page')
     
+    @http.route('/popcorn/redirect/check-referral', type='http', auth='user', website=True)
+    def check_referral_redirect(self, **kwargs):
+        """Check if user should be redirected to event registration due to referral"""
+        referral_code = request.session.get('referral_code')
+        referral_event_id = request.session.get('referral_event_id')
+        
+        if referral_code and referral_event_id:
+            # Clear the referral session data
+            request.session.pop('referral_code', None)
+            request.session.pop('referral_event_id', None)
+            
+            # Redirect to event registration with referral code
+            redirect_url = f'/popcorn/event/{referral_event_id}/register?ref={referral_code}'
+            return request.redirect(redirect_url)
+        
+        # No referral found, redirect to events page
+        return request.redirect('/event')
+    
     @http.route(['/popcorn/event/<model("event.event"):event>/register'], type='http', auth="public", website=True)
     def event_register(self, event, **kwargs):
         """Override event registration page to show membership and direct purchase options"""
+        # Handle referral code from URL parameter
+        ref_code = kwargs.get('ref')
+        if ref_code:
+            # Always store/update referral code in session when present in URL
+            request.session['referral_code'] = ref_code
+            request.session['referral_event_id'] = event.id
+        
         # Check if user is logged in
         if request.env.user.id == request.env.ref('base.public_user').id:
             # Redirect to login with return URL pointing to the registration page
             registration_url = f'/popcorn/event/{event.id}/register'
-            return redirect('/web/login?redirect=' + registration_url)
+            if ref_code:
+                registration_url += f'?ref={ref_code}'
+            # URL encode the redirect URL to preserve the referral parameter
+            import urllib.parse
+            encoded_redirect = urllib.parse.quote(registration_url, safe='')
+            return redirect(f'/web/login?redirect={encoded_redirect}')
         
         # User is logged in, check membership access and show registration options page
         has_access, redirect_url, error_message = self._check_membership_access(event)
@@ -633,6 +663,22 @@ class PopcornEventController(http.Controller):
         # Create the registration (consumption is now handled automatically in create method)
         try:
             registration = request.env['event.registration'].sudo().create(registration_vals)
+            
+            # Process referral if present
+            referral_code = request.session.get('referral_code')
+            if referral_code:
+                try:
+                    referral = request.env['popcorn.referral'].sudo().process_referral_registration(
+                        referral_code=referral_code,
+                        referee_id=partner.id,
+                        registration_id=registration.id
+                    )
+                    # Clear the referral code from session
+                    request.session.pop('referral_code', None)
+                except Exception as e:
+                    _logger.warning(f"Failed to process referral {referral_code}: {str(e)}")
+                    # Don't fail the registration if referral processing fails
+                    
         except ValidationError as e:
             # Catch validation errors and redirect back with error message
             error_param = url_quote(str(e))
@@ -840,6 +886,22 @@ class PopcornEventController(http.Controller):
                 registration = request.env['event.registration'].sudo().create(registration_vals)
                 _logger.info(f"Registration created: {registration.id} with state: {registration_state}")
                 
+                # Process referral if present
+                referral_code = request.session.get('referral_code')
+                if referral_code:
+                    try:
+                        referral = request.env['popcorn.referral'].sudo().process_referral_registration(
+                            referral_code=referral_code,
+                            referee_id=partner.id,
+                            registration_id=registration.id
+                        )
+                        # Clear the referral code from session
+                        request.session.pop('referral_code', None)
+                        _logger.info(f"Referral {referral_code} processed for registration {registration.id}")
+                    except Exception as e:
+                        _logger.warning(f"Failed to process referral {referral_code}: {str(e)}")
+                        # Don't fail the registration if referral processing fails
+                
                 # Deduct popcorn money if used
                 if use_popcorn_money and popcorn_money_to_use > 0:
                     _logger.info(f"Deducting popcorn money: {popcorn_money_to_use}")
@@ -911,6 +973,22 @@ class PopcornEventController(http.Controller):
                 }
                 
                 registration = request.env['event.registration'].sudo().create(registration_vals)
+                
+                # Process referral if present
+                referral_code = request.session.get('referral_code')
+                if referral_code:
+                    try:
+                        referral = request.env['popcorn.referral'].sudo().process_referral_registration(
+                            referral_code=referral_code,
+                            referee_id=partner.id,
+                            registration_id=registration.id
+                        )
+                        # Clear the referral code from session
+                        request.session.pop('referral_code', None)
+                        _logger.info(f"Referral {referral_code} processed for registration {registration.id}")
+                    except Exception as e:
+                        _logger.warning(f"Failed to process referral {referral_code}: {str(e)}")
+                        # Don't fail the registration if referral processing fails
                 
                 # Log the bank transfer payment request
                 registration.message_post(

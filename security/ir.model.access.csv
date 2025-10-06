@@ -6,6 +6,7 @@ access_popcorn_membership_plan_manager,popcorn.membership.plan.manager,model_pop
 access_popcorn_membership_plan_portal,popcorn.membership.plan.portal,model_popcorn_membership_plan,base.group_portal,1,0,0,0
 access_popcorn_membership_portal,popcorn.membership.portal,model_popcorn_membership,base.group_portal,1,1,1,0
 access_event_registration_portal,event.registration.portal,event.model_event_registration,base.group_portal,1,0,0,0
+access_event_registration_public,event.registration.public,event.model_event_registration,base.group_public,1,0,0,0
 access_event_event_portal,event.event.portal,event.model_event_event,base.group_portal,1,1,0,0
 access_event_event_public,event.event.public,event.model_event_event,base.group_public,1,0,0,0
 access_event_event_portal_read_all,event.event.portal.read.all,event.model_event_event,base.group_portal,1,0,0,0
@@ -36,4 +37,9 @@ access_popcorn_membership_discount_rel_user,popcorn.membership.discount.rel.user
 access_popcorn_membership_discount_rel_manager,popcorn.membership.discount.rel.manager,model_popcorn_membership_discount_rel,base.group_system,1,1,1,1
 access_popcorn_membership_discount_rel_portal,popcorn.membership.discount.rel.portal,model_popcorn_membership_discount_rel,base.group_portal,1,0,0,0
 access_event_stage_portal,event.stage.portal,event.model_event_stage,base.group_portal,1,0,0,0
+access_popcorn_referral_user,popcorn.referral.user,model_popcorn_referral,base.group_user,1,0,0,0
+access_popcorn_referral_manager,popcorn.referral.manager,model_popcorn_referral,base.group_system,1,1,1,1
+access_popcorn_referral_portal,popcorn.referral.portal,model_popcorn_referral,base.group_portal,1,0,0,0
+access_popcorn_referral_public,popcorn.referral.public,model_popcorn_referral,base.group_public,1,0,0,0
+access_event_event_public_binary,event.event.public.binary,event.model_event_event,base.group_public,1,0,0,0
 

@@ -16,6 +16,9 @@
                         <!-- Event Details -->
                         <div class="popcorn-event-details">
                             <h1 class="popcorn-event-name"><t t-esc="event.name"/></h1>
+                            <h1 t-if="event.event_chinese_name" class="popcorn-event-name">
+                                <t t-esc="event.event_chinese_name"/>
+                            </h1>
                             
                             <div class="popcorn-event-info">
                                 <div class="popcorn-event-info-item" t-if="event.date_begin">
@@ -39,12 +42,23 @@
                             
                             <!-- Show membership-based registration if user has access -->
                             <t t-if="has_membership_access">
-                                <form t-attf-action="/popcorn/event/#{event.id}/registration/confirm" method="POST" style="display: inline;">
+                                <form t-attf-action="/popcorn/event/#{event.id}/registration/confirm" method="POST">
                                     <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                                     <button type="submit" class="popcorn-event-btn popcorn-event-btn-primary">
                                         <i class="fa fa-check"></i> <span t-translation="on">Register for Club</span>
                                     </button>
                                 </form>
+                                
+                                <!-- Referral Button -->
+                                <t t-if="event.referral_prize and event.referral_prize > 0">
+                                    <button type="button" class="popcorn-event-btn popcorn-event-btn-secondary popcorn-referral-btn" 
+                                            t-att-data-event-id="event.id" t-att-data-referral-prize="event.referral_prize"
+                                            t-att-data-currency-symbol="event.currency_id.symbol">
+                                        <i class="fa fa-share-alt"></i> 
+                                        <span t-translation="on">Refer to a friend and win </span>
+                                        <strong><t t-esc="event.currency_id.symbol"/><t t-esc="'{:,.0f}'.format(event.referral_prize)"/></strong>
+                                    </button>
+                                </t>
                             </t>
                             
                             <!-- Show membership and direct purchase options if no membership access -->
@@ -73,12 +87,25 @@
                                                 <p class="popcorn-price"><span t-translation="on">Price:</span> <strong><t t-esc="event.currency_id.symbol"/><t t-esc="'{:,.2f}'.format(event.event_price)"/></strong></p>
                                                 <p class="popcorn-purchase-desc"><span t-translation="on">Purchase this club directly without a membership</span></p>
                                             </div>
-                                            <form t-attf-action="/popcorn/event/#{event.id}/purchase/direct-payment" method="POST" style="display: inline;">
-                                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                                                <button type="submit" class="popcorn-event-btn popcorn-event-btn-primary">
-                                                    <i class="fa fa-shopping-cart"></i> <span t-translation="on">Buy Club Ticket</span>
-                                                </button>
-                                            </form>
+                                            <div class="popcorn-purchase-actions">
+                                                <form t-attf-action="/popcorn/event/#{event.id}/purchase/direct-payment" method="POST" style="display: inline;">
+                                                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                                    <button type="submit" class="popcorn-event-btn popcorn-event-btn-primary">
+                                                        <i class="fa fa-shopping-cart"></i> <span t-translation="on">Buy Club Ticket</span>
+                                                    </button>
+                                                </form>
+                                                
+                                                <!-- Referral Button for Direct Purchase -->
+                                                <t t-if="event.referral_prize and event.referral_prize > 0">
+                                                    <button type="button" class="popcorn-event-btn popcorn-event-btn-secondary popcorn-referral-btn" 
+                                                            t-att-data-event-id="event.id" t-att-data-referral-prize="event.referral_prize"
+                                                            t-att-data-currency-symbol="event.currency_id.symbol">
+                                                        <i class="fa fa-share-alt"></i> 
+                                                        <span t-translation="on">Refer to a friend and win </span>
+                                                        <strong><t t-esc="event.currency_id.symbol"/><t t-esc="'{:,.0f}'.format(event.referral_prize)"/></strong>
+                                                    </button>
+                                                </t>
+                                            </div>
                                         </div>
                                     </t>
                                     
@@ -411,6 +438,9 @@
                                 <div class="popcorn-summary-item">
                                     <div class="popcorn-summary-event">
                                         <h4 class="popcorn-event-name"><t t-esc="event.name"/></h4>
+                                        <h4 t-if="event.event_chinese_name" class="popcorn-event-name">
+                                            <t t-esc="event.event_chinese_name"/>
+                                        </h4>
                                         <p class="popcorn-event-date">
                                             <t t-if="event.date_begin">
                                                 <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'dd MMM yyyy HH:mm'}"/>
@@ -626,4 +656,49 @@
             </div>
         </t>
     </template>
+
+    <!-- Referral Modal Template -->
+    <template id="referral_modal" name="Referral Modal">
+        <div id="popcorn-referral-modal" class="popcorn-modal" style="display: none;">
+            <div class="popcorn-modal-content">
+                <div class="popcorn-modal-header">
+                    <h3><i class="fa fa-share-alt"></i> <span t-translation="on">Refer to a Friend</span></h3>
+                    <button type="button" class="popcorn-modal-close">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                <div class="popcorn-modal-body">
+                    <div class="popcorn-referral-info">
+                        <p><strong><span t-translation="on">Share this link with your friend:</span></strong></p>
+                        <p class="popcorn-referral-reward">
+                            <i class="fa fa-gift"></i> 
+                            <span t-translation="on">You'll win </span><strong id="referral-prize-amount">0</strong> 
+                            <span t-translation="on">when they register and attend the club!</span>
+                        </p>
+                    </div>
+                    <div class="popcorn-referral-link-container">
+                        <input type="text" id="referral-link" class="popcorn-referral-link-input" readonly="readonly"/>
+                        <button type="button" id="copy-referral-link" class="popcorn-event-btn popcorn-event-btn-primary">
+                            <i class="fa fa-copy"></i> <span t-translation="on">Copy Link</span>
+                        </button>
+                    </div>
+                    <div class="popcorn-referral-terms">
+                        <p class="popcorn-referral-terms-text">
+                            <small>
+                                <i class="fa fa-info-circle"></i>
+                                <span t-translation="on">Prize will be awarded after your friend completes registration, attends the full club session, and doesn't cancel.</span>
+                            </small>
+                        </p>
+                    </div>
+                </div>
+                <div class="popcorn-modal-footer">
+                    <button type="button" class="popcorn-event-btn popcorn-event-btn-secondary popcorn-modal-close">
+                        <span t-translation="on">Close</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </template>
+
 </odoo>

@@ -41,6 +41,10 @@ class PopcornEventRegistration(models.Model):
     is_auto_booked = fields.Boolean(string='Auto Booked', default=False, 
                                    help='Indicates if this registration was automatically created for a contact with auto-booking enabled')
     
+    # Referral tracking
+    referral_id = fields.Many2one('popcorn.referral', string='Referral', 
+                                 help='Referral that led to this registration')
+    
     # Computed fields for registration desk
     event_host = fields.Char(string='Host', related='event_id.host_id.name', readonly=True, store=True)
     event_start_time = fields.Datetime(string='Club Start Time', related='event_id.date_begin', readonly=True, store=True)

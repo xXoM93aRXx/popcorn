@@ -55,7 +55,7 @@
                                     </div>
                                 </t>
                                 
-                                <div class="popcorn-membership-plan-card">
+                                <div class="popcorn-membership-plan-card" t-att-id="plan.anchor_tag or ('plan-' + str(plan.id))">
                                     
                                     <!-- Cover Image Section -->
                                     <div class="popcorn-plan-cover">

@@ -34,6 +34,18 @@ class EventEvent(models.Model):
         help='Number of minutes after event start when the event should disappear from the website. Set to 0 to never hide.'
     )
     
+    referral_prize = fields.Float(
+        string='Referral Prize',
+        digits='Product Price',
+        default=100.0,
+        help='Referral prize amount for this event'
+    )
+    
+    event_chinese_name = fields.Char(
+        string='Event Chinese Name',
+        help='Chinese name for this event'
+    )
+    
     # Club type classification (computed, not stored in UI)
     club_type = fields.Selection([
         ('regular_offline', 'Regular Offline'),
@@ -102,7 +114,7 @@ class EventEvent(models.Model):
     host_image = fields.Binary(
         string='Host Image',
         compute='_compute_host_info',
-        store=False,
+        store=True,
         help='Host image for website display'
     )
     
@@ -119,6 +131,28 @@ class EventEvent(models.Model):
         store=False,
         help='Host biography for website display'
     )
+    
+    host_banner_image = fields.Binary(
+        string='Host Banner Image',
+        compute='_compute_host_info',
+        store=False,
+        help='Host banner image for website display'
+    )
+    
+    venue_baidu_map_link = fields.Char(
+        string='Venue Baidu Map Link',
+        compute='_compute_venue_map_links',
+        store=False,
+        help='Venue Baidu Maps web link'
+    )
+    
+    venue_amap_link = fields.Char(
+        string='Venue Amap Link',
+        compute='_compute_venue_map_links',
+        store=False,
+        help='Venue Amap web link'
+    )
+    
     
     # Location computed fields to avoid res.partner access
     event_city = fields.Char(
@@ -231,7 +265,7 @@ class EventEvent(models.Model):
     
     @api.depends('host_id')
     def _compute_host_info(self):
-        """Compute host name, image, function, and bio from host_id"""
+        """Compute host name, image, function, bio, and banner image from host_id"""
         for event in self:
             try:
                 if event.host_id:
@@ -241,17 +275,38 @@ class EventEvent(models.Model):
                     event.host_image = host.image_128 or False
                     event.host_function = host.function or 'Host'
                     event.host_bio = host.host_bio or ''
+                    event.host_banner_image = host.banner_image or False
                 else:
                     event.host_name = ''
                     event.host_image = False
                     event.host_function = ''
                     event.host_bio = ''
+                    event.host_banner_image = False
             except:
                 # If there's any access issue, set default values
                 event.host_name = ''
                 event.host_image = False
                 event.host_function = ''
                 event.host_bio = ''
+                event.host_banner_image = False
+    
+    @api.depends('address_id')
+    def _compute_venue_map_links(self):
+        """Compute venue map links from address_id"""
+        for event in self:
+            try:
+                if event.address_id:
+                    # Use sudo() to bypass access rights for reading basic fields
+                    address = event.address_id.sudo()
+                    event.venue_baidu_map_link = address.baidu_map_link or ''
+                    event.venue_amap_link = address.amap_link or ''
+                else:
+                    event.venue_baidu_map_link = ''
+                    event.venue_amap_link = ''
+            except:
+                # If there's any access issue, set default values
+                event.venue_baidu_map_link = ''
+                event.venue_amap_link = ''
     
     @api.depends('date_begin')
     def _compute_day_of_week(self):
@@ -728,20 +783,71 @@ class EventEvent(models.Model):
                 # Mark all found events as ended
                 events_to_end.write({'stage_id': ended_stage.id})
                 
-                # Log the action for each event
+                # Process referrals for ended events
+                referrals_processed = 0
                 for event in events_to_end:
+                    # Mark referrals as attended for confirmed registrations
+                    referrals = self.env['popcorn.referral'].search([
+                        ('event_id', '=', event.id),
+                        ('status', '=', 'registered')
+                    ])
+                    
+                    for referral in referrals:
+                        if referral.registration_id and referral.registration_id.state in ['open', 'done']:
+                            referral.mark_as_attended()
+                            referrals_processed += 1
+                    
+                    # Complete referrals that are attended
+                    attended_referrals = self.env['popcorn.referral'].search([
+                        ('event_id', '=', event.id),
+                        ('status', '=', 'attended'),
+                        ('prize_awarded', '=', False)
+                    ])
+                    
+                    for referral in attended_referrals:
+                        referral.complete_referral()
+                    
                     event.message_post(
                         body=_('Event automatically marked as ended 15 minutes after completion')
                     )
                 
-                _logger.info(f'Automatically marked {len(events_to_end)} events as ended')
+                _logger.info(f'Automatically marked {len(events_to_end)} events as ended and processed {referrals_processed} referrals')
             else:
                 _logger.warning('Could not find "Ended" stage for events')
         
         return len(events_to_end)
     
+    def _process_event_referrals(self):
+        """Process referrals for this event when it's marked as ended"""
+        self.ensure_one()
+        
+        # Mark referrals as attended for confirmed registrations
+        referrals = self.env['popcorn.referral'].search([
+            ('event_id', '=', self.id),
+            ('status', '=', 'registered')
+        ])
+        
+        for referral in referrals:
+            if referral.registration_id and referral.registration_id.state in ['open', 'done']:
+                referral.mark_as_attended()
+        
+        # Complete referrals that are attended
+        attended_referrals = self.env['popcorn.referral'].search([
+            ('event_id', '=', self.id),
+            ('status', '=', 'attended'),
+            ('prize_awarded', '=', False)
+        ])
+        
+        for referral in attended_referrals:
+            referral.complete_referral()
+        
+        if len(referrals) > 0:
+            self.message_post(
+                body=_('Event marked as ended. Processed %d referrals.') % len(referrals)
+            )
+    
     def write(self, vals):
-        """Override write to handle automatic staff registration when event is published"""
+        """Override write to handle automatic staff registration when event is published and referral processing when ended"""
         result = super().write(vals)
         
         # Check if the event is being published or if it's already published
@@ -753,6 +859,13 @@ class EventEvent(models.Model):
             for event in self:
                 if event.is_published:
                     event._auto_register_staff_members()
+        
+        # Process referrals when event stage is changed to "Ended"
+        if 'stage_id' in vals:
+            ended_stage = self.env['event.stage'].search([('name', '=', 'Ended')], limit=1)
+            if ended_stage and vals['stage_id'] == ended_stage.id:
+                for event in self:
+                    event._process_event_referrals()
         
         return result
     
