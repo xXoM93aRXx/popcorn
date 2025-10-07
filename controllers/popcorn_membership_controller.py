@@ -154,6 +154,9 @@ class PopcornMembershipController(http.Controller):
             
             partner.write(partner_vals)
             
+            # Get customer signature if provided
+            customer_signature = post.get('customer_signature')
+            
             # Calculate the amount to charge
             if is_upgrade:
                 amount = upgrade_details.get('upgrade_price', 0)
@@ -221,7 +224,7 @@ class PopcornMembershipController(http.Controller):
                         return request.redirect('/my/cards/upgrade/success?membership_id=%s&payment_pending=true' % membership.id)
                 else:
                     # Create new membership
-                    membership = self._create_membership_from_plan(plan, partner)
+                    membership = self._create_membership_from_plan(plan, partner, customer_signature=customer_signature)
                     
                     # Respect the plan's activation policy instead of forcing state
                     if remaining_amount <= 0:
@@ -297,6 +300,7 @@ class PopcornMembershipController(http.Controller):
                 'use_popcorn_money': use_popcorn_money,
                 'popcorn_money_to_use': popcorn_money_to_use,
                 'remaining_amount': remaining_amount,
+                'customer_signature': customer_signature,
             }
             
             _logger.info(f"Stored pending membership in session: {request.session['pending_membership']}")
@@ -305,7 +309,7 @@ class PopcornMembershipController(http.Controller):
             _logger.info(f"Payment provider name: '{payment_provider.name}', lowercase: '{payment_provider.name.lower()}'")
             if payment_provider.name.lower() in ['bank transfer', 'bank_transfer']:
                 # For bank transfer, create membership immediately but mark as pending payment
-                membership = self._create_membership_from_plan(plan, partner)
+                membership = self._create_membership_from_plan(plan, partner, customer_signature=customer_signature)
                 membership.write({'state': 'pending_payment'})
                 
                 # Log the bank transfer payment request
@@ -534,7 +538,7 @@ class PopcornMembershipController(http.Controller):
                     return request.redirect('/my/cards/upgrade/success?membership_id=%s' % membership.id)
                 else:
                     # Create regular membership
-                    membership = self._create_membership_from_plan(plan, partner)
+                    membership = self._create_membership_from_plan(plan, partner, customer_signature=pending_membership.get('customer_signature'))
                     _logger.info(f"Regular membership created with ID: {membership.id}")
                     
                     # Log the purchase
@@ -610,7 +614,7 @@ class PopcornMembershipController(http.Controller):
                     membership.message_post(body=payment_message)
                     redirect_url = '/my/cards/upgrade/success?membership_id=%s' % membership.id
                 else:
-                    membership = self._create_membership_from_plan(plan, partner)
+                    membership = self._create_membership_from_plan(plan, partner, customer_signature=pending_membership.get('customer_signature') if 'pending_membership' in locals() else None)
                     
                     # Respect the plan's activation policy
                     membership_vals = {
@@ -688,7 +692,7 @@ class PopcornMembershipController(http.Controller):
                     membership.message_post(body=payment_message)
                     redirect_url = '/my/cards/upgrade/success?membership_id=%s' % membership.id
                 else:
-                    membership = self._create_membership_from_plan(plan, partner)
+                    membership = self._create_membership_from_plan(plan, partner, customer_signature=pending_membership.get('customer_signature') if 'pending_membership' in locals() else None)
                     
                     # Respect the plan's activation policy
                     membership_vals = {
@@ -909,7 +913,7 @@ class PopcornMembershipController(http.Controller):
                 _logger.info(f"Upgrade membership created with ID: {membership.id}")
             else:
                 _logger.info("Creating regular membership")
-                membership = self._create_membership_from_plan(plan, partner)
+                membership = self._create_membership_from_plan(plan, partner, customer_signature=pending_membership.get('customer_signature') if 'pending_membership' in locals() else None)
                 _logger.info(f"Membership created with ID: {membership.id}, State: {membership.state}")
                 
                 membership_vals = {
@@ -1058,7 +1062,7 @@ class PopcornMembershipController(http.Controller):
                 _logger.info(f"Upgrade membership created with ID: {membership.id}")
             else:
                 _logger.info("Creating regular membership")
-                membership = self._create_membership_from_plan(plan, partner)
+                membership = self._create_membership_from_plan(plan, partner, customer_signature=pending_membership.get('customer_signature') if 'pending_membership' in locals() else None)
                 _logger.info(f"Membership created with ID: {membership.id}, State: {membership.state}")
                 
                 # Respect the plan's activation policy
@@ -1168,7 +1172,7 @@ class PopcornMembershipController(http.Controller):
         
         return original_membership
     
-    def _create_membership_from_plan(self, plan, partner, purchase_channel='online', price_tier=None, upgrade_discount_allowed=False, first_timer_customer=False, payment_transaction_id=None, payment_reference=None):
+    def _create_membership_from_plan(self, plan, partner, purchase_channel='online', price_tier=None, upgrade_discount_allowed=False, first_timer_customer=False, payment_transaction_id=None, payment_reference=None, customer_signature=None):
         """Create a membership directly from a plan (bypassing sales orders)"""
         # Determine price tier if not provided
         if price_tier is None:
@@ -1227,6 +1231,20 @@ class PopcornMembershipController(http.Controller):
         # Increment discount usage if a discount was applied
         if best_discount:
             best_discount.action_increment_usage()
+        
+        # Create contract with signature if provided
+        if customer_signature:
+            contract_vals = {
+                'membership_id': membership.id,
+                'contract_type': 'standard',
+                'state': 'draft',
+                'customer_signature': customer_signature,
+                'customer_signature_date': fields.Datetime.now(),
+                'signed_by_customer': True,
+            }
+            contract = request.env['popcorn.contract'].sudo().create(contract_vals)
+            membership.write({'contract_id': contract.id})
+            membership.message_post(body=_('Contract created and signed by customer during checkout'))
         
         # Log the creation
         membership.message_post(

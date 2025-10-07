@@ -1,0 +1,168 @@
+/* Signature Modal Styles - matching freeze modal */
+
+/* Modal base styles */
+#signatureModal {
+    display: none;
+    position: fixed;
+    z-index: 1050;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+#signatureModal.show {
+    display: block;
+}
+
+#signatureModal .modal-dialog {
+    position: relative;
+    width: auto;
+    margin: 0.5rem;
+    pointer-events: none;
+    max-width: 700px;
+    margin: 1.75rem auto;
+}
+
+#signatureModal .modal-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    pointer-events: auto;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 0.3rem;
+    outline: 0;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.5);
+}
+
+/* Modal header - matching freeze style */
+#signatureModal .modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+    border-top-left-radius: calc(0.3rem - 1px);
+    border-top-right-radius: calc(0.3rem - 1px);
+    background-color: #d1ecf1;
+    border-bottom: 1px solid #bee5eb;
+}
+
+#signatureModal .modal-title {
+    margin-bottom: 0;
+    line-height: 1.5;
+    color: #0c5460;
+}
+
+#signatureModal .btn-close {
+    padding: 0;
+    background: transparent;
+    border: 0;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: #000;
+    text-shadow: 0 1px 0 #fff;
+    opacity: 0.5;
+    cursor: pointer;
+}
+
+#signatureModal .btn-close:hover {
+    opacity: 0.75;
+}
+
+/* Modal body */
+#signatureModal .modal-body {
+    position: relative;
+    flex: 1 1 auto;
+    padding: 1rem;
+}
+
+/* Alert info styling */
+#signatureModal .alert-info {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+    color: #0c5460;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: 0.25rem;
+}
+
+/* Signature canvas wrapper */
+.popcorn-signature-canvas-wrapper {
+    border: 2px solid #dee2e6;
+    border-radius: 4px;
+    background-color: #ffffff;
+    padding: 10px;
+    display: inline-block;
+    width: 100%;
+}
+
+#popcorn-signature-canvas {
+    border: 1px dashed #adb5bd;
+    border-radius: 4px;
+    background-color: #ffffff;
+    cursor: crosshair;
+    display: block;
+    width: 100%;
+    height: 200px;
+    touch-action: none;
+}
+
+#popcorn-signature-canvas:hover {
+    border-color: #6c757d;
+}
+
+/* Signature actions */
+.popcorn-signature-actions {
+    text-align: center;
+}
+
+/* Modal footer - matching freeze style */
+#signatureModal .modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0.75rem;
+    border-top: 1px solid #dee2e6;
+    border-bottom-right-radius: calc(0.3rem - 1px);
+    border-bottom-left-radius: calc(0.3rem - 1px);
+}
+
+/* Signature indicator */
+.signature-indicator {
+    margin-left: 10px;
+    font-weight: 600;
+    color: #28a745;
+}
+
+.signature-indicator i {
+    margin-right: 4px;
+}
+
+/* Body scroll lock when modal is open */
+body.modal-open {
+    overflow: hidden;
+}
+
+/* Responsive adjustments */
+@media (min-width: 576px) {
+    #signatureModal .modal-dialog {
+        max-width: 700px;
+        margin: 1.75rem auto;
+    }
+}
+
+@media (max-width: 768px) {
+    #signatureModal .modal-dialog {
+        margin: 0.5rem;
+    }
+    
+    #popcorn-signature-canvas {
+        height: 150px;
+    }
+}

@@ -98,28 +98,6 @@ class PopcornContract(models.Model):
             body=_('Contract approved by %s') % self.env.user.name
         )
     
-    def action_sign_customer(self, signature_data=None):
-        """Mark contract as signed by customer"""
-        self.ensure_one()
-        if self.state not in ['approved', 'signed']:
-            raise UserError(_('Contract must be approved before customer can sign'))
-        
-        vals = {
-            'signed_by_customer': True,
-            'customer_signature_date': fields.Datetime.now(),
-            'state': 'signed' if not self.signed_by_staff else 'active'
-        }
-        
-        if signature_data:
-            vals['customer_signature'] = signature_data
-        
-        self.write(vals)
-        
-        # Log the customer signature
-        self.message_post(
-            body=_('Contract signed by customer')
-        )
-    
     @api.model
     def sign_customer_contract(self, contract_id, signature_data):
         """Sign contract with customer signature data"""
@@ -127,25 +105,24 @@ class PopcornContract(models.Model):
         if not contract.exists():
             raise UserError(_('Contract not found'))
         
-        contract.action_sign_customer(signature_data)
-        return True
-    
-    def action_sign_staff(self):
-        """Mark contract as signed by staff"""
-        self.ensure_one()
-        if self.state not in ['approved', 'signed']:
-            raise UserError(_('Contract must be approved before staff can sign'))
+        if contract.state not in ['approved', 'signed']:
+            raise UserError(_('Contract must be approved before customer can sign'))
         
-        self.write({
-            'signed_by_staff': True,
-            'staff_signature_date': fields.Datetime.now(),
-            'state': 'signed' if not self.signed_by_customer else 'active'
-        })
+        vals = {
+            'signed_by_customer': True,
+            'customer_signature_date': fields.Datetime.now(),
+            'customer_signature': signature_data,
+            'state': 'signed'
+        }
         
-        # Log the staff signature
-        self.message_post(
-            body=_('Contract signed by staff (%s)') % self.env.user.name
+        contract.write(vals)
+        
+        # Log the customer signature
+        contract.message_post(
+            body=_('Contract signed by customer')
         )
+        
+        return True
     
     def action_activate(self):
         """Activate the contract"""

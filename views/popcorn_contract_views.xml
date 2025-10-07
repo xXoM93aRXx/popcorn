@@ -29,10 +29,6 @@
                 <header>
                     <button name="action_approve" string="Approve" type="object" 
                             class="btn-primary" invisible="state != 'draft'"/>
-                    <button name="action_sign_customer" string="Sign (Customer)" type="object" 
-                            class="btn-secondary" invisible="state not in ['approved', 'signed']"/>
-                    <button name="action_sign_staff" string="Sign (Staff)" type="object" 
-                            class="btn-secondary" invisible="state not in ['approved', 'signed']"/>
                     <button name="action_activate" string="Activate" type="object" 
                             class="btn-success" invisible="state != 'signed'"/>
                     <button name="action_cancel" string="Cancel" type="object" 

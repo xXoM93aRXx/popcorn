@@ -18,8 +18,8 @@
                     <div style="margin-bottom: 20px;">
                         <div style="width: 50%; float: left;">
                             <p><strong>甲方Party A：</strong></p>
-                            <p>姓名 Name：[Member Name]</p>
-                            <p>联系方式 Contact Number：[Contact Number]</p>
+                            <p>姓名 Name：<t t-out="doc.partner_id.name or 'N/A'"/></p>
+                            <p>联系方式 Contact Number：<t t-out="doc.partner_id.phone or doc.partner_id.mobile or 'N/A'"/></p>
                         </div>
                         <div style="width: 50%; float: right;">
                             <p><strong>乙方 Party B：</strong></p>
@@ -40,8 +40,8 @@
                     <!-- Membership Details -->
                     <div style="margin-bottom: 20px;">
                         <h2>一、会员类型与权益 Membership Types &amp; Benefits</h2>
-                        <p>甲方根据自身需求选择（90天金卡/180天金卡/365天金卡/自由卡/体验卡/线上迷你卡/线上进阶卡）会员卡，支付原价/折扣价￥<strong>[Price]</strong> 元。</p>
-                        <p>Party A chose the membership card(s) based on personal needs (90-Day Gold Card / 180-Day Gold Card / 365-Day Gold Card / Freedom Card / EXP Card / Online MiniPass / Online MegaPass), and pay the original/discounted price of ￥<strong>[Price]</strong>.</p>
+                        <p>甲方根据自身需求选择（90天金卡/180天金卡/365天金卡/自由卡/体验卡/线上迷你卡/线上进阶卡）会员卡，支付原价/折扣价￥<strong><t t-out="'%.2f' % doc.membership_id.purchase_price_paid if doc.membership_id else '0.00'"/></strong> 元。</p>
+                        <p>Party A chose the membership card(s) based on personal needs (90-Day Gold Card / 180-Day Gold Card / 365-Day Gold Card / Freedom Card / EXP Card / Online MiniPass / Online MegaPass), and pay the original/discounted price of ￥<strong><t t-out="'%.2f' % doc.membership_id.purchase_price_paid if doc.membership_id else '0.00'"/></strong>.</p>
                         
                         <!-- Membership Table -->
                         <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
@@ -338,9 +338,9 @@
                     <div style="margin-top: 50px;">
                         <div style="width: 50%; float: left;">
                             <p><strong>甲方（签名）：</strong></p>
-                            <div style="min-height: 60px; border-bottom: 1px solid #000; margin-bottom: 10px;">
+                            <div style="min-height: 100px; border-bottom: 1px solid #000; margin-bottom: 10px;">
                                 <t t-if="doc.customer_signature">
-                                    <img t-att-src="image_data_uri(doc.customer_signature)" style="max-height: 50px; max-width: 200px;"/>
+                                    <img t-att-src="image_data_uri(doc.customer_signature)" style="max-height: 120px; max-width: 350px;"/>
                                 </t>
                             </div>
                             <p>签署日期：<t t-out="doc.customer_signature_date.strftime('%Y-%m-%d') if doc.customer_signature_date else 'Not signed'"/></p>

@@ -212,7 +212,7 @@
                                     <t t-else="">Complete Your Membership Purchase</t>
                                 </h2>
                                 
-                                <form t-attf-action="/memberships/#{plan.id}/process_checkout" method="post" class="popcorn-checkout-form-content">
+                                <form t-attf-action="/memberships/#{plan.id}/process_checkout" method="post" class="popcorn-checkout-form-content popcorn-membership-checkout-form">
                                     <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                                     
                                     <!-- Personal Information -->
@@ -305,6 +305,44 @@
                                         </button>
                                     </div>
                                 </form>
+                            </div>
+                            
+                            <!-- Signature Modal (matching freeze modal style) -->
+                            <div class="modal fade" id="signatureModal" tabindex="-1" role="dialog" aria-labelledby="signatureModalLabel" aria-hidden="true">
+                                <div class="modal-dialog" role="document">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="signatureModalLabel">
+                                                <i class="fa fa-pencil me-2"></i><span t-translation="on">Sign Terms &amp; Conditions</span>
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="alert alert-info">
+                                                <i class="fa fa-info-circle me-2"></i>
+                                                <span t-translation="on">Please draw your signature below to accept the terms and conditions.</span>
+                                            </div>
+                                            
+                                            <div class="popcorn-signature-canvas-wrapper">
+                                                <canvas id="popcorn-signature-canvas" width="600" height="200"></canvas>
+                                            </div>
+                                            
+                                            <div class="popcorn-signature-actions mt-3">
+                                                <button type="button" class="btn btn-secondary popcorn-clear-signature">
+                                                    <i class="fa fa-eraser"></i> <span t-translation="on">Clear</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                <span t-translation="on">Cancel</span>
+                                            </button>
+                                            <button type="button" class="btn btn-primary popcorn-confirm-signature">
+                                                <i class="fa fa-check"></i> <span t-translation="on">Confirm Signature</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         

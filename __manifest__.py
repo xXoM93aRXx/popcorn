@@ -83,6 +83,8 @@
             'popcorn/static/src/js/popcorn_day_filter.js',
             'popcorn/static/src/js/popcorn_referral.js',
             'popcorn/static/src/js/popcorn_membership_anchor_scroll.js',
+            'popcorn/static/src/js/popcorn_frontend_signature.js',
+            'popcorn/static/src/css/popcorn_frontend_signature_styles.css',
         ],
         'web.report_assets_common': [
             'popcorn/static/src/css/popcorn_contract_report.css',
