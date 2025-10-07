@@ -339,9 +339,11 @@
                         <div style="width: 50%; float: left;">
                             <p><strong>甲方（签名）：</strong></p>
                             <div style="min-height: 60px; border-bottom: 1px solid #000; margin-bottom: 10px;">
-                                <!-- Customer signature placeholder -->
+                                <t t-if="doc.customer_signature">
+                                    <img t-att-src="image_data_uri(doc.customer_signature)" style="max-height: 50px; max-width: 200px;"/>
+                                </t>
                             </div>
-                            <p>签署日期：[Signature Date]</p>
+                            <p>签署日期：<t t-out="doc.customer_signature_date.strftime('%Y-%m-%d') if doc.customer_signature_date else 'Not signed'"/></p>
                         </div>
                         <div style="width: 50%; float: right;">
                             <p><strong>乙方（盖章）：帕谷（上海）商务咨询有限公司</strong></p>

@@ -602,11 +602,10 @@ class PopcornMembership(models.Model):
         if self.contract_id:
             raise UserError(_('A contract already exists for this membership'))
         
-        # Create contract with default text
+        # Create contract without contract_text field
         contract_vals = {
             'membership_id': self.id,
             'contract_type': 'standard',
-            'contract_text': self._get_default_contract_text(),
             'state': 'draft'
         }
         
@@ -643,61 +642,6 @@ class PopcornMembership(models.Model):
             'view_mode': 'form',
             'target': 'current',
         }
-    
-    def _get_default_contract_text(self):
-        """Get default contract text based on membership plan"""
-        plan = self.membership_plan_id
-        if not plan:
-            return _('Standard membership contract terms and conditions.')
-        
-        contract_text = f"""
-        <h2>Membership Contract</h2>
-        <h3>Plan: {plan.name}</h3>
-        <p><strong>Member:</strong> {self.partner_id.name if self.partner_id else 'N/A'}</p>
-        <p><strong>Purchase Price:</strong> {self.purchase_price_paid} {self.currency_id.symbol if self.currency_id else ''}</p>
-        <p><strong>Duration:</strong> {plan.duration_days} days</p>
-        
-        <h3>Terms and Conditions:</h3>
-        <ul>
-            <li>This membership is valid for {plan.duration_days} days from the activation date.</li>
-            <li>The member agrees to abide by all club rules and regulations.</li>
-            <li>Membership benefits are subject to the terms of the selected plan.</li>
-            <li>Refunds are subject to the club's refund policy.</li>
-        </ul>
-        
-        <h3>Plan Details:</h3>
-        <p><strong>Quota Mode:</strong> {dict(plan._fields['quota_mode'].selection)[plan.quota_mode]}</p>
-        """
-        
-        if plan.quota_mode == 'bucket_counts':
-            contract_text += f"""
-            <ul>
-                <li>Offline Sessions: {plan.quota_offline or 0}</li>
-                <li>Online Sessions: {plan.quota_online or 0}</li>
-                <li>Special Club Sessions: {plan.quota_sp or 0}</li>
-            </ul>
-            """
-        elif plan.quota_mode == 'points':
-            contract_text += f"""
-            <ul>
-                <li>Starting Points: {plan.points_start or 0}</li>
-                <li>Points per Offline Session: {plan.points_per_offline or 0}</li>
-                <li>Points per Online Session: {plan.points_per_online or 0}</li>
-                <li>Points per Special Club Session: {plan.points_per_sp or 0}</li>
-            </ul>
-            """
-        elif plan.quota_mode == 'unlimited':
-            contract_text += """
-            <ul>
-                <li>Unlimited access to all club activities</li>
-            </ul>
-            """
-        
-        contract_text += """
-        <p><strong>Signature:</strong> By signing this contract, both parties agree to the terms and conditions outlined above.</p>
-        """
-        
-        return contract_text
     
     def apply_discount(self, discount):
         """Apply a discount to this membership"""

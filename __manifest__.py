@@ -55,6 +55,7 @@
         'views/popcorn_contract_website_templates.xml',
         'views/popcorn_contact_templates.xml',
         'views/popcorn_contract_template.xml',
+        'views/popcorn_signature_actions.xml',
         'report/popcorn_contract_report_template.xml',
         'report/popcorn_contract_report_action.xml',
         'views/popcorn_contract_views.xml',
@@ -85,6 +86,12 @@
         ],
         'web.report_assets_common': [
             'popcorn/static/src/css/popcorn_contract_report.css',
+        ],
+        'web.assets_backend': [
+            'popcorn/static/src/js/popcorn_signature_dialog.js',
+            'popcorn/static/src/js/popcorn_signature_service.js',
+            'popcorn/static/src/css/popcorn_signature_styles.css',
+            'popcorn/static/src/xml/popcorn_signature_templates.xml',
         ],
     },
     'installable': True,

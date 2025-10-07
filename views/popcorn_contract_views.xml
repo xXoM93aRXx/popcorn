@@ -39,6 +39,8 @@
                             class="btn-danger" invisible="state not in ['draft', 'pending_approval', 'approved', 'signed']"/>
                     <button name="action_expire" string="Expire" type="object" 
                             class="btn-warning" invisible="state != 'active'"/>
+                    <button name="action_open_signature_dialog" string="Sign Contract" type="object" 
+                            class="btn-info" invisible="state not in ['approved', 'signed'] or signed_by_customer"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,pending_approval,approved,signed,active"/>
                 </header>
                 <sheet>

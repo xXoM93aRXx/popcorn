@@ -6,3 +6,4 @@ from . import popcorn_contract_controller
 from . import popcorn_contact_controller
 from . import popcorn_money_controller
 from . import popcorn_referral_controller
+from . import popcorn_signature_controller

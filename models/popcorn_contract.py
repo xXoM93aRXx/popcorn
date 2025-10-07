@@ -120,6 +120,16 @@ class PopcornContract(models.Model):
             body=_('Contract signed by customer')
         )
     
+    @api.model
+    def sign_customer_contract(self, contract_id, signature_data):
+        """Sign contract with customer signature data"""
+        contract = self.browse(contract_id)
+        if not contract.exists():
+            raise UserError(_('Contract not found'))
+        
+        contract.action_sign_customer(signature_data)
+        return True
+    
     def action_sign_staff(self):
         """Mark contract as signed by staff"""
         self.ensure_one()
@@ -175,6 +185,24 @@ class PopcornContract(models.Model):
         self.message_post(
             body=_('Contract expired')
         )
+    
+    def action_open_signature_dialog(self):
+        """Open signature dialog for customer signing"""
+        self.ensure_one()
+        if self.state not in ['approved', 'signed']:
+            raise UserError(_('Contract must be approved before signing'))
+        
+        if self.signed_by_customer:
+            raise UserError(_('Contract is already signed by customer'))
+        
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'popcorn_signature_dialog',
+            'target': 'new',
+            'context': {
+                'contract_id': self.id,
+            }
+        }
     
     @api.model
     def _cron_expire_contracts(self):

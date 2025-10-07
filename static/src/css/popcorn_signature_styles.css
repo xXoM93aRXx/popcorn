@@ -1,0 +1,43 @@
+/* Popcorn Signature Dialog Styles */
+
+.o_signature_dialog_content {
+    padding: 20px;
+}
+
+.signature-canvas-container {
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    background-color: #ffffff;
+    padding: 10px;
+    display: inline-block;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.signature-canvas {
+    border: 1px dashed #adb5bd;
+    border-radius: 4px;
+    background-color: #ffffff;
+    cursor: crosshair;
+    display: block;
+    touch-action: none;
+}
+
+.signature-canvas:hover {
+    border-color: #6c757d;
+}
+
+.signature-canvas:active {
+    border-color: #495057;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .signature-canvas {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .signature-canvas-container {
+        width: 100%;
+    }
+}
