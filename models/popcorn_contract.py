@@ -13,7 +13,6 @@ class PopcornContract(models.Model):
 
     # Core fields
     membership_id = fields.Many2one('popcorn.membership', string='Membership', required=True, ondelete='cascade')
-    contract_text = fields.Html(string='Contract Text', required=True, help='The full contract text and terms')
     contract_type = fields.Selection([
         ('standard', 'Standard Contract'),
         ('custom', 'Custom Contract'),
@@ -45,10 +44,6 @@ class PopcornContract(models.Model):
     customer_signature = fields.Binary(string='Customer Signature', attachment=True, help='Digital signature from customer')
     approved_by = fields.Many2one('res.users', string='Approved By', readonly=True)
     approval_date = fields.Datetime(string='Approval Date', readonly=True)
-    
-    # Contract terms and conditions
-    terms_and_conditions = fields.Html(string='Terms and Conditions', help='Additional terms and conditions')
-    special_conditions = fields.Text(string='Special Conditions', help='Any special conditions or notes')
     
     # Related fields for convenience
     partner_id = fields.Many2one('res.partner', string='Member', related='membership_id.partner_id', store=True)

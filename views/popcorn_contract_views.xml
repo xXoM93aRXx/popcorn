@@ -78,17 +78,6 @@
                             <field name="approval_date" readonly="1"/>
                         </group>
                     </group>
-                    <notebook>
-                        <page string="Contract Text" name="contract_text">
-                            <field name="contract_text" nolabel="1"/>
-                        </page>
-                        <page string="Terms &amp; Conditions" name="terms_conditions">
-                            <field name="terms_and_conditions" nolabel="1"/>
-                        </page>
-                        <page string="Special Conditions" name="special_conditions">
-                            <field name="special_conditions" nolabel="1"/>
-                        </page>
-                    </notebook>
                 </sheet>
                 <chatter/>
             </form>

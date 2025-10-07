@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Contract Report Template -->
+        <template id="popcorn_contract_report_template">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="doc">
+                    <div class="page">
+                        <t t-call="popcorn.popcorn_service_contract_template"/>
+                    </div>
+                </t>
+            </t>
+        </template>
+    </data>
+</odoo>

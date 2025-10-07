@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Service Contract Template -->
+        <template id="popcorn_service_contract_template" name="Service Contract Template">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="doc">
+                    <t t-call="web.basic_layout">
+                <div class="contract-content" style="font-family: 'WenQuanYi Micro Hei', 'Microsoft YaHei', 'SimSun', 'PingFang SC', 'Hiragino Sans GB', 'Arial Unicode MS', Arial, sans-serif; max-width: 750px; margin: 0 auto; padding: 5px 15px; font-size: 14px; line-height: 1.6;">
+                    
+                    <!-- Header -->
+                    <div style="text-align: center; margin-bottom: 15px; margin-top: 0; padding-top: 0;">
+                        <div class="chinese-test" style="font-size: 22px; margin-bottom: 3px; margin-top: 0; padding-top: 0;"><strong>服务合同</strong></div>
+                        <h1 style="font-size: 22px; margin-bottom: 8px; margin-top: 0;"><strong>Service Contract</strong></h1>
+                    </div>
+
+                    <!-- Party Information -->
+                    <div style="margin-bottom: 20px;">
+                        <div style="width: 50%; float: left;">
+                            <p><strong>甲方Party A：</strong></p>
+                            <p>姓名 Name：[Member Name]</p>
+                            <p>联系方式 Contact Number：[Contact Number]</p>
+                        </div>
+                        <div style="width: 50%; float: right;">
+                            <p><strong>乙方 Party B：</strong></p>
+                            <p>公司名称 Company Name：帕谷（上海）商务咨询有限公司</p>
+                            <p>统一社会信用代码 Unified Social Credit Code：91310115MA1HA8CK0W</p>
+                            <p>法定代表人 Legal Representative：DAVID MIZRAHI</p>
+                            <p>联系方式 Contact Number：15921418167</p>
+                        </div>
+                        <div style="clear: both;"></div>
+                    </div>
+
+                    <!-- Introduction -->
+                    <div style="margin-bottom: 20px;">
+                        <p>亲爱的朋友，欢迎您加入我司俱乐部！为了让每一位会员都能在轻松愉快的氛围中享受英语交流的乐趣，我们特别制定了以下会员规则，以便共同维护社交俱乐部的良好秩序和体验。</p>
+                        <p>Dear friend, you're welcome to join us! To ensure that every member enjoys English communication in a relaxed and pleasant environment, we have established the following membership rules to jointly maintain good order and experience within the social club.</p>
+                    </div>
+
+                    <!-- Membership Details -->
+                    <div style="margin-bottom: 20px;">
+                        <h2>一、会员类型与权益 Membership Types &amp; Benefits</h2>
+                        <p>甲方根据自身需求选择（90天金卡/180天金卡/365天金卡/自由卡/体验卡/线上迷你卡/线上进阶卡）会员卡，支付原价/折扣价￥<strong>[Price]</strong> 元。</p>
+                        <p>Party A chose the membership card(s) based on personal needs (90-Day Gold Card / 180-Day Gold Card / 365-Day Gold Card / Freedom Card / EXP Card / Online MiniPass / Online MegaPass), and pay the original/discounted price of ￥<strong>[Price]</strong>.</p>
+                        
+                        <!-- Membership Table -->
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 8px; background-color: #f0f0f0;" colspan="2"><strong>会员卡类型<br/>Membership Type</strong></td>
+                                <td style="border: 1px solid #000; padding: 8px; background-color: #f0f0f0;"><strong>使用期限<br/>Validity</strong></td>
+                                <td style="border: 1px solid #000; padding: 8px; background-color: #f0f0f0;"><strong>使用范围<br/>Application range</strong></td>
+                                <td style="border: 1px solid #000; padding: 8px; background-color: #f0f0f0;"><strong>说明<br/>Notes</strong></td>
+                                <td style="border: 1px solid #000; padding: 8px; background-color: #f0f0f0;"><strong>原价<br/>Price</strong></td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 8px;" rowspan="2">90天金卡<br/>90-Day Gold Card</td>
+                                <td style="border: 1px solid #000; padding: 8px;">Regular</td>
+                                <td style="border: 1px solid #000; padding: 8px;">90天<br/>90 days</td>
+                                <td style="border: 1px solid #000; padding: 8px;">有效期内可无限次参加线下及线上 Regular Clubs<br/>Unlimited participation in offline &amp; online Regular Clubs during validity period</td>
+                                <td style="border: 1px solid #000; padding: 8px;" rowspan="2">按自然日计算<br/>Calculated by calendar days</td>
+                                <td style="border: 1px solid #000; padding: 8px;">5988</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 8px;">VIP</td>
+                                <td style="border: 1px solid #000; padding: 8px;">90天<br/>90 days</td>
+                                <td style="border: 1px solid #000; padding: 8px;">有效期内可无限次参加线下及线上 Regular, Specialty Clubs 及 Party<br/>Unlimited participation in offline &amp; online Regular, Specialty Clubs, and Parties during validity period</td>
+                                <td style="border: 1px solid #000; padding: 8px;">7777</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 8px;" rowspan="2">180天金卡<br/>180-Day Gold Card</td>
+                                <td style="border: 1px solid #000; padding: 8px;">Regular</td>
+                                <td style="border: 1px solid #000; padding: 8px;">180天<br/>180 days</td>
+                                <td style="border: 1px solid #000; padding: 8px;">有效期内可无限次参加线下及线上 Regular Clubs<br/>Unlimited participation in offline &amp; online Regular Clubs during validity period</td>
+                                <td style="border: 1px solid #000; padding: 8px;" rowspan="2">按自然日计算<br/>Calculated by calendar days</td>
+                                <td style="border: 1px solid #000; padding: 8px;">8788</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 8px;">VIP</td>
+                                <td style="border: 1px solid #000; padding: 8px;">180天<br/>180 days</td>
+                                <td style="border: 1px solid #000; padding: 8px;">有效期内可无限次参加线下及线上 Regular, Specialty Clubs 及 Party<br/>Unlimited participation in offline &amp; online Regular, Specialty Clubs, and Parties during validity period</td>
+                                <td style="border: 1px solid #000; padding: 8px;">10988</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 8px;" rowspan="2">365天金卡<br/>365-Day Gold Card</td>
+                                <td style="border: 1px solid #000; padding: 8px;">Regular</td>
+                                <td style="border: 1px solid #000; padding: 8px;">365天<br/>365 days</td>
+                                <td style="border: 1px solid #000; padding: 8px;">有效期内可无限次参加线下及线上 Regular Clubs<br/>Unlimited participation in offline &amp; online Regular Clubs during validity period</td>
+                                <td style="border: 1px solid #000; padding: 8px;" rowspan="2">按自然日计算<br/>Calculated by calendar days</td>
+                                <td style="border: 1px solid #000; padding: 8px;">13988</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 8px;">VIP</td>
+                                <td style="border: 1px solid #000; padding: 8px;">365天<br/>365 days</td>
+                                <td style="border: 1px solid #000; padding: 8px;">有效期内可无限次参加线下及线上 Regular, Specialty Clubs 及 Party<br/>Unlimited participation in offline &amp; online Regular, Specialty Clubs, and Parties during validity period</td>
+                                <td style="border: 1px solid #000; padding: 8px;">16988</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 8px;" colspan="2">自由卡<br/>Freedom Card</td>
+                                <td style="border: 1px solid #000; padding: 8px;">无期限<br/>No time limit</td>
+                                <td style="border: 1px solid #000; padding: 8px;">包含 36 场线下 Regular Clubs, 同时可用于参加线上 Regular, 线下 Specialty Clubs 及 Party; 3 场线上 Regular Clubs=2 场线下 Regular Clubs=1 场 Specialty Club/Party<br/>Includes 36 offline Regular Clubs, also accessible to online Regular Clubs, offline Specialty Clubs and Parties. 3 online Regular Clubs=2 offline Regular Clubs=1 Specialty Club/Party</td>
+                                <td style="border: 1px solid #000; padding: 8px;">可灵活安排 无时效限制<br/>No time limit</td>
+                                <td style="border: 1px solid #000; padding: 8px;">7388</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 8px;" colspan="2">体验卡<br/>EXP Card</td>
+                                <td style="border: 1px solid #000; padding: 8px;">90天<br/>90 days</td>
+                                <td style="border: 1px solid #000; padding: 8px;">有效期内可参加 6 场线下 Regular Clubs<br/>6 offline Regular Clubs available within validity period</td>
+                                <td style="border: 1px solid #000; padding: 8px;">按自然日计算<br/>Calculated by calendar days</td>
+                                <td style="border: 1px solid #000; padding: 8px;">1398</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 8px;" colspan="2">线上迷你卡<br/>Online MiniPass</td>
+                                <td style="border: 1px solid #000; padding: 8px;">90天<br/>90 days</td>
+                                <td style="border: 1px solid #000; padding: 8px;">有效期内可参加 6 次线上 Regular Clubs<br/>6 online Regular Clubs available within validity period</td>
+                                <td style="border: 1px solid #000; padding: 8px;">按自然日计算<br/>Calculated by calendar days</td>
+                                <td style="border: 1px solid #000; padding: 8px;">888</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 8px;" colspan="2">线上进阶卡<br/>Online MegaPass</td>
+                                <td style="border: 1px solid #000; padding: 8px;">270天<br/>270 days</td>
+                                <td style="border: 1px solid #000; padding: 8px;">有效期内可参加 18 次线上 Regular Clubs<br/>18 online Regular Clubs available within validity period</td>
+                                <td style="border: 1px solid #000; padding: 8px;">按自然日计算<br/>Calculated by calendar days</td>
+                                <td style="border: 1px solid #000; padding: 8px;">2333</td>
+                            </tr>
+                        </table>
+                        
+                        <p style="margin-top: 15px;"><strong>* 会员有效期自该卡启用后预约的第一场club开始计算。The membership validity period is calculated from the first club booked after the card is activated.</strong></p>
+                        
+                        <p style="margin-top: 15px;">2025年3月15日前线下Regular Club单场原价为266元，2025年3月16日起线下Regular Club单场原价为298元，线上Regular Club单场原价为180元；Specialty Clubs由于内容不同，具体以单场宣传价格为准。乙方保留未来提价的权利，所有价格将以甲方参与活动时的价格为基准，但乙方需提前至少10个自然日公开宣传价格调整前后明细。</p>
+                        <p>Before March 16, 2025, the standard price for a single offline Regular Club was ￥266. Starting from March 16, 2025, the standard price for a single offline Regular Club is ￥298, for a single online Regular Club is ￥180. Standard prices for Specialty Clubs vary depending on content. Party B reserves the right to increase prices in the future, and any dealings will be based on the prices at the time of those dealings. However, Party B must publicly announce the detailed price adjustments (before and after) at least 10 calendar days in advance.</p>
+                        
+                        <p style="margin-top: 15px;">如乙方因中国官方节假日原因或乙方单方面意愿不安排club活动，所有会员时效按乙方放假天数相应延长。</p>
+                        <p>If no club events are held due to Chinese government holidays or the will of Party B, the validity of all membership cards will be extended accordingly.</p>
+                    </div>
+
+                    <!-- Terms and Conditions -->
+                    <div style="margin-bottom: 20px;">
+                        <h2>二、报名与取消规则 Registration &amp; Cancellation Rules</h2>
+                        <p>1. 甲方需通过俱乐部官方渠道报名参加每次活动。Party A must register through official channels for each club activity.</p>
+                        <p>2. 甲方如欲取消已报名club，须在club开始前24小时或以上取消；次卡会员若在活动开始前24小时内取消，理论上club次数不予返还，个别情况可人性化操作返还。但连续3次club开始前2小时内取消后，自第三次起24小时内取消将照常扣除，不予返还。</p>
+                        <p>If Party A wishes to cancel a reservation, it must be done at least 24 hours before the club starts. For freedom card or EXP card members, cancellations within 24 hours typically will not be refunded. Exceptions can be made case-by-case. However, if a member cancels within 2 hours before start time 3 consecutive times, then from the third time onward, cancellations within 24 hours will result in deductions and will not be refunded.</p>
+                    </div>
+
+                    <!-- Gold Card Freeze Privilege -->
+                    <div style="margin-bottom: 20px;">
+                        <h2>三、金卡会员冻卡权益 Gold Card Freeze Privilege</h2>
+                        <p>对于90天、180天及365天金卡会员可享受冻卡权益，及阶段性不参加任何club活动，会员有效期相应延长，具体权益细则如下：</p>
+                        <p>Gold members (90/180/365-day gold members) may temporarily suspend their memberships. During this frozen period, the validity will be extended accordingly.</p>
+                        
+                        <p>1. 90天金卡会员最长可冻卡15天，180天金卡会员最长可冻卡30天，365天金卡会员最长可冻卡75天；</p>
+                        <p>90-day gold card members can freeze up to 15 days, 180-day gold members can freeze up to 30 days, 365-day gold members can freeze up to 75 days;</p>
+                        
+                        <p>2. 单次冻卡时长需大于或等于7天，没有次数限制；Each freeze must be at least 7 days. No limit on the number of freezes.</p>
+                        
+                        <p>3. 冻卡期间无法预约任何club活动或使用乙方空间、设施或各类资源。</p>
+                        <p>During the freeze period, members cannot book events or use the club's space, facilities, or resources.</p>
+                    </div>
+
+                    <!-- Renewal Policy -->
+                    <div style="margin-bottom: 20px;">
+                        <h2>三、续卡 Renewal Policy</h2>
+                        <p>1. 续卡折扣：对于Popcorn金卡老会员在金卡到期前30天或以上续卡可享续卡折扣，自由卡老会员在卡内次数剩余5次或以上线下Regular Clubs时续卡可享续卡折扣，具体续卡折扣如下：</p>
+                        <p>Renewal discounts apply if:</p>
+                        <p>• Gold card members renew 30 days or more before the expiration date;</p>
+                        <p>• Freedom Card holders renew while having at least 5 offline Regular Clubs remaining.</p>
+                        
+                        <!-- Renewal Discount Table -->
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 8px; background-color: #f0f0f0;"><strong>会员卡类型<br/>Membership Type</strong></td>
+                                <td style="border: 1px solid #000; padding: 8px; background-color: #f0f0f0;"><strong>原价<br/>Original Price</strong></td>
+                                <td style="border: 1px solid #000; padding: 8px; background-color: #f0f0f0;"><strong>续卡折扣价<br/>Renewal Price</strong></td>
+                                <td style="border: 1px solid #000; padding: 8px; background-color: #f0f0f0;"><strong>会员卡类型<br/>Membership Type</strong></td>
+                                <td style="border: 1px solid #000; padding: 8px; background-color: #f0f0f0;"><strong>原价<br/>Original Price</strong></td>
+                                <td style="border: 1px solid #000; padding: 8px; background-color: #f0f0f0;"><strong>续卡折扣价<br/>Renewal Price</strong></td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 8px;" rowspan="2">90天金卡<br/>90-Day Gold Card</td>
+                                <td style="border: 1px solid #000; padding: 8px;">5988</td>
+                                <td style="border: 1px solid #000; padding: 8px;">5388</td>
+                                <td style="border: 1px solid #000; padding: 8px;" rowspan="2">180天金卡<br/>180-Day Gold Card</td>
+                                <td style="border: 1px solid #000; padding: 8px;">8788</td>
+                                <td style="border: 1px solid #000; padding: 8px;">7888</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 8px;">7777</td>
+                                <td style="border: 1px solid #000; padding: 8px;">6999</td>
+                                <td style="border: 1px solid #000; padding: 8px;">10988</td>
+                                <td style="border: 1px solid #000; padding: 8px;">9888</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 8px;" rowspan="2">365天金卡<br/>365-Day Gold Card</td>
+                                <td style="border: 1px solid #000; padding: 8px;">13988</td>
+                                <td style="border: 1px solid #000; padding: 8px;">12588</td>
+                                <td style="border: 1px solid #000; padding: 8px;">自由卡<br/>Freedom Card</td>
+                                <td style="border: 1px solid #000; padding: 8px;">7388</td>
+                                <td style="border: 1px solid #000; padding: 8px;">6666</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 8px;">16988</td>
+                                <td style="border: 1px solid #000; padding: 8px;">15288</td>
+                                <td style="border: 1px solid #000; padding: 8px;">体验卡<br/>EXP Card</td>
+                                <td style="border: 1px solid #000; padding: 8px;">1398</td>
+                                <td style="border: 1px solid #000; padding: 8px;">/</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 8px;">线上进阶卡<br/>Online MegaPass</td>
+                                <td style="border: 1px solid #000; padding: 8px;">2333</td>
+                                <td style="border: 1px solid #000; padding: 8px;">/</td>
+                                <td style="border: 1px solid #000; padding: 8px;">线上迷你卡<br/>Online MiniPass</td>
+                                <td style="border: 1px solid #000; padding: 8px;">888</td>
+                                <td style="border: 1px solid #000; padding: 8px;">/</td>
+                            </tr>
+                        </table>
+                        
+                        <p>2. 甲方如通过Popcorn线上平台自行续卡，请主动联系乙方工作人员签署此协议；但未联系乙方工作人员签署此协议者，此协议所有权益及责任相应顺延；如乙方更改会员权益及责任，应通过公告告知所有会员，甲方有权在公告后15个工作日内拒绝权益变更。</p>
+                        <p>If Party A renews via the online Popcorn platform, please proactively contact Party B to sign this agreement. If Party A does not contact Party B, the terms and responsibilities in this agreement will continue as is. If Party B changes any terms, Party B will inform Party A and obtain Party A's consent. If Party A renews the membership independently through the Popcorn online platform, they must proactively contact Party B's staff to sign this agreement. If Party A does not contact Party B's staff to sign this agreement, all rights and obligations under this agreement will be automatically extended. Should Party B make any changes to the membership rights and obligations, Party B must notify all members through a public announcement. Party A has the right to reject such changes within 15 working days of the announcement.</p>
+                        
+                        <p>3. 如未来乙方提价，续卡折扣会相应提升。If Party B increases the prices in the future, these renewal prices will change accordingly.</p>
+                    </div>
+
+                    <!-- Refund and Transfer Policy -->
+                    <div style="margin-bottom: 20px;">
+                        <h2>四、退款与转卡政策 Refund &amp; Transfer Policy</h2>
+                        
+                        <h3>1. 金卡会员退款规则 Gold Card Refund Policy：</h3>
+                        <p>• 购买后不满7天，且未参加任何活动，可全额退款；If canceled within 7 days of purchase and no clubs have been attended, a full refund will be issued.</p>
+                        
+                        <p>• 金卡会员购买后7天且不满30天，如已参加不超过10次club，可按以下公式部分退款：退款金额 =（支付金额 – 已参加club次数 × 单场club原价）× 70%</p>
+                        <p>If canceled between 7 and 30 days of purchase and no more than 10 clubs have been attended, a partial refund will be issued based on the following formula: Refund Amount = (Payment – Number of Clubs Attended × Standard Club Price) × 70%</p>
+                        
+                        <p>• 180天金卡会员购买超过30天，但不满60天，或参加超过10次且不超过20场club</p>
+                        <p>For 180-day gold cards: If canceled after 30 days of purchase but within 60 days of purchase, or if 11–20 clubs have been attended;</p>
+                        
+                        <p>365天金卡会员购买超过30天，但不满90天，或参加超过10次且不超过30场club</p>
+                        <p>For 365-day gold cards: If canceled after 30 days but within 90 days of purchase, or if 11–30 clubs have been attended;</p>
+                        
+                        <p>可按以下公式部分退款：退款金额 =（支付金额 – 已参加club次数 × 单场club原价）× 50%</p>
+                        <p>A partial refund will be issued as follows: Refund Amount = (Payment – Number of Clubs Attended × Standard Club Price) × 50%</p>
+                        
+                        <p>• 90天金卡购买超过30天，或参超过10次club后，不予退款</p>
+                        <p>180天金卡购买超过60天，或参超过20次club后，不予退款</p>
+                        <p>365天金卡购买超过90天，或参超过30次club后，不予退款</p>
+                        <p>No refund will be issued if:</p>
+                        <p>90-day gold cards: more than 30 days have passed since purchase or more than 10 clubs have been attended.</p>
+                        <p>180-day gold cards: more than 60 days have passed since purchase or more than 20 clubs have been attended.</p>
+                        <p>365-day gold cards: more than 90 days have passed since purchase or more than 30 clubs have been attended.</p>
+                        
+                        <h3>2. 自由卡会员退款规则 Freedom Card Refund Policy：</h3>
+                        <p>• 购买不满7天，且未参加任何活动，可全额退款；If canceled within 7 days of purchase and no clubs have been attended, a full refund will be issued.</p>
+                        
+                        <p>• 购买不满30天，如已参加不超过3次club，可按以下公式部分退款：退款金额 =（支付金额 – 已参加场次 × 单场club原价）× 70%</p>
+                        <p>If canceled within 30 days of purchase and no more than 3 clubs have been attended, a partial refund will be issued as follows: Refund Amount = (Payment – Number of Clubs Attended × Standard Club Price) × 70%</p>
+                        
+                        <p>• 购买超过30天，但不满90天，或参加超过3场club，但不超过6次club，可按以下公式部分退款：退款金额 =（支付金额 – 已参加场次 × 单场club原价）× 50%</p>
+                        <p>If canceled after 30 days of purchase but within 90 days of purchase, or if 4–6 clubs have been attended, a partial refund will be issued as follows: Refund Amount = (Payment – Number of Clubs Attended × Standard Club Price) × 50%</p>
+                        
+                        <p>• 购买超过90天或参加超过6次club，不予退款。No refund will be issued 90 days after purchase date or after attending more than 6 clubs.</p>
+                        
+                        <h3>3. 体验卡会员退款规则 EXP Card Refund Policy：</h3>
+                        <p>• 购买不满7天，且未参加任何活动，可全额退款；If canceled within 7 days of purchase and no clubs have been attended, a full refund will be issued.</p>
+                        
+                        <p>• 购买超过7天，但不满30天，可按以下公式部分退款：退款金额 = 支付金额 × 70%</p>
+                        <p>If canceled after 7 days of purchase but within 30 days of purchase, a partial refund will be issued as follows: Refund Amount = Payment × 70%</p>
+                        
+                        <p>• 购买超过30天，或已参加1次club，不予退款。No refund will be issued 30 days after purchase date or once a club has been attended.</p>
+                        
+                        <h3>4. 线上进阶卡会员退款规则 Online MegaPass Refund Policy：</h3>
+                        <p>• 购买不满7天，且未参加任何活动，可全额退款；If canceled within 7 days of purchase and no clubs have been attended, a full refund will be issued.</p>
+                        
+                        <p>• 购买不满30天，如已参加不超过3次club，可按以下公式部分退款：退款金额 =（支付金额 – 已参加场次 × 单场club原价）× 70%</p>
+                        <p>If canceled within 30 days of purchase and no more than 3 clubs have been attended, a partial refund will be issued as follows: Refund Amount = (Payment – Number of Clubs Attended × Standard Club Price) × 70%</p>
+                        
+                        <p>• 购买超过90天或参加超过3次club，不予退款。No refund will be issued 90 days after purchase date or after attending more than 6 clubs.</p>
+                        
+                        <h3>5. 线上迷你卡会员退款规则 Online MiniPass Refund Policy：</h3>
+                        <p>• 购买不满7天，且未参加任何活动，可全额退款；If canceled within 7 days of purchase and no clubs have been attended, a full refund will be issued.</p>
+                        
+                        <p>• 购买超过7天，但不满30天，可按以下公式部分退款：退款金额 = 支付金额 × 70%</p>
+                        <p>If canceled after 7 days of purchase but within 30 days of purchase, a partial refund will be issued as follows: Refund Amount = Payment × 70%</p>
+                        
+                        <p>• 购买超过30天，或已参加1次club，不予退款。No refund will be issued 30 days after purchase date or once a club has been attended.</p>
+                        
+                        <h3>6. 特殊情况处理：如甲方因不可抗力因素需申请退卡，应提供相关证明，乙方可酌情处理。</h3>
+                        <p>Special Circumstances: In cases of force majeure, supporting documentation must be provided, refunds may be granted at the discretion of Party B.</p>
+                        
+                        <h3>7. 会员卡不得转让，特殊情况需提前与乙方沟通并经乙方书面同意后转让。经乙方书面同意转让的会员卡后续不予退款。</h3>
+                        <p>Membership Transfer: Memberships are non-transferable. In special cases, a transfer may be allowed with prior communication and written approval from Party B. Once transferred, the membership becomes non-refundable.</p>
+                        
+                        <h3>8. 金卡会员自第一场club后不可更改会员类型至自由卡或体验卡，特殊情况需提前与乙方沟通并经乙方书面同意后更改；经更改的会员类型后续不予退款。</h3>
+                        <p>Once a gold card member has attended their first club, they may not change their membership type to a Freedom Card or an EXP Card. In exceptional cases, changes must be discussed in advance with Party B and approved in writing. Membership types that have been changed are not eligible for any refunds.</p>
+                        
+                        <p><strong>注：若甲方于2025年9月5日前购买会籍且未签署书面合同，则自甲方在公众号点击展示合同页面的"阅读并同意"按钮之日起，本合同及其全部条款将追溯至甲方当前会籍首次预约俱乐部活动当日生效。若对本合同及条款存在任何疑问，请勿点击"同意"按钮，并请联系乙方工作人员进行确认。</strong></p>
+                        <p><strong>Note: If Party A purchased their membership before September 5, 2025 and has not signed a written contract, this contract and everything in it takes effect retroactively from the date of the first club event Party A booked on their current membership once they clicked "read and agree" on the contract shown to them on the Official Account. If there are any questions or concerns about the contract and its clause, please do not click "Agree" and instead contact Party B's staff for confirmation.</strong></p>
+                    </div>
+
+                    <!-- Party A Rights and Obligations -->
+                    <div style="margin-bottom: 20px;">
+                        <h2>六、甲方权利与义务 Party A's Rights &amp; Obligations</h2>
+                        <p>1. 甲方有权在会员有效期内享受相应权益。Party A can enjoy membership benefits during the valid period.</p>
+                        <p>2. 甲方应遵守俱乐部秩序，尊重他人，维护良好交流氛围。Party A should follow club rules, respect others, and maintain a friendly atmosphere.</p>
+                        <p>3. 甲方应妥善保管个人账户和信息，因个人原因造成损失由本人承担。Party A should secure personal account info. Losses due to personal error are borne by Party A.</p>
+</div>
+
+                    <!-- Party B Rights and Obligations -->
+                    <div style="margin-bottom: 20px;">
+                        <h2>七、乙方权利与义务 Party B's Rights &amp; Obligations</h2>
+                        <p>1. 乙方应按时组织俱乐部活动，确保活动内容积极健康、促进交流。Party B should organize club events on schedule and ensure healthy, engaging content.</p>
+                        <p>2. 乙方有权根据运营需要调整活动时间、频次、形式，提前通知会员。Party B may adjust event time, frequency, or format with prior notice.</p>
+                        <p>3. 乙方有权对严重违反俱乐部秩序或损害他人权益的会员进行劝退，必要时终止其会员资格，视情况决定是否退款。Party B may expel or revoke membership from those who severely disrupt club order or harm others.</p>
+</div>
+
+                    <!-- Portrait Usage Clause -->
+                    <div style="margin-bottom: 20px;">
+                        <h2>八、肖像使用条款 Portrait Usage Clause</h2>
+                        <p>1. 甲方同意，乙方在与本合同相关的活动过程中，可能会对甲方进行拍摄，并在不损害甲方合法权益的前提下，合理使用含有甲方肖像的照片、视频等资料，用于乙方的商业宣传、市场推广及相关展示。</p>
+                        <p>Party A agrees that Party B may, during activities related to this Contract, photograph or record Party A, and may, without infringing upon Party A's lawful rights, reasonably use images, videos, or other materials containing Party A's portrait for Party B's commercial promotion, marketing, and related display purposes.</p>
+                        
+                        <p>2. 如甲方不希望其肖像被公开使用，应在活动前或活动期间，以书面形式告知乙方并经双方确认，另行签署书面约定。</p>
+                        <p>If Party A does not wish their portrait to be publicly used, Party A shall notify Party B in writing before or during the activity, and both parties shall enter into a separate written agreement.</p>
+                        
+                        <p>3. 如甲方未作前述书面约定，乙方依法发布含有甲方肖像的宣传资料后，甲方如认为不宜继续公开的，有权以书面形式通知乙方。乙方应在收到书面通知后十个工作日内删除或停止使用相关资料。</p>
+                        <p>In the absence of such written agreement, if Party B has lawfully published promotional materials containing Party A's portrait and Party A later considers such materials unsuitable for continued public use, Party A may notify Party B in writing. Party B shall delete or cease use of such materials within ten work days upon receipt of such written notice.</p>
+                        
+                        <p>4. 甲方确认，对于乙方在收到书面通知前已发布的资料，乙方无义务进行追溯性删除，甲方亦不得因此向乙方主张追溯性的法律责任。</p>
+                        <p>Party A acknowledges that Party B is not obligated to retroactively delete materials published prior to receiving such written notice, and Party A shall not assert any retroactive legal liability against Party B in this regard.</p>
+</div>
+
+                    <!-- Other Terms -->
+                    <div style="margin-bottom: 20px;">
+                        <h2>九、其他</h2>
+                        <p>1. 本协议自甲方购买会员卡之日起生效。This agreement is effective upon membership card purchase.</p>
+                        <p>2. 本协议以中英文书就，如中英文版本存在歧义或不一致之处，应以中文版本为准并具有最终解释权。</p>
+                        <p>This Agreement is written in both Chinese and English. In case of any ambiguity or inconsistency between the two versions, the Chinese version shall prevail and shall be the final and binding interpretation.</p>
+                        <p>3. 本协议一式两份，甲乙双方各执一份，具有同等法律效力。This agreement is in duplicate; both parties hold one copy, with equal legal validity.</p>
+                        <p>4. 未尽事宜，双方协商解决。协商不成的，提交乙方注册地人民法院解决。Any issues not covered will be resolved via negotiation. If negotiation fails, disputes will be submitted to the court in Party B's registration location.</p>
+                    </div>
+                    <div style="margin-top: 50px;">
+                        <div style="width: 50%; float: left;">
+                            <p><strong>甲方（签名）：</strong></p>
+                            <div style="min-height: 60px; border-bottom: 1px solid #000; margin-bottom: 10px;">
+                                <!-- Customer signature placeholder -->
+                            </div>
+                            <p>签署日期：[Signature Date]</p>
+                        </div>
+                        <div style="width: 50%; float: right;">
+                            <p><strong>乙方（盖章）：帕谷（上海）商务咨询有限公司</strong></p>
+                            <div style="min-height: 60px; border-bottom: 1px solid #000; margin-bottom: 10px;"></div>
+                            <p>代表人签字：</p>
+                            <div style="min-height: 30px; border-bottom: 1px solid #000; margin-bottom: 10px;"></div>
+                            <p>签署日期：[Current Date]</p>
+                        </div>
+                        <div style="clear: both;"></div>
+                    </div>
+                </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+    </data>
+</odoo>

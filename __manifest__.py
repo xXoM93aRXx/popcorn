@@ -36,7 +36,6 @@
         'views/popcorn_membership_views.xml',
         'views/popcorn_membership_plan_views.xml',
         'views/popcorn_discount_views.xml',
-        'views/popcorn_contract_views.xml',
         'views/popcorn_partner_views.xml',
         'views/popcorn_badge_views.xml',
         'views/popcorn_referral_views.xml',
@@ -55,6 +54,10 @@
         'views/popcorn_host_profile_templates.xml',
         'views/popcorn_contract_website_templates.xml',
         'views/popcorn_contact_templates.xml',
+        'views/popcorn_contract_template.xml',
+        'report/popcorn_contract_report_template.xml',
+        'report/popcorn_contract_report_action.xml',
+        'views/popcorn_contract_views.xml',
     ],
     'assets': {
         'web.assets_frontend': [
@@ -80,7 +83,9 @@
             'popcorn/static/src/js/popcorn_referral.js',
             'popcorn/static/src/js/popcorn_membership_anchor_scroll.js',
         ],
-    
+        'web.report_assets_common': [
+            'popcorn/static/src/css/popcorn_contract_report.css',
+        ],
     },
     'installable': True,
     'application': True,

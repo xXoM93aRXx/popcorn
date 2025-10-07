@@ -167,8 +167,7 @@
                 <t t-set="frozen_membership" t-value="frozen_membership"/>
                 
                 
-                <a t-cache="event if not editable and event.website_published else None" 
-                   t-attf-href="/event/#{ slug(event) }/#{(not event.menu_id) and (event.event_registrations_open or event.event_registrations_sold_out) and 'register'}" 
+                <a t-attf-href="/event/#{ slug(event) }/#{(not event.menu_id) and (event.event_registrations_open or event.event_registrations_sold_out) and 'register'}" 
                    class="popcorn-event-card" 
                    t-att-data-publish="event.website_published and 'on' or 'off'" 
                    t-att-data-event-id="event.id"
@@ -374,8 +373,7 @@
                     </t>
                     
                     
-                    <a t-cache="event if not editable and event.website_published else None" 
-                       t-attf-href="/event/#{ slug(event) }/#{(not event.menu_id) and (event.event_registrations_open or event.event_registrations_sold_out) and 'register'}" 
+                    <a t-attf-href="/event/#{ slug(event) }/#{(not event.menu_id) and (event.event_registrations_open or event.event_registrations_sold_out) and 'register'}" 
                        class="popcorn-event-card" 
                        t-att-data-publish="event.website_published and 'on' or 'off'" 
                        t-att-data-event-id="event.id"

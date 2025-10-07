@@ -1,0 +1,26 @@
+/* Popcorn Contract Report Styles */
+@charset "UTF-8";
+
+.contract-content {
+    font-family: 'WenQuanYi Micro Hei', 'Microsoft YaHei', 'SimSun', 'PingFang SC', 'Hiragino Sans GB', 'Arial Unicode MS', Arial, sans-serif;
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 5px 15px;
+    font-size: 14px;
+    line-height: 1.6;
+    /* Force UTF-8 encoding */
+    unicode-bidi: embed;
+    direction: ltr;
+}
+
+/* Ensure proper character rendering */
+.contract-content * {
+    font-family: inherit;
+    unicode-bidi: inherit;
+}
+
+/* Test Chinese characters */
+.chinese-test {
+    font-family: 'WenQuanYi Micro Hei', 'Microsoft YaHei', 'SimSun', 'PingFang SC', 'Hiragino Sans GB', 'Arial Unicode MS', Arial, sans-serif;
+    unicode-bidi: embed;
+}
