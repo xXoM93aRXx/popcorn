@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        
+        <!-- Notification Containers Component -->
+        <template id="popcorn_notification_containers" name="Popcorn Notification Containers">
+            <!-- Banner container (top) -->
+            <div id="popcorn-banner-container-top" class="popcorn-banner-container popcorn-banner-container-top"></div>
+            
+            <!-- Banner container (bottom) -->
+            <div id="popcorn-banner-container-bottom" class="popcorn-banner-container popcorn-banner-container-bottom"></div>
+            
+            <!-- Popup container -->
+            <div id="popcorn-popup-container" class="popcorn-popup-container"></div>
+            
+            <!-- Popup overlay -->
+            <div id="popcorn-popup-overlay" class="popcorn-popup-overlay"></div>
+        </template>
+
+        <!-- Include notification containers in website layout -->
+        <template id="website_layout_notification" inherit_id="website.layout">
+            <xpath expr="//body" position="inside">
+                <t t-call="popcorn.popcorn_notification_containers"/>
+            </xpath>
+        </template>
+
+    </data>
+</odoo>
+

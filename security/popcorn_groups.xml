@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        
+        <!-- Category for Popcorn Groups -->
+        <record id="module_category_popcorn" model="ir.module.category">
+            <field name="name">Popcorn Club</field>
+            <field name="description">Manage Popcorn Club membership and event operations</field>
+            <field name="sequence">10</field>
+        </record>
+        
+        <!-- Follow up Group for membership expiry activities -->
+        <record id="group_membership_followup" model="res.groups">
+            <field name="name">Membership Follow-up</field>
+            <field name="category_id" ref="module_category_popcorn"/>
+            <field name="comment">Users in this group will receive activities for memberships nearing expiration</field>
+        </record>
+        
+    </data>
+</odoo>
+
+

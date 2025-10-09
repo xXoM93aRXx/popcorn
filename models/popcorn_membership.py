@@ -78,7 +78,7 @@ class PopcornMembership(models.Model):
     payment_reference = fields.Char(string='Payment Reference', readonly=True)
     
     # Contract relationship
-    contract_id = fields.Many2one('popcorn.contract', string='Contract', ondelete='cascade')
+    contract_id = fields.Many2one('popcorn.contract', string='Contract', ondelete='set null')
     
     # Related fields for convenience
     plan_duration_days = fields.Integer(string='Plan Duration (Days)', related='membership_plan_id.duration_days')
@@ -89,6 +89,8 @@ class PopcornMembership(models.Model):
     
     # Computed fields for duration
     total_duration_days = fields.Integer(string='Total Duration (Days)', compute='_compute_total_duration_days', store=True)
+    days_until_expiry = fields.Integer(string='Days Until Expiry', compute='_compute_days_until_expiry', store=False)
+    total_clubs_remaining = fields.Integer(string='Total Clubs Remaining', compute='_compute_total_clubs_remaining', store=False)
     
     @api.depends('membership_plan_id.duration_days', 'extra_days_extension')
     def _compute_total_duration_days(self):
@@ -97,6 +99,30 @@ class PopcornMembership(models.Model):
             base_duration = membership.membership_plan_id.duration_days or 0
             extra_days = membership.extra_days_extension or 0
             membership.total_duration_days = base_duration + extra_days
+    
+    def _compute_days_until_expiry(self):
+        """Compute days until membership expires"""
+        today = fields.Date.today()
+        for membership in self:
+            if membership.effective_end_date:
+                delta = membership.effective_end_date - today
+                membership.days_until_expiry = delta.days
+            else:
+                membership.days_until_expiry = 0
+    
+    def _compute_total_clubs_remaining(self):
+        """Compute total clubs/sessions remaining (for points-based plans, calculate equivalent clubs)"""
+        for membership in self:
+            if membership.plan_quota_mode == 'bucket_counts':
+                # For bucket plans, sum all remaining sessions
+                total = (membership.remaining_offline or 0) + (membership.remaining_online or 0) + (membership.remaining_sp or 0)
+                membership.total_clubs_remaining = total
+            elif membership.plan_quota_mode == 'points':
+                # For points plans, divide by 3 to get approximate clubs (assuming avg 3 points per club)
+                membership.total_clubs_remaining = (membership.points_remaining or 0) // 3
+            else:
+                # Unlimited plans
+                membership.total_clubs_remaining = -1
     
     @api.depends('activation_date', 'total_duration_days')
     def _compute_end_date_base(self):
@@ -578,6 +604,83 @@ class PopcornMembership(models.Model):
             if membership.points_remaining <= 15:
                 # Send low points notification (implement notification logic)
                 pass
+    
+    @api.model
+    def _cron_create_expiry_followup_activities(self):
+        """Cron job to create follow-up activities for memberships nearing expiration"""
+        # Get the follow-up group users
+        followup_group = self.env.ref('popcorn.group_membership_followup', raise_if_not_found=False)
+        if not followup_group or not followup_group.users:
+            # Skip if group doesn't exist or has no users
+            return
+        
+        # Activity type for membership follow-up (use default 'To Do' type)
+        activity_type = self.env.ref('mail.mail_activity_data_todo', raise_if_not_found=False)
+        if not activity_type:
+            activity_type = self.env['mail.activity.type'].search([('name', '=', 'To Do')], limit=1)
+        
+        today = fields.Date.today()
+        
+        # Get all active/frozen memberships
+        active_memberships = self.search([
+            ('state', 'in', ['active', 'frozen']),
+            ('effective_end_date', '!=', False)
+        ])
+        
+        # Process each membership based on its plan's follow-up days
+        for membership in active_memberships:
+            # Get follow-up days from the membership plan (default to '7' if not set)
+            followup_days_str = membership.membership_plan_id.expiry_followup_days or '7'
+            
+            # Parse comma-separated values
+            try:
+                followup_days_list = [int(day.strip()) for day in followup_days_str.split(',') if day.strip()]
+            except (ValueError, AttributeError):
+                # If parsing fails, use default of 7 days
+                followup_days_list = [7]
+            
+            # Check each follow-up interval
+            for days_before_expiry in followup_days_list:
+                # Calculate target date for this interval
+                target_date = today + timedelta(days=days_before_expiry)
+                
+                # Check if this membership expires on the target date
+                if membership.effective_end_date != target_date:
+                    continue
+                
+                # Check if activity already exists for this membership at this interval
+                existing_activity = self.env['mail.activity'].search([
+                    ('res_model', '=', 'popcorn.membership'),
+                    ('res_id', '=', membership.id),
+                    ('activity_type_id', '=', activity_type.id if activity_type else False),
+                    ('summary', 'ilike', f'Membership Expiring in {days_before_expiry} days')
+                ], limit=1)
+                
+                if existing_activity:
+                    # Skip if activity already exists for this interval
+                    continue
+                
+                # Create activity for each user in the follow-up group
+                for user in followup_group.users:
+                    activity_vals = {
+                        'activity_type_id': activity_type.id if activity_type else False,
+                        'summary': f'Membership Expiring in {days_before_expiry} days: {membership.display_name}',
+                        'note': f'''
+                            <p>The membership for <strong>{membership.partner_id.name}</strong> is expiring in <strong>{days_before_expiry} days</strong>.</p>
+                            <ul>
+                                <li><strong>Plan:</strong> {membership.membership_plan_id.name}</li>
+                                <li><strong>Expiry Date:</strong> {membership.effective_end_date}</li>
+                                <li><strong>Status:</strong> {dict(membership._fields['state'].selection)[membership.state]}</li>
+                            </ul>
+                            <p>Please contact the member to discuss renewal options.</p>
+                        ''',
+                        'date_deadline': today,
+                        'res_model_id': self.env['ir.model']._get('popcorn.membership').id,
+                        'res_id': membership.id,
+                        'user_id': user.id,
+                    }
+                    
+                    self.env['mail.activity'].create(activity_vals)
     
     def action_toggle_upgrade_discount(self):
         """Staff action to manually toggle upgrade discount ability"""

@@ -1,0 +1,581 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <!-- Note: These notifications use dynamic content from membership and event registration fields.
+             The notification system will fetch the user's active membership/upcoming event and display
+             the actual values. All rules must be satisfied (AND logic) for notification to show. -->
+        
+        <!-- ==================== GOLD CARD NOTIFICATIONS ==================== -->
+        
+        <!-- Gold Card - Always Visible Banner (45 days or less) -->
+        <record id="notification_gold_banner_always" model="popcorn.notification">
+            <field name="name">Gold Card Banner - Always Visible</field>
+            <field name="sequence">10</field>
+            <field name="notification_type">banner</field>
+            <field name="title">Time to Renew Your Membership!</field>
+            <field name="message"><![CDATA[
+                <p>Hey {name},</p>
+                <p>You have <strong>{days_until_expiry} days</strong> left on your <strong>Gold membership</strong>, renew it before {effective_end_date} to the same or bigger membership to get around 10% discount! Don't worry, the new card doesn't start until you want it to.</p>
+            ]]></field>
+            <field name="banner_position">top</field>
+            <field name="banner_style">warning</field>
+            <field name="auto_dismiss" eval="False"/>
+            <field name="show_action_button" eval="False"/>
+            <field name="show_once_per_session" eval="True"/>
+            <field name="show_once_per_user" eval="False"/>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_gold_banner_quota" model="popcorn.notification.rule">
+            <field name="name">Gold Banner - Unlimited Quota Mode</field>
+            <field name="notification_id" ref="notification_gold_banner_always"/>
+            <field name="sequence">1</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__plan_quota_mode"/>
+            <field name="operator">=</field>
+            <field name="value">unlimited</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_gold_banner_days" model="popcorn.notification.rule">
+            <field name="name">Gold Banner - 45 Days or Less</field>
+            <field name="notification_id" ref="notification_gold_banner_always"/>
+            <field name="sequence">2</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__days_until_expiry"/>
+            <field name="operator">&lt;=</field>
+            <field name="value">45</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_gold_banner_active" model="popcorn.notification.rule">
+            <field name="name">Gold Banner - Active Membership</field>
+            <field name="notification_id" ref="notification_gold_banner_always"/>
+            <field name="sequence">3</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__state"/>
+            <field name="operator">=</field>
+            <field name="value">active</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <!-- Gold Card - Popup at 45 days -->
+        <record id="notification_gold_popup_45" model="popcorn.notification">
+            <field name="name">Gold Card Popup - 45 Days</field>
+            <field name="sequence">11</field>
+            <field name="notification_type">popup</field>
+            <field name="title">Renewal Reminder</field>
+            <field name="message"><![CDATA[
+                <p>Hey {name},</p>
+                <p>You have <strong>45 days</strong> left on your <strong>Gold membership</strong>, renew it before {effective_end_date} to the same or bigger membership to get around 10% discount! Don't worry, the new card doesn't start until you want it to.</p>
+            ]]></field>
+            <field name="popup_size">medium</field>
+            <field name="show_action_button" eval="False"/>
+            <field name="show_once_per_session" eval="False"/>
+            <field name="show_once_per_user" eval="True"/>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_gold_45_quota" model="popcorn.notification.rule">
+            <field name="name">Gold 45 - Unlimited Quota Mode</field>
+            <field name="notification_id" ref="notification_gold_popup_45"/>
+            <field name="sequence">1</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__plan_quota_mode"/>
+            <field name="operator">=</field>
+            <field name="value">unlimited</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_gold_45_days" model="popcorn.notification.rule">
+            <field name="name">Gold 45 - Exactly 45 Days</field>
+            <field name="notification_id" ref="notification_gold_popup_45"/>
+            <field name="sequence">2</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__days_until_expiry"/>
+            <field name="operator">=</field>
+            <field name="value">45</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_gold_45_active" model="popcorn.notification.rule">
+            <field name="name">Gold 45 - Active Membership</field>
+            <field name="notification_id" ref="notification_gold_popup_45"/>
+            <field name="sequence">3</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__state"/>
+            <field name="operator">=</field>
+            <field name="value">active</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <!-- Gold Card - Popup at 35 days -->
+        <record id="notification_gold_popup_35" model="popcorn.notification">
+            <field name="name">Gold Card Popup - 35 Days</field>
+            <field name="sequence">12</field>
+            <field name="notification_type">popup</field>
+            <field name="title">Renewal Reminder</field>
+            <field name="message"><![CDATA[
+                <p>Hey {name},</p>
+                <p>You have <strong>35 days</strong> left on your <strong>Gold membership</strong>, renew it before {effective_end_date} to the same or bigger membership to get around 10% discount! Don't worry, the new card doesn't start until you want it to.</p>
+            ]]></field>
+            <field name="popup_size">medium</field>
+            <field name="show_action_button" eval="False"/>
+            <field name="show_once_per_session" eval="False"/>
+            <field name="show_once_per_user" eval="True"/>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_gold_35_quota" model="popcorn.notification.rule">
+            <field name="name">Gold 35 - Unlimited Quota Mode</field>
+            <field name="notification_id" ref="notification_gold_popup_35"/>
+            <field name="sequence">1</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__plan_quota_mode"/>
+            <field name="operator">=</field>
+            <field name="value">unlimited</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_gold_35_days" model="popcorn.notification.rule">
+            <field name="name">Gold 35 - Exactly 35 Days</field>
+            <field name="notification_id" ref="notification_gold_popup_35"/>
+            <field name="sequence">2</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__days_until_expiry"/>
+            <field name="operator">=</field>
+            <field name="value">35</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_gold_35_active" model="popcorn.notification.rule">
+            <field name="name">Gold 35 - Active Membership</field>
+            <field name="notification_id" ref="notification_gold_popup_35"/>
+            <field name="sequence">3</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__state"/>
+            <field name="operator">=</field>
+            <field name="value">active</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <!-- Gold Card - Popup at 31 days -->
+        <record id="notification_gold_popup_31" model="popcorn.notification">
+            <field name="name">Gold Card Popup - 31 Days</field>
+            <field name="sequence">13</field>
+            <field name="notification_type">popup</field>
+            <field name="title">Renewal Reminder</field>
+            <field name="message"><![CDATA[
+                <p>Hey {name},</p>
+                <p>You have <strong>31 days</strong> left on your <strong>Gold membership</strong>, renew it before {effective_end_date} to the same or bigger membership to get around 10% discount! Don't worry, the new card doesn't start until you want it to.</p>
+            ]]></field>
+            <field name="popup_size">medium</field>
+            <field name="show_action_button" eval="False"/>
+            <field name="show_once_per_session" eval="False"/>
+            <field name="show_once_per_user" eval="True"/>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_gold_31_quota" model="popcorn.notification.rule">
+            <field name="name">Gold 31 - Unlimited Quota Mode</field>
+            <field name="notification_id" ref="notification_gold_popup_31"/>
+            <field name="sequence">1</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__plan_quota_mode"/>
+            <field name="operator">=</field>
+            <field name="value">unlimited</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_gold_31_days" model="popcorn.notification.rule">
+            <field name="name">Gold 31 - Exactly 31 Days</field>
+            <field name="notification_id" ref="notification_gold_popup_31"/>
+            <field name="sequence">2</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__days_until_expiry"/>
+            <field name="operator">=</field>
+            <field name="value">31</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_gold_31_active" model="popcorn.notification.rule">
+            <field name="name">Gold 31 - Active Membership</field>
+            <field name="notification_id" ref="notification_gold_popup_31"/>
+            <field name="sequence">3</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__state"/>
+            <field name="operator">=</field>
+            <field name="value">active</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <!-- Gold Card - Popup at 30 days -->
+        <record id="notification_gold_popup_30" model="popcorn.notification">
+            <field name="name">Gold Card Popup - 30 Days</field>
+            <field name="sequence">14</field>
+            <field name="notification_type">popup</field>
+            <field name="title">Renewal Reminder</field>
+            <field name="message"><![CDATA[
+                <p>Hey {name},</p>
+                <p>You have <strong>30 days</strong> left on your <strong>Gold membership</strong>, renew it before {effective_end_date} to the same or bigger membership to get around 10% discount! Don't worry, the new card doesn't start until you want it to.</p>
+            ]]></field>
+            <field name="popup_size">medium</field>
+            <field name="show_action_button" eval="False"/>
+            <field name="show_once_per_session" eval="False"/>
+            <field name="show_once_per_user" eval="True"/>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_gold_30_quota" model="popcorn.notification.rule">
+            <field name="name">Gold 30 - Unlimited Quota Mode</field>
+            <field name="notification_id" ref="notification_gold_popup_30"/>
+            <field name="sequence">1</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__plan_quota_mode"/>
+            <field name="operator">=</field>
+            <field name="value">unlimited</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_gold_30_days" model="popcorn.notification.rule">
+            <field name="name">Gold 30 - Exactly 30 Days</field>
+            <field name="notification_id" ref="notification_gold_popup_30"/>
+            <field name="sequence">2</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__days_until_expiry"/>
+            <field name="operator">=</field>
+            <field name="value">30</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_gold_30_active" model="popcorn.notification.rule">
+            <field name="name">Gold 30 - Active Membership</field>
+            <field name="notification_id" ref="notification_gold_popup_30"/>
+            <field name="sequence">3</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__state"/>
+            <field name="operator">=</field>
+            <field name="value">active</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <!-- ==================== FREEDOM CARD NOTIFICATIONS ==================== -->
+        
+        <!-- Freedom Card - Always Visible Banner (8 clubs or less) -->
+        <record id="notification_freedom_banner_always" model="popcorn.notification">
+            <field name="name">Freedom Card Banner - Always Visible</field>
+            <field name="sequence">20</field>
+            <field name="notification_type">banner</field>
+            <field name="title">Running Low on Clubs!</field>
+            <field name="message"><![CDATA[
+                <p>Hey {name},</p>
+                <p>You have <strong>{total_clubs_remaining} clubs</strong> left on your <strong>Freedom membership</strong>, renew it before you run out to the same or bigger membership to get around 10% discount! Don't worry, the new card doesn't start until you want it to.</p>
+            ]]></field>
+            <field name="banner_position">top</field>
+            <field name="banner_style">warning</field>
+            <field name="auto_dismiss" eval="False"/>
+            <field name="show_action_button" eval="False"/>
+            <field name="show_once_per_session" eval="True"/>
+            <field name="show_once_per_user" eval="False"/>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_freedom_banner_quota" model="popcorn.notification.rule">
+            <field name="name">Freedom Banner - Points Quota Mode</field>
+            <field name="notification_id" ref="notification_freedom_banner_always"/>
+            <field name="sequence">1</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__plan_quota_mode"/>
+            <field name="operator">=</field>
+            <field name="value">points</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_freedom_banner_clubs" model="popcorn.notification.rule">
+            <field name="name">Freedom Banner - 8 Clubs or Less</field>
+            <field name="notification_id" ref="notification_freedom_banner_always"/>
+            <field name="sequence">2</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__total_clubs_remaining"/>
+            <field name="operator">&lt;=</field>
+            <field name="value">8</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_freedom_banner_active" model="popcorn.notification.rule">
+            <field name="name">Freedom Banner - Active Membership</field>
+            <field name="notification_id" ref="notification_freedom_banner_always"/>
+            <field name="sequence">3</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__state"/>
+            <field name="operator">=</field>
+            <field name="value">active</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <!-- Freedom Card - Popup at 8 clubs -->
+        <record id="notification_freedom_popup_8" model="popcorn.notification">
+            <field name="name">Freedom Card Popup - 8 Clubs</field>
+            <field name="sequence">21</field>
+            <field name="notification_type">popup</field>
+            <field name="title">Renewal Reminder</field>
+            <field name="message"><![CDATA[
+                <p>Hey {name},</p>
+                <p>You have <strong>8 clubs</strong> left on your <strong>Freedom membership</strong>, renew it before you run out to the same or bigger membership to get around 10% discount! Don't worry, the new card doesn't start until you want it to.</p>
+            ]]></field>
+            <field name="popup_size">medium</field>
+            <field name="show_action_button" eval="False"/>
+            <field name="show_once_per_session" eval="False"/>
+            <field name="show_once_per_user" eval="True"/>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_freedom_8_quota" model="popcorn.notification.rule">
+            <field name="name">Freedom 8 - Points Quota Mode</field>
+            <field name="notification_id" ref="notification_freedom_popup_8"/>
+            <field name="sequence">1</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__plan_quota_mode"/>
+            <field name="operator">=</field>
+            <field name="value">points</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_freedom_8_clubs" model="popcorn.notification.rule">
+            <field name="name">Freedom 8 - Exactly 8 Clubs</field>
+            <field name="notification_id" ref="notification_freedom_popup_8"/>
+            <field name="sequence">2</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__total_clubs_remaining"/>
+            <field name="operator">=</field>
+            <field name="value">8</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_freedom_8_active" model="popcorn.notification.rule">
+            <field name="name">Freedom 8 - Active Membership</field>
+            <field name="notification_id" ref="notification_freedom_popup_8"/>
+            <field name="sequence">3</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__state"/>
+            <field name="operator">=</field>
+            <field name="value">active</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <!-- Freedom Card - Popup at 6 clubs -->
+        <record id="notification_freedom_popup_6" model="popcorn.notification">
+            <field name="name">Freedom Card Popup - 6 Clubs</field>
+            <field name="sequence">22</field>
+            <field name="notification_type">popup</field>
+            <field name="title">Renewal Reminder</field>
+            <field name="message"><![CDATA[
+                <p>Hey {name},</p>
+                <p>You have <strong>6 clubs</strong> left on your <strong>Freedom membership</strong>, renew it before you run out to the same or bigger membership to get around 10% discount! Don't worry, the new card doesn't start until you want it to.</p>
+            ]]></field>
+            <field name="popup_size">medium</field>
+            <field name="show_action_button" eval="False"/>
+            <field name="show_once_per_session" eval="False"/>
+            <field name="show_once_per_user" eval="True"/>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_freedom_6_quota" model="popcorn.notification.rule">
+            <field name="name">Freedom 6 - Points Quota Mode</field>
+            <field name="notification_id" ref="notification_freedom_popup_6"/>
+            <field name="sequence">1</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__plan_quota_mode"/>
+            <field name="operator">=</field>
+            <field name="value">points</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_freedom_6_clubs" model="popcorn.notification.rule">
+            <field name="name">Freedom 6 - Exactly 6 Clubs</field>
+            <field name="notification_id" ref="notification_freedom_popup_6"/>
+            <field name="sequence">2</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__total_clubs_remaining"/>
+            <field name="operator">=</field>
+            <field name="value">6</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_freedom_6_active" model="popcorn.notification.rule">
+            <field name="name">Freedom 6 - Active Membership</field>
+            <field name="notification_id" ref="notification_freedom_popup_6"/>
+            <field name="sequence">3</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__state"/>
+            <field name="operator">=</field>
+            <field name="value">active</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <!-- Freedom Card - Popup at 5 clubs -->
+        <record id="notification_freedom_popup_5" model="popcorn.notification">
+            <field name="name">Freedom Card Popup - 5 Clubs</field>
+            <field name="sequence">23</field>
+            <field name="notification_type">popup</field>
+            <field name="title">Renewal Reminder</field>
+            <field name="message"><![CDATA[
+                <p>Hey {name},</p>
+                <p>You have <strong>5 clubs</strong> left on your <strong>Freedom membership</strong>, renew it before you run out to the same or bigger membership to get around 10% discount! Don't worry, the new card doesn't start until you want it to.</p>
+            ]]></field>
+            <field name="popup_size">medium</field>
+            <field name="show_action_button" eval="False"/>
+            <field name="show_once_per_session" eval="False"/>
+            <field name="show_once_per_user" eval="True"/>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_freedom_5_quota" model="popcorn.notification.rule">
+            <field name="name">Freedom 5 - Points Quota Mode</field>
+            <field name="notification_id" ref="notification_freedom_popup_5"/>
+            <field name="sequence">1</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__plan_quota_mode"/>
+            <field name="operator">=</field>
+            <field name="value">points</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_freedom_5_clubs" model="popcorn.notification.rule">
+            <field name="name">Freedom 5 - Exactly 5 Clubs</field>
+            <field name="notification_id" ref="notification_freedom_popup_5"/>
+            <field name="sequence">2</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__total_clubs_remaining"/>
+            <field name="operator">=</field>
+            <field name="value">5</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_freedom_5_active" model="popcorn.notification.rule">
+            <field name="name">Freedom 5 - Active Membership</field>
+            <field name="notification_id" ref="notification_freedom_popup_5"/>
+            <field name="sequence">3</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="field_id" ref="popcorn.field_popcorn_membership__state"/>
+            <field name="operator">=</field>
+            <field name="value">active</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <!-- ==================== EVENT REMINDER NOTIFICATIONS ==================== -->
+        
+        <!-- Event Reminder - 25 hours before (Last chance to cancel) -->
+        <record id="notification_event_25_hours" model="popcorn.notification">
+            <field name="name">Event Reminder - 25 Hours Before</field>
+            <field name="sequence">30</field>
+            <field name="notification_type">banner</field>
+            <field name="title">See You Tomorrow!</field>
+            <field name="message"><![CDATA[
+                <p>Hey {name},</p>
+                <p>We can't wait to see you at <strong>{event_name}</strong> tomorrow at <strong>{event_time_formatted}</strong> at <strong>{event_venue_name}</strong>.</p>
+                <p>If you need to cancel it, this is your last chance to do that.</p>
+            ]]></field>
+            <field name="banner_position">top</field>
+            <field name="banner_style">info</field>
+            <field name="auto_dismiss" eval="True"/>
+            <field name="dismiss_duration">15</field>
+            <field name="show_action_button" eval="False"/>
+            <field name="show_once_per_session" eval="True"/>
+            <field name="show_once_per_user" eval="False"/>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_event_25_hours_min" model="popcorn.notification.rule">
+            <field name="name">Event - More than 24 Hours</field>
+            <field name="notification_id" ref="notification_event_25_hours"/>
+            <field name="sequence">1</field>
+            <field name="model_id" ref="event.model_event_registration"/>
+            <field name="field_id" ref="popcorn.field_event_registration__hours_until_event"/>
+            <field name="operator">&gt;=</field>
+            <field name="value">24</field>
+            <field name="active" eval="True"/>
+            <field name="description">Only show if event is 24+ hours away</field>
+        </record>
+        
+        <record id="notification_rule_event_25_hours_max" model="popcorn.notification.rule">
+            <field name="name">Event - 25 Hours or Less Before Start</field>
+            <field name="notification_id" ref="notification_event_25_hours"/>
+            <field name="sequence">2</field>
+            <field name="model_id" ref="event.model_event_registration"/>
+            <field name="field_id" ref="popcorn.field_event_registration__hours_until_event"/>
+            <field name="operator">&lt;=</field>
+            <field name="value">25</field>
+            <field name="active" eval="True"/>
+            <field name="description">Shows 25 hours or less before event</field>
+        </record>
+        
+        <record id="notification_rule_event_25_hours_not_cancelled" model="popcorn.notification.rule">
+            <field name="name">Event - Registration Not Cancelled</field>
+            <field name="notification_id" ref="notification_event_25_hours"/>
+            <field name="sequence">3</field>
+            <field name="model_id" ref="event.model_event_registration"/>
+            <field name="field_id" ref="event.field_event_registration__state"/>
+            <field name="operator">!=</field>
+            <field name="value">Cancelled</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <!-- Event Reminder - Day of event (Be on time) -->
+        <record id="notification_event_same_day" model="popcorn.notification">
+            <field name="name">Event Reminder - Same Day</field>
+            <field name="sequence">31</field>
+            <field name="notification_type">popup</field>
+            <field name="title">Today's Event!</field>
+            <field name="message"><![CDATA[
+                <p>Hey {name},</p>
+                <p>We'll see you at <strong>{event_time_formatted}</strong> for <strong>{event_name}</strong> at <strong>{event_venue_name}</strong>.</p>
+                <p>Please be on time and let's have a great discussion!</p>
+            ]]></field>
+            <field name="popup_size">medium</field>
+            <field name="show_action_button" eval="False"/>
+            <field name="show_once_per_session" eval="True"/>
+            <field name="show_once_per_user" eval="False"/>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_event_same_day_min" model="popcorn.notification.rule">
+            <field name="name">Event - More than 0 Hours</field>
+            <field name="notification_id" ref="notification_event_same_day"/>
+            <field name="sequence">1</field>
+            <field name="model_id" ref="event.model_event_registration"/>
+            <field name="field_id" ref="popcorn.field_event_registration__hours_until_event"/>
+            <field name="operator">&gt;</field>
+            <field name="value">0</field>
+            <field name="active" eval="True"/>
+            <field name="description">Only show if user has an upcoming event</field>
+        </record>
+        
+        <record id="notification_rule_event_same_day_max" model="popcorn.notification.rule">
+            <field name="name">Event - Less than 24 hours</field>
+            <field name="notification_id" ref="notification_event_same_day"/>
+            <field name="sequence">2</field>
+            <field name="model_id" ref="event.model_event_registration"/>
+            <field name="field_id" ref="popcorn.field_event_registration__hours_until_event"/>
+            <field name="operator">&lt;</field>
+            <field name="value">24</field>
+            <field name="active" eval="True"/>
+            <field name="description">Shows less than 24 hours before event</field>
+        </record>
+        
+        <record id="notification_rule_event_same_day_not_cancelled" model="popcorn.notification.rule">
+            <field name="name">Event - Registration Not Cancelled</field>
+            <field name="notification_id" ref="notification_event_same_day"/>
+            <field name="sequence">3</field>
+            <field name="model_id" ref="event.model_event_registration"/>
+            <field name="field_id" ref="event.field_event_registration__state"/>
+            <field name="operator">!=</field>
+            <field name="value">cancel</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+    </data>
+</odoo>
+
+

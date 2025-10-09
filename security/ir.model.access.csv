@@ -42,4 +42,12 @@ access_popcorn_referral_manager,popcorn.referral.manager,model_popcorn_referral,
 access_popcorn_referral_portal,popcorn.referral.portal,model_popcorn_referral,base.group_portal,1,0,0,0
 access_popcorn_referral_public,popcorn.referral.public,model_popcorn_referral,base.group_public,1,0,0,0
 access_event_event_public_binary,event.event.public.binary,event.model_event_event,base.group_public,1,0,0,0
+access_popcorn_notification_user,popcorn.notification.user,model_popcorn_notification,base.group_user,1,0,0,0
+access_popcorn_notification_manager,popcorn.notification.manager,model_popcorn_notification,base.group_system,1,1,1,1
+access_popcorn_notification_portal,popcorn.notification.portal,model_popcorn_notification,base.group_portal,1,0,0,0
+access_popcorn_notification_public,popcorn.notification.public,model_popcorn_notification,base.group_public,1,0,0,0
+access_popcorn_notification_rule_user,popcorn.notification.rule.user,model_popcorn_notification_rule,base.group_user,1,0,0,0
+access_popcorn_notification_rule_manager,popcorn.notification.rule.manager,model_popcorn_notification_rule,base.group_system,1,1,1,1
+access_popcorn_notification_rule_portal,popcorn.notification.rule.portal,model_popcorn_notification_rule,base.group_portal,1,0,0,0
+access_popcorn_notification_rule_public,popcorn.notification.rule.public,model_popcorn_notification_rule,base.group_public,1,0,0,0
 

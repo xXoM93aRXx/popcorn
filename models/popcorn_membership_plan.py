@@ -67,6 +67,14 @@ class PopcornMembershipPlan(models.Model):
         ('no', 'No')
     ], string='First Timer Can Upgrade', default='yes', tracking=True)
     
+    # Follow-up Configuration
+    expiry_followup_days = fields.Char(
+        string='Expiry Follow-up Days', 
+        default='7', 
+        tracking=True,
+        help='Comma-separated list of days before expiry to create follow-up activities (e.g., "50,45,35,31")'
+    )
+    
     # Upgrade Configuration
     can_upgrade_to_ids = fields.Many2many('popcorn.membership.plan', 'membership_plan_upgrade_rel', 
                                          'from_plan_id', 'to_plan_id',

@@ -90,6 +90,7 @@
                                 <field name="early_renew_window_days"/>
                                 <field name="upgrade_window_days"/>
                                 <field name="first_timer_default_upgrade_ability"/>
+                                <field name="expiry_followup_days" placeholder="e.g., 50,45,35,31"/>
                             </group>
                             
                             <group string="Upgrade Configuration">

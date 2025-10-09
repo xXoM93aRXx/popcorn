@@ -10,6 +10,7 @@ from . import popcorn_contract
 from . import popcorn_discount
 from . import popcorn_membership_discount_rel
 from . import popcorn_referral
+from . import popcorn_notification
 
 
 

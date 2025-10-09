@@ -49,6 +49,44 @@ class PopcornEventRegistration(models.Model):
     event_host = fields.Char(string='Host', related='event_id.host_id.name', readonly=True, store=True)
     event_start_time = fields.Datetime(string='Club Start Time', related='event_id.date_begin', readonly=True, store=True)
     
+    # Computed fields for notifications
+    hours_until_event = fields.Float(string='Hours Until Event', compute='_compute_hours_until_event', store=False)
+    event_name = fields.Char(string='Event Name', related='event_id.name', readonly=True)
+    event_venue_name = fields.Char(string='Venue Name', related='event_id.address_id.name', readonly=True)
+    event_time_formatted = fields.Char(string='Event Time', compute='_compute_event_time_formatted', store=False)
+    
+    def _compute_hours_until_event(self):
+        """Compute hours until event starts"""
+        now = fields.Datetime.now()
+        for registration in self:
+            if registration.event_id and registration.event_id.date_begin:
+                delta = registration.event_id.date_begin - now
+                registration.hours_until_event = delta.total_seconds() / 3600
+            else:
+                registration.hours_until_event = 0
+    
+    def _compute_event_time_formatted(self):
+        """Format event time for display in user's timezone"""
+        for registration in self:
+            if registration.event_id and registration.event_id.date_begin:
+                # Convert from UTC to user's timezone
+                user_tz = self.env.user.tz or 'UTC'
+                import pytz
+                from datetime import datetime
+                
+                # Convert the datetime to user's timezone
+                utc_time = registration.event_id.date_begin
+                if isinstance(utc_time, datetime):
+                    utc_time = pytz.UTC.localize(utc_time) if utc_time.tzinfo is None else utc_time
+                    local_tz = pytz.timezone(user_tz)
+                    local_time = utc_time.astimezone(local_tz)
+                    # Format as "HH:MM AM/PM"
+                    registration.event_time_formatted = local_time.strftime('%I:%M %p')
+                else:
+                    registration.event_time_formatted = ''
+            else:
+                registration.event_time_formatted = ''
+    
     @api.depends('event_id.tag_ids')
     def _compute_club_type(self):
         """Compute club type from the event's Type tag"""

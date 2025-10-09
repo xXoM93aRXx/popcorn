@@ -1,0 +1,372 @@
+/* Popcorn Notification System Styles */
+
+/* ========== Banner Containers ========== */
+.popcorn-banner-container {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 600px;
+    z-index: 9999;
+    pointer-events: none;
+    padding: 1rem;
+}
+
+.popcorn-banner-container-top {
+    top: 0;
+}
+
+.popcorn-banner-container-bottom {
+    bottom: 0;
+}
+
+/* ========== Banner Styles ========== */
+.popcorn-banner {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    margin-bottom: 1rem;
+    pointer-events: auto;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: all 0.3s ease;
+}
+
+.popcorn-banner-top .popcorn-banner {
+    transform: translateY(-20px);
+}
+
+.popcorn-banner-bottom .popcorn-banner {
+    transform: translateY(20px);
+}
+
+.popcorn-banner.popcorn-banner-show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.popcorn-banner-content {
+    padding: 1rem;
+}
+
+.popcorn-banner-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+.popcorn-banner-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    flex: 1;
+}
+
+.popcorn-banner-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: #666;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 1rem;
+    transition: color 0.2s;
+}
+
+.popcorn-banner-close:hover {
+    color: #000;
+}
+
+.popcorn-banner-body {
+    color: #333;
+    line-height: 1.5;
+}
+
+.popcorn-banner-actions {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.popcorn-banner-action-btn {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.popcorn-banner-action-btn:hover {
+    background: #0056b3;
+    color: white;
+    text-decoration: none;
+}
+
+/* Banner Style Variants */
+.popcorn-banner-info {
+    border-left: 4px solid #007bff;
+}
+
+.popcorn-banner-info .popcorn-banner-title {
+    color: #007bff;
+}
+
+.popcorn-banner-success {
+    border-left: 4px solid #28a745;
+}
+
+.popcorn-banner-success .popcorn-banner-title {
+    color: #28a745;
+}
+
+.popcorn-banner-success .popcorn-banner-action-btn {
+    background: #28a745;
+}
+
+.popcorn-banner-success .popcorn-banner-action-btn:hover {
+    background: #1e7e34;
+}
+
+.popcorn-banner-warning {
+    border-left: 4px solid #ffc107;
+}
+
+.popcorn-banner-warning .popcorn-banner-title {
+    color: #856404;
+}
+
+.popcorn-banner-warning .popcorn-banner-action-btn {
+    background: #ffc107;
+    color: #000;
+}
+
+.popcorn-banner-warning .popcorn-banner-action-btn:hover {
+    background: #d39e00;
+    color: #000;
+}
+
+.popcorn-banner-danger {
+    border-left: 4px solid #dc3545;
+}
+
+.popcorn-banner-danger .popcorn-banner-title {
+    color: #dc3545;
+}
+
+.popcorn-banner-danger .popcorn-banner-action-btn {
+    background: #dc3545;
+}
+
+.popcorn-banner-danger .popcorn-banner-action-btn:hover {
+    background: #bd2130;
+}
+
+/* ========== Popup Overlay ========== */
+.popcorn-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.popcorn-popup-overlay.popcorn-popup-overlay-show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ========== Popup Container ========== */
+.popcorn-popup-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+    pointer-events: none;
+}
+
+/* ========== Popup Styles ========== */
+.popcorn-popup {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    max-height: 90vh;
+    overflow-y: auto;
+    pointer-events: auto;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: all 0.3s ease;
+}
+
+.popcorn-popup.popcorn-popup-show {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Popup Size Variants */
+.popcorn-popup-small {
+    width: 90%;
+    max-width: 400px;
+}
+
+.popcorn-popup-medium {
+    width: 90%;
+    max-width: 600px;
+}
+
+.popcorn-popup-large {
+    width: 90%;
+    max-width: 800px;
+}
+
+/* Popup Header */
+.popcorn-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.popcorn-popup-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    flex: 1;
+    color: #333;
+}
+
+.popcorn-popup-close {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    line-height: 1;
+    color: #666;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 1rem;
+    transition: color 0.2s;
+}
+
+.popcorn-popup-close:hover {
+    color: #000;
+}
+
+/* Popup Body */
+.popcorn-popup-body {
+    padding: 1.5rem;
+    color: #333;
+    line-height: 1.6;
+}
+
+.popcorn-popup-body h1,
+.popcorn-popup-body h2,
+.popcorn-popup-body h3,
+.popcorn-popup-body h4,
+.popcorn-popup-body h5,
+.popcorn-popup-body h6 {
+    margin-top: 0;
+}
+
+.popcorn-popup-body p:last-child {
+    margin-bottom: 0;
+}
+
+/* Popup Footer */
+.popcorn-popup-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.popcorn-popup-action-btn,
+.popcorn-popup-dismiss-btn {
+    padding: 0.5rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    font-size: 1rem;
+}
+
+.popcorn-popup-action-btn {
+    background: #007bff;
+    color: white;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.popcorn-popup-action-btn:hover {
+    background: #0056b3;
+    color: white;
+    text-decoration: none;
+}
+
+.popcorn-popup-dismiss-btn {
+    background: #f8f9fa;
+    color: #333;
+}
+
+.popcorn-popup-dismiss-btn:hover {
+    background: #e2e6ea;
+}
+
+/* ========== Responsive Design ========== */
+@media (max-width: 768px) {
+    .popcorn-banner-container {
+        max-width: 100%;
+        padding: 0.5rem;
+    }
+
+    .popcorn-popup {
+        width: 95%;
+        max-width: 95%;
+    }
+
+    .popcorn-popup-header,
+    .popcorn-popup-body,
+    .popcorn-popup-footer {
+        padding: 1rem;
+    }
+
+    .popcorn-popup-title {
+        font-size: 1.25rem;
+    }
+}
+
+/* ========== Accessibility ========== */
+@media (prefers-reduced-motion: reduce) {
+    .popcorn-banner,
+    .popcorn-popup,
+    .popcorn-popup-overlay {
+        transition: none;
+    }
+}
+
+/* Focus styles for keyboard navigation */
+.popcorn-banner-close:focus,
+.popcorn-popup-close:focus,
+.popcorn-popup-action-btn:focus,
+.popcorn-popup-dismiss-btn:focus,
+.popcorn-banner-action-btn:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+

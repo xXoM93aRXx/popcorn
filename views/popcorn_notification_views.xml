@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        
+        <!-- Notification Rule List View -->
+        <record id="view_popcorn_notification_rule_list" model="ir.ui.view">
+            <field name="name">popcorn.notification.rule.list</field>
+            <field name="model">popcorn.notification.rule</field>
+            <field name="arch" type="xml">
+                <list>
+                    <field name="sequence" widget="handle"/>
+                    <field name="name"/>
+                    <field name="model_id"/>
+                    <field name="field_id"/>
+                    <field name="operator"/>
+                    <field name="value"/>
+                    <field name="active"/>
+                </list>
+            </field>
+        </record>
+        
+        <!-- Notification Rule Form View -->
+        <record id="view_popcorn_notification_rule_form" model="ir.ui.view">
+            <field name="name">popcorn.notification.rule.form</field>
+            <field name="model">popcorn.notification.rule</field>
+            <field name="arch" type="xml">
+                <form string="Notification Rule">
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="model_id"/>
+                            <field name="field_id" domain="[('model_id', '=', model_id)]"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="operator"/>
+                            <field name="value"/>
+                        </group>
+                        <group>
+                            <field name="description"/>
+                        </group>
+                    </group>
+                </form>
+            </field>
+        </record>
+        
+        <!-- Notification List View -->
+        <record id="view_popcorn_notification_list" model="ir.ui.view">
+            <field name="name">popcorn.notification.list</field>
+            <field name="model">popcorn.notification</field>
+            <field name="arch" type="xml">
+                <list string="Notifications">
+                    <field name="sequence" widget="handle"/>
+                    <field name="name"/>
+                    <field name="notification_type"/>
+                    <field name="title"/>
+                    <field name="active"/>
+                </list>
+            </field>
+        </record>
+        
+        <!-- Notification Form View -->
+        <record id="view_popcorn_notification_form" model="ir.ui.view">
+            <field name="name">popcorn.notification.form</field>
+            <field name="model">popcorn.notification</field>
+            <field name="arch" type="xml">
+                <form string="Notification">
+                    <sheet>
+                        <div class="oe_title">
+                            <h1>
+                                <field name="name" placeholder="Notification Name"/>
+                            </h1>
+                        </div>
+                        
+                        <group>
+                            <group string="Basic Information">
+                                <field name="sequence"/>
+                                <field name="active"/>
+                                <field name="notification_type"/>
+                            </group>
+                        </group>
+                        
+                        <group>
+                            <group string="Content">
+                                <field name="title" placeholder="e.g., Welcome {name}!"/>
+                                <field name="message" widget="html" 
+                                       placeholder="Use {field_name} for dynamic content from partner"/>
+                            </group>
+                        </group>
+                        
+                        <group>
+                            <group string="Banner Settings" invisible="notification_type != 'banner'">
+                                <field name="banner_position"/>
+                                <field name="banner_style"/>
+                                <field name="auto_dismiss"/>
+                                <field name="dismiss_duration" invisible="not auto_dismiss"/>
+                            </group>
+                            
+                            <group string="Popup Settings" invisible="notification_type != 'popup'">
+                                <field name="popup_size"/>
+                            </group>
+                        </group>
+                        
+                        <group>
+                            <group string="Action Button (Optional)">
+                                <field name="show_action_button"/>
+                                <field name="action_button_text" invisible="not show_action_button"/>
+                                <field name="action_button_url" invisible="not show_action_button"/>
+                            </group>
+                            
+                            <group string="Display Frequency">
+                                <field name="show_once_per_session"/>
+                                <field name="show_once_per_user"/>
+                            </group>
+                        </group>
+                        
+                        <notebook>
+                            <page string="Notification Rules" name="rules">
+                                <field name="notification_rule_ids" 
+                                       context="{'tree_view_ref': 'popcorn.view_popcorn_notification_rule_list', 'form_view_ref': 'popcorn.view_popcorn_notification_rule_form'}"/>
+                                <div class="alert alert-info" role="alert">
+                                    <strong>Tip:</strong> All rules must be satisfied (AND logic). 
+                                    Leave rules empty to show notification to all users.
+                                    Use dynamic content in title/message with {field_name} syntax.
+                                </div>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+        
+        <!-- Notification Search View -->
+        <record id="view_popcorn_notification_search" model="ir.ui.view">
+            <field name="name">popcorn.notification.search</field>
+            <field name="model">popcorn.notification</field>
+            <field name="arch" type="xml">
+                <search string="Search Notifications">
+                    <field name="name"/>
+                    <field name="title"/>
+                    <filter string="Active" name="active" domain="[('active', '=', True)]"/>
+                    <filter string="Inactive" name="inactive" domain="[('active', '=', False)]"/>
+                    <group expand="0" string="Group By">
+                        <filter string="Type" name="type" context="{'group_by': 'notification_type'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+        
+        <!-- Notification Action -->
+        <record id="action_popcorn_notification" model="ir.actions.act_window">
+            <field name="name">Notifications</field>
+            <field name="res_model">popcorn.notification</field>
+            <field name="view_mode">list,form</field>
+            <field name="context">{'search_default_active': 1}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Create your first notification!
+                </p>
+                <p>
+                    Create dynamic notifications that appear based on user conditions.
+                </p>
+            </field>
+        </record>
+        
+        <!-- Notification Menu -->
+        <menuitem id="menu_popcorn_notification"
+                  name="Notifications"
+                  parent="menu_popcorn_root"
+                  action="action_popcorn_notification"
+                  sequence="35"/>
+    </data>
+</odoo>
+
