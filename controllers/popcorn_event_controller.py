@@ -1052,6 +1052,57 @@ class PopcornEventController(http.Controller):
                 wechat_oauth_url = f'/payment/wechat/oauth2/authorize?transaction_id={payment_transaction.reference}'
                 _logger.info(f"Redirecting to WeChat OAuth2 for event purchase: {wechat_oauth_url}")
                 return request.redirect(wechat_oauth_url)
+            elif payment_provider.name.lower() in ['alipay']:
+                # For Alipay payments, create transaction and redirect to Alipay WAP payment
+                _logger.info(f"Creating Alipay payment transaction for event purchase, provider: {payment_provider.name}")
+                
+                # Get or create a default payment method for the provider
+                payment_method = request.env['payment.method'].sudo().search([
+                    ('provider_ids', 'in', payment_provider.id),
+                    ('active', '=', True)
+                ], limit=1)
+                
+                if not payment_method:
+                    # Create a default payment method for this provider
+                    payment_method = request.env['payment.method'].sudo().create({
+                        'name': f'{payment_provider.name} Payment',
+                        'code': payment_provider.code.lower().replace(' ', '_'),
+                        'provider_ids': [(6, 0, [payment_provider.id])],
+                        'active': True,
+                    })
+                
+                # Create payment transaction with unique reference (NO registration created yet)
+                import time
+                timestamp = int(time.time())
+                
+                payment_transaction = request.env['payment.transaction'].sudo().create({
+                    'provider_id': payment_provider.id,
+                    'payment_method_id': payment_method.id,
+                    'amount': remaining_amount,
+                    'currency_id': event.currency_id.id if hasattr(event, 'currency_id') and event.currency_id else request.env.ref('base.USD').id,
+                    'partner_id': partner.id,
+                    'reference': f'EVENT-{event.id}-{partner.id}-{timestamp}',
+                    'state': 'draft',
+                })
+                
+                _logger.info(f"Alipay event payment transaction created with ID: {payment_transaction.id}")
+                
+                # Store transaction ID and event purchase data in session for callback (NO registration created yet)
+                request.session['payment_transaction_id'] = payment_transaction.id
+                # event_purchase_details is already stored in session above
+                
+                # Get Alipay payment URL
+                alipay_payment_url = payment_transaction._get_payment_link()
+                
+                if not alipay_payment_url:
+                    _logger.error("Failed to get Alipay payment URL")
+                    request.session.pop('event_purchase_details', None)
+                    return request.redirect(f'/popcorn/event/{event.id}/checkout?error=gateway_unavailable')
+                
+                # Redirect to Alipay payment page
+                _logger.info(f"Redirecting to Alipay payment for event purchase: {alipay_payment_url[:100]}...")
+                from werkzeug.utils import redirect
+                return redirect(alipay_payment_url, code=302)
             else:
                 # For all other online payments (Stripe/PayPal/etc), create payment transaction and redirect to gateway
                 _logger.info(f"Creating payment transaction for event purchase, provider: {payment_provider.name}")
@@ -1135,9 +1186,9 @@ class PopcornEventController(http.Controller):
         transaction_id_param = kwargs.get('transaction_id')
         registration = None
         
-        # Handle WeChat payment success redirect
+        # Handle payment success redirect (WeChat/Alipay)
         if payment_success == 'true' and transaction_id_param:
-            _logger.info(f"=== WeChat event payment success redirect ===")
+            _logger.info(f"=== Payment success redirect ===")
             _logger.info(f"Event ID: {event.id}")
             _logger.info(f"Transaction ID: {transaction_id_param}")
             _logger.info(f"Session keys: {list(request.session.keys())}")
@@ -1174,12 +1225,12 @@ class PopcornEventController(http.Controller):
                 _logger.info(f"Trying to find by reference: {transaction_id_param}")
                 transaction = request.env['payment.transaction'].sudo().search([
                     ('reference', '=', transaction_id_param),
-                    ('provider_code', '=', 'wechat')
+                    ('provider_code', 'in', ['wechat', 'alipay'])
                 ], limit=1)
                 _logger.info(f"Found by reference: {transaction.exists() if transaction else False}")
             
             if not transaction or not transaction.exists():
-                _logger.error(f"WeChat transaction {transaction_id_param} not found")
+                _logger.error(f"Payment transaction {transaction_id_param} not found")
                 # Let's also search without provider_code filter
                 all_transactions = request.env['payment.transaction'].sudo().search([
                     ('reference', '=', transaction_id_param)
@@ -1233,7 +1284,7 @@ class PopcornEventController(http.Controller):
             request.session.pop('event_purchase_details', None)
             request.session.pop('wechat_pending_event_purchase', None)
             
-            _logger.info(f"WeChat event payment successful. Registration created with ID: {registration.id}")
+            _logger.info(f"Event payment successful. Registration created with ID: {registration.id}")
             _logger.info(f"Final registration details - ID: {registration.id}, State: {registration.state}, Partner: {registration.partner_id.name}")
             
             # Continue to show success page with the created registration

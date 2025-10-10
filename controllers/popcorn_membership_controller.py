@@ -376,6 +376,56 @@ class PopcornMembershipController(http.Controller):
                 wechat_oauth_url = f'/payment/wechat/oauth2/authorize?transaction_id={payment_transaction.reference}'
                 _logger.info(f"Redirecting to WeChat OAuth2: {wechat_oauth_url}")
                 return request.redirect(wechat_oauth_url)
+            elif payment_provider.name.lower() in ['alipay']:
+                # For Alipay payments, create transaction and redirect to Alipay WAP payment
+                _logger.info(f"Creating Alipay payment transaction for provider: {payment_provider.name}")
+                
+                # Get or create a default payment method for the provider
+                payment_method = request.env['payment.method'].sudo().search([
+                    ('provider_ids', 'in', payment_provider.id),
+                    ('active', '=', True)
+                ], limit=1)
+                
+                if not payment_method:
+                    # Create a default payment method for this provider
+                    payment_method = request.env['payment.method'].sudo().create({
+                        'name': f'{payment_provider.name} Payment',
+                        'code': payment_provider.code.lower().replace(' ', '_'),
+                        'provider_ids': [(6, 0, [payment_provider.id])],
+                        'active': True,
+                    })
+                
+                # Create payment transaction with unique reference (NO membership created yet)
+                import time
+                timestamp = int(time.time())
+                
+                payment_transaction = request.env['payment.transaction'].sudo().create({
+                    'provider_id': payment_provider.id,
+                    'payment_method_id': payment_method.id,
+                    'amount': remaining_amount,
+                    'currency_id': plan.currency_id.id,
+                    'partner_id': partner.id,
+                    'reference': f'MEMBERSHIP-{plan.id}-{partner.id}-{timestamp}',
+                    'state': 'draft',
+                })
+                
+                _logger.info(f"Alipay payment transaction created with ID: {payment_transaction.id}")
+                
+                # Store transaction ID and membership data in session for callback (NO membership created yet)
+                request.session['payment_transaction_id'] = payment_transaction.id
+                # pending_membership is already stored in session above
+                
+                # Get Alipay payment URL
+                alipay_payment_url = payment_transaction._get_payment_link()
+                
+                if not alipay_payment_url:
+                    _logger.error("Failed to get Alipay payment URL")
+                    return request.redirect('/memberships/payment/failed?error=gateway_unavailable')
+                
+                # Redirect to Alipay payment page
+                _logger.info(f"Redirecting to Alipay payment: {alipay_payment_url[:100]}...")
+                from werkzeug.utils import redirect
+                return redirect(alipay_payment_url, code=302)
             else:
                 # For all other online payments (Stripe/PayPal/etc), create payment transaction and redirect to gateway
                 _logger.info(f"Creating payment transaction for provider: {payment_provider.name}")
