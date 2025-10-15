@@ -144,6 +144,12 @@ class PopcornMembershipController(http.Controller):
             # Check if user wants to use popcorn money
             use_popcorn_money = post.get('use_popcorn_money') == 'on'
             partner = request.env.user.partner_id
+            
+            # Ensure partner exists (important for internal users)
+            if not partner or not partner.exists():
+                _logger.error(f"User {request.env.user.login} does not have a partner record")
+                return request.redirect('/memberships/%s/checkout?error=no_partner' % plan.id)
+            
             popcorn_money_balance = partner.popcorn_money_balance
             
             # Update or create partner information
@@ -399,6 +405,20 @@ class PopcornMembershipController(http.Controller):
                 import time
                 timestamp = int(time.time())
                 
+                # Prepare pending purchase data to store in transaction (for webhook processing)
+                import json
+                pending_purchase_json = json.dumps({
+                    'type': 'membership',
+                    'plan_id': plan.id,
+                    'partner_id': partner.id,
+                    'amount': amount,
+                    'popcorn_money_to_use': popcorn_money_to_use,
+                    'remaining_amount': remaining_amount,
+                    'is_upgrade': is_upgrade,
+                    'upgrade_details': upgrade_details if is_upgrade else None,
+                    'use_popcorn_money': use_popcorn_money,
+                })
+                
                 payment_transaction = request.env['payment.transaction'].sudo().create({
                     'provider_id': payment_provider.id,
                     'payment_method_id': payment_method.id,
@@ -407,9 +427,11 @@ class PopcornMembershipController(http.Controller):
                     'partner_id': partner.id,
                     'reference': f'MEMBERSHIP-{plan.id}-{partner.id}-{timestamp}',
                     'state': 'draft',
+                    'pending_purchase_data': pending_purchase_json,  # Store for webhook processing
                 })
                 
                 _logger.info(f"Alipay payment transaction created with ID: {payment_transaction.id}")
+                _logger.info(f"Pending purchase data stored in transaction for webhook processing")
                 
                 # Store transaction ID and membership data in session for callback (NO membership created yet)
                 request.session['payment_transaction_id'] = payment_transaction.id
@@ -1398,11 +1420,13 @@ class PopcornMembershipController(http.Controller):
                 'email': partner.email,
                 'phone': partner.phone,
                 'state': 'open',
+                'payment_amount': pending_event_purchase.get('event_price', 0),
+                'payment_transaction_id': transaction.id,
             }
             _logger.info(f"Registration vals: {registration_vals}")
             
             registration = request.env['event.registration'].sudo().create(registration_vals)
-            _logger.info(f"Event registration created with ID: {registration.id}, State: {registration.state}")
+            _logger.info(f"Event registration created with ID: {registration.id}, State: {registration.state}, Payment Transaction: {transaction.id}")
             
             payment_message = _('Direct purchase registration for event: %s. Price: %s. Payment successful via %s. Transaction: %s. Event registration created and activated.') % (event.name, pending_event_purchase['event_price'], transaction.provider_id.name, transaction.reference)
             if pending_event_purchase.get('use_popcorn_money') and pending_event_purchase.get('popcorn_money_to_use', 0) > 0:

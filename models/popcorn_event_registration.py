@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import logging
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError, UserError
 from datetime import datetime, timedelta
+
+_logger = logging.getLogger(__name__)
 
 class PopcornEventRegistration(models.Model):
     """Extends event registration with Popcorn Club specific logic"""
@@ -44,6 +47,19 @@ class PopcornEventRegistration(models.Model):
     # Referral tracking
     referral_id = fields.Many2one('popcorn.referral', string='Referral', 
                                  help='Referral that led to this registration')
+    
+    # Direct payment tracking
+    payment_amount = fields.Float(
+        string='Payment Amount',
+        digits='Product Price',
+        help='Amount paid for direct club registration (without membership)'
+    )
+    payment_transaction_id = fields.Many2one(
+        'payment.transaction',
+        string='Payment Transaction',
+        readonly=True,
+        help='Payment transaction for this registration (for single club purchases)'
+    )
     
     # Computed fields for registration desk
     event_host = fields.Char(string='Host', related='event_id.host_id.name', readonly=True, store=True)
@@ -390,8 +406,56 @@ class PopcornEventRegistration(models.Model):
             raise UserError(_('Cancellation is not allowed at this time. Please check the event cancellation deadline.'))
         
         # Check if registration is in a cancellable state
-        if self.state not in ['open', 'confirmed']:
+        if self.state not in ['open', 'confirmed', 'draft']:
             raise UserError(_('Registration cannot be cancelled in its current state'))
+        
+        # Handle waitlist registrations (draft state) differently - just delete them
+        if self.state == 'draft' and self.is_on_waitlist:
+            # Store event info before deletion for waitlist promotion
+            event_id = self.event_id
+            seats_limited = event_id.seats_limited
+            
+            # Log the cancellation before deletion
+            self.message_post(
+                body=_('Waitlist registration cancelled by portal user')
+            )
+            
+            # Delete the waitlist registration
+            self.unlink()
+            
+            # Promote next person from waitlist if event has limited seats
+            if seats_limited:
+                # Find the next person on the waitlist (lowest position number)
+                next_waitlist_reg = self.env['event.registration'].search([
+                    ('event_id', '=', event_id.id),
+                    ('is_on_waitlist', '=', True),
+                    ('state', '=', 'draft')
+                ], order='waitlist_position asc', limit=1)
+                
+                if next_waitlist_reg:
+                    # Promote this registration
+                    next_waitlist_reg.write({
+                        'is_on_waitlist': False,
+                        'waitlist_position': 0,
+                        'state': 'open'
+                    })
+                    
+                    # Consume membership quota for the promoted registration
+                    if next_waitlist_reg.membership_id and next_waitlist_reg.consumption_state == 'pending':
+                        next_waitlist_reg._consume_membership_quota()
+                    
+                    # Log the promotion
+                    next_waitlist_reg.message_post(
+                        body=_('Promoted from waitlist to confirmed registration')
+                    )
+                    
+                    # Update waitlist positions for remaining waitlist registrations
+                    self._update_waitlist_positions_after_deletion(event_id)
+            
+            return True
+        
+        # Handle regular registrations (open/confirmed state)
+        _logger.info(f"=== action_cancel_registration called for registration {self.id}, state={self.state}, is_on_waitlist={self.is_on_waitlist} ===")
         
         # If membership was consumed or pending, restore the quota
         if self.consumption_state in ['consumed', 'pending'] and self.membership_id:
@@ -399,8 +463,23 @@ class PopcornEventRegistration(models.Model):
                 self._restore_membership_quota()
             # If pending, just mark as cancelled (no quota to restore)
         
-        # Cancel the registration
-        self.write({
+        # Handle automatic refund for single club purchases (not membership)
+        _logger.info(f"Cancelling registration {self.id}: payment_transaction_id={self.payment_transaction_id.id if self.payment_transaction_id else None}, payment_amount={self.payment_amount}, membership_id={self.membership_id.id if self.membership_id else None}")
+        
+        if self.payment_transaction_id and self.payment_amount > 0 and not self.membership_id:
+            _logger.info(f"Refund conditions met for registration {self.id}, initiating automatic refund")
+            try:
+                self._process_automatic_refund()
+            except Exception as e:
+                _logger.error(f"Failed to process automatic refund for registration {self.id}: {str(e)}")
+                self.message_post(
+                    body=_('Registration cancelled but automatic refund failed: %s. Please contact support for manual refund.') % str(e)
+                )
+        else:
+            _logger.info(f"Refund not triggered for registration {self.id}: has_transaction={bool(self.payment_transaction_id)}, has_amount={self.payment_amount > 0}, has_membership={bool(self.membership_id)}")
+        
+        # Cancel the registration with context flag to prevent double promotion
+        self.with_context(skip_waitlist_promotion=True).write({
             'state': 'cancel',
             'consumption_state': 'cancelled'
         })
@@ -454,6 +533,19 @@ class PopcornEventRegistration(models.Model):
         # Get all remaining waitlist registrations
         remaining_waitlist = self.env['event.registration'].search([
             ('event_id', '=', self.event_id.id),
+            ('is_on_waitlist', '=', True),
+            ('state', '=', 'draft')
+        ], order='waitlist_position asc')
+        
+        # Renumber positions starting from 1
+        for i, reg in enumerate(remaining_waitlist, 1):
+            reg.write({'waitlist_position': i})
+    
+    def _update_waitlist_positions_after_deletion(self, event_id):
+        """Update waitlist positions after a waitlist registration is deleted"""
+        # Get all remaining waitlist registrations
+        remaining_waitlist = self.env['event.registration'].search([
+            ('event_id', '=', event_id.id),
             ('is_on_waitlist', '=', True),
             ('state', '=', 'draft')
         ], order='waitlist_position asc')
@@ -641,7 +733,9 @@ class PopcornEventRegistration(models.Model):
                 registration._validate_registration()
         
         # Handle state changes for waitlist promotion
-        if 'state' in vals:
+        # Only promote from waitlist if state is being changed directly (not from action_cancel_registration)
+        # action_cancel_registration sets a context flag to prevent double promotion
+        if 'state' in vals and not self._context.get('skip_waitlist_promotion'):
             new_state = vals['state']
             for registration in self:
                 original_state = original_states.get(registration.id)
@@ -714,6 +808,45 @@ class PopcornEventRegistration(models.Model):
                 body=_('Manually added to waitlist')
             )
     
+    def _process_automatic_refund(self):
+        """Process automatic refund for single club purchases"""
+        self.ensure_one()
+        
+        if not self.payment_transaction_id:
+            return
+            
+        transaction = self.payment_transaction_id
+        
+        # Only process WeChat payments that are completed
+        if transaction.provider_code != 'wechat' or transaction.state != 'done':
+            _logger.info(f"Skipping automatic refund for registration {self.id}: provider={transaction.provider_code}, state={transaction.state}")
+            return
+            
+        # Check if already refunded
+        if transaction.wechat_transaction_id and 'REF-' in str(transaction.wechat_transaction_id):
+            _logger.info(f"Registration {self.id} already refunded: {transaction.wechat_transaction_id}")
+            return
+            
+        _logger.info(f"Processing automatic refund for registration {self.id}, transaction amount: {transaction.amount}")
+        
+        try:
+            # Call the refund method (will refund the transaction amount automatically)
+            transaction.action_refund()
+            
+            # Post success message
+            self.message_post(
+                body=_('Automatic refund processed: ¥%s refunded to WeChat Pay. Transaction: %s') % (
+                    transaction.amount,
+                    transaction.reference
+                )
+            )
+            
+            _logger.info(f"Automatic refund successful for registration {self.id}, amount: {transaction.amount}")
+            
+        except Exception as e:
+            _logger.error(f"WeChat Pay refund failed for registration {self.id}: {str(e)}")
+            raise UserError(_('Failed to process automatic refund: %s') % str(e))
+
     def unlink(self):
         """Override unlink to handle membership cleanup"""
         # If registration was consumed, we might want to restore quota

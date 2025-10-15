@@ -17,6 +17,8 @@
                            domain="[('partner_id', '=', partner_id), ('state', 'in', ['active', 'frozen', 'pending'])]"
                            invisible="not event_id.seats_limited"/>
                     <field name="consumption_state" invisible="not membership_id"/>
+                    <field name="payment_amount"/>
+                    <field name="payment_transaction_id" readonly="1"/>
                     <field name="club_type" readonly="1" invisible="not event_id.seats_limited"/>
                     <field name="is_auto_booked" readonly="1"/>
                     <field name="referral_id" readonly="1"/>
@@ -62,6 +64,11 @@
                 <!-- Replace Ticket Type field with Club start time -->
                 <xpath expr="//field[@name='event_ticket_id']" position="replace">
                     <field name="event_start_time" string="Club Start Time" optional="show" readonly="1"/>
+                </xpath>
+                
+                <!-- Add payment amount after partner name -->
+                <xpath expr="//field[@name='partner_id']" position="after">
+                    <field name="payment_amount" string="Payment Amount" optional="show" readonly="1"/>
                 </xpath>
                 
                 <!-- Remove sale status field -->

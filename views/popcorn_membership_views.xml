@@ -12,6 +12,7 @@
                     <field name="partner_phone"/>
                     <field name="membership_plan_id"/>
                     <field name="state" decoration-info="state == 'pending'" decoration-warning="state == 'frozen'" decoration-danger="state == 'expired'"/>
+                    <field name="create_date" string="Purchase Date"/>
                     <field name="activation_date"/>
                     <field name="effective_end_date"/>
                     <field name="purchase_price_paid"/>

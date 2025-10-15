@@ -814,6 +814,11 @@ class PopcornEventController(http.Controller):
         
         partner = request.env.user.sudo().partner_id
         
+        # Ensure partner exists (important for internal users)
+        if not partner or not partner.exists():
+            _logger.error(f"User {request.env.user.login} does not have a partner record")
+            return request.redirect(f'/popcorn/event/{event.id}/checkout?error=no_partner')
+        
         # Check if user is already registered for this event
         existing_registration = request.env['event.registration'].sudo().search([
             ('event_id', '=', event.id),
@@ -881,6 +886,7 @@ class PopcornEventController(http.Controller):
                     'email': partner.email,
                     'phone': partner.phone,
                     'state': registration_state,
+                    'payment_amount': event.event_price,
                 }
                 
                 registration = request.env['event.registration'].sudo().create(registration_vals)
@@ -970,6 +976,7 @@ class PopcornEventController(http.Controller):
                     'email': partner.email,
                     'phone': partner.phone,
                     'state': 'draft',
+                    'payment_amount': event.event_price,
                 }
                 
                 registration = request.env['event.registration'].sudo().create(registration_vals)
@@ -1075,6 +1082,18 @@ class PopcornEventController(http.Controller):
                 import time
                 timestamp = int(time.time())
                 
+                # Prepare pending purchase data to store in transaction (for webhook processing)
+                import json
+                pending_purchase_json = json.dumps({
+                    'type': 'event',
+                    'event_id': event.id,
+                    'partner_id': partner.id,
+                    'event_price': event.event_price,
+                    'popcorn_money_to_use': popcorn_money_to_use,
+                    'remaining_amount': remaining_amount,
+                    'use_popcorn_money': use_popcorn_money,
+                })
+                
                 payment_transaction = request.env['payment.transaction'].sudo().create({
                     'provider_id': payment_provider.id,
                     'payment_method_id': payment_method.id,
@@ -1083,9 +1102,11 @@ class PopcornEventController(http.Controller):
                     'partner_id': partner.id,
                     'reference': f'EVENT-{event.id}-{partner.id}-{timestamp}',
                     'state': 'draft',
+                    'pending_purchase_data': pending_purchase_json,  # Store for webhook processing
                 })
                 
                 _logger.info(f"Alipay event payment transaction created with ID: {payment_transaction.id}")
+                _logger.info(f"Pending purchase data stored in transaction for webhook processing")
                 
                 # Store transaction ID and event purchase data in session for callback (NO registration created yet)
                 request.session['payment_transaction_id'] = payment_transaction.id
@@ -1269,10 +1290,12 @@ class PopcornEventController(http.Controller):
                 'email': partner.email,
                 'phone': partner.phone,
                 'state': 'open',
+                'payment_amount': pending_event_purchase.get('event_price', 0),
+                'payment_transaction_id': transaction.id,  # Link to payment transaction
             }
             
             registration = request.env['event.registration'].sudo().create(registration_vals)
-            _logger.info(f"Event registration created with ID: {registration.id}, State: {registration.state}")
+            _logger.info(f"Event registration created with ID: {registration.id}, State: {registration.state}, Payment Transaction: {transaction.id}")
             
             registration.message_post(
                 body=_('Direct purchase registration for event: %s. Price: %s. Payment successful via %s. Transaction: %s. Event registration created and activated.') % (event.name, pending_event_purchase['event_price'], transaction.provider_id.name, transaction.reference)
@@ -1398,11 +1421,13 @@ class PopcornPortalController(CustomerPortal):
                 })()
                 past_registrations.append(mock_registration)
         else:
-            # For regular users, show their registrations
+            # For regular users, show their registrations (including waitlisted)
             upcoming_registrations = request.env['event.registration'].sudo().search([
                 ('partner_id', '=', partner.id),
                 ('event_id.date_end', '>', now),  # Event hasn't ended yet
-                ('state', 'in', ['open', 'confirmed', 'done'])
+                '|',
+                ('state', 'in', ['open', 'confirmed', 'done']),
+                ('is_on_waitlist', '=', True)  # Include waitlisted registrations
             ])
             
             past_registrations = request.env['event.registration'].sudo().search([
@@ -1463,7 +1488,12 @@ class PopcornPortalController(CustomerPortal):
         error_message = None
         success_message = None
         
-        if kwargs.get('error') == 'freeze_min_days':
+        # Check for session-based error message first (takes priority)
+        if 'error_message' in request.session:
+            error_message = request.session['error_message']
+            # Clear the session error message to prevent it from showing again
+            del request.session['error_message']
+        elif kwargs.get('error') == 'freeze_min_days':
             error_message = _('Freeze duration must be at least the minimum required days.')
         elif kwargs.get('error') == 'freeze_max_days':
             error_message = _('Freeze duration exceeds the maximum allowed days.')
@@ -1473,6 +1503,8 @@ class PopcornPortalController(CustomerPortal):
             error_message = _('Failed to freeze membership. Please try again.')
         elif kwargs.get('error') == 'unfreeze_failed':
             error_message = _('Failed to unfreeze membership. Please try again.')
+        elif kwargs.get('error') == 'clubs_booked_during_freeze':
+            error_message = _('You cannot freeze your membership during this period because you have club(s) booked. Please cancel your bookings first or choose a different freeze period.')
         elif kwargs.get('error') == 'cancellation_failed':
             error_message = kwargs.get('message', _('Failed to cancel registration. Please try again.'))
         elif kwargs.get('success') == 'freeze_applied':
@@ -1765,7 +1797,8 @@ class PopcornPortalController(CustomerPortal):
         
         try:
             freeze_days = int(kwargs.get('freeze_days', 0))
-            _logger.info(f"Freeze days: {freeze_days}")
+            freeze_start_date_str = kwargs.get('freeze_start_date')
+            _logger.info(f"Freeze days: {freeze_days}, Start date: {freeze_start_date_str}")
             
             # Validate freeze days
             if freeze_days < membership.membership_plan_id.freeze_min_days:
@@ -1775,6 +1808,46 @@ class PopcornPortalController(CustomerPortal):
             if membership.freeze_total_days_used + freeze_days > membership.membership_plan_id.freeze_max_total_days:
                 _logger.warning(f"Freeze days {freeze_days} + used {membership.freeze_total_days_used} exceeds maximum {membership.membership_plan_id.freeze_max_total_days}")
                 return request.redirect('/my/cards?error=freeze_max_days')
+            
+            # Calculate freeze period dates
+            if freeze_start_date_str:
+                freeze_start = fields.Date.from_string(freeze_start_date_str)
+            else:
+                freeze_start = fields.Date.today()
+            
+            # Calculate freeze end date (inclusive)
+            freeze_end = freeze_start + timedelta(days=freeze_days - 1)
+            
+            # Check if user has any clubs booked during the freeze period
+            conflicting_registrations = request.env['event.registration'].sudo().search([
+                ('partner_id', '=', membership.partner_id.id),
+                ('state', 'in', ['open', 'done']),
+                ('event_id.date_begin', '!=', False),
+            ])
+            
+            # Filter registrations that fall within the freeze period
+            conflicts = []
+            for reg in conflicting_registrations:
+                if reg.event_id and reg.event_id.date_begin:
+                    event_date = reg.event_id.date_begin.date()
+                    if freeze_start <= event_date <= freeze_end:
+                        conflicts.append(reg)
+            
+            if conflicts:
+                # Build detailed error message with club information
+                _logger.warning(f"Cannot freeze - user has {len(conflicts)} clubs booked during freeze period")
+                
+                # Create detailed error message with HTML formatting
+                error_msg = f"You cannot freeze your membership during this period because you have {len(conflicts)} club(s) booked:<br/><ul>"
+                for reg in conflicts:
+                    event_date_str = reg.event_id.date_begin.strftime('%B %d, %Y')
+                    error_msg += f"<li>{reg.event_id.name} on {event_date_str}</li>"
+                error_msg += "</ul>Please cancel your bookings first or choose a different freeze period."
+                
+                # Store detailed error message in session
+                request.session['error_message'] = error_msg
+                
+                return request.redirect('/my/cards?error=clubs_booked_during_freeze')
             
             # Freeze the membership
             _logger.info(f"Calling action_freeze with {freeze_days} days")
@@ -1876,6 +1949,7 @@ class PopcornPortalController(CustomerPortal):
     @http.route(['/my/clubs/<int:registration_id>/cancel'], type='http', auth="user", website=True, methods=['POST'])
     def portal_cancel_registration(self, registration_id, **kwargs):
         """Cancel a club registration"""
+        _logger.info(f"Portal cancel registration called - Registration ID: {registration_id}, User: {request.env.user.partner_id.id}")
         try:
             # Get the registration with sudo and check ownership
             registration = request.env['event.registration'].sudo().search([
@@ -1883,17 +1957,24 @@ class PopcornPortalController(CustomerPortal):
                 ('partner_id', '=', request.env.user.partner_id.id)
             ])
             
+            _logger.info(f"Registration found: {registration.id if registration else 'None'}")
+            
             if not registration:
+                _logger.warning(f"Registration {registration_id} not found for user {request.env.user.partner_id.id}")
                 return request.redirect('/my/clubs?error=cancellation_failed&message=' + url_quote(_('Registration not found')))
+            
+            _logger.info(f"Calling action_cancel_registration on registration {registration.id}")
             
             # Cancel the registration
             registration.action_cancel_registration()
+            
+            _logger.info(f"Registration {registration.id} cancelled successfully")
             
             # Redirect with success message
             return request.redirect('/my/clubs?success=registration_cancelled')
             
         except Exception as e:
-            _logger.error(f"Failed to cancel registration {registration_id}: {str(e)}")
+            _logger.error(f"Failed to cancel registration {registration_id}: {str(e)}", exc_info=True)
             # Redirect with error message
             error_param = url_quote(str(e))
             return request.redirect('/my/clubs?error=cancellation_failed&message=' + error_param)
@@ -1919,7 +2000,9 @@ class PopcornPortalController(CustomerPortal):
             registration = request.env['event.registration'].sudo().search([
                 ('event_id', '=', int(event_id)),
                 ('partner_id', '=', request.env.user.partner_id.id),
-                ('state', 'in', ['open', 'confirmed'])
+                '|',
+                ('state', 'in', ['open', 'confirmed']),  # Active registrations
+                ('is_on_waitlist', '=', True)  # Or waitlist registrations (even if in draft state)
             ], limit=1)
             
             _logger.info(f"Found registration: {registration}")

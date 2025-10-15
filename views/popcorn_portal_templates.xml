@@ -125,7 +125,7 @@
                             <t t-if="error_message">
                                 <div class="alert alert-danger alert-dismissible" role="alert">
                                     <i class="fa fa-exclamation-circle me-2"></i>
-                                    <span t-esc="error_message"/>
+                                    <span t-raw="error_message"/>
                                     <button type="button" class="btn-close" onclick="this.parentElement.remove()" aria-label="Close"></button>
                                 </div>
                             </t>
@@ -162,7 +162,14 @@
                                                     <!-- Club Content -->
                                                     <div class="club-content">
                                                         <!-- Club Name -->
-                                                        <h5 class="club-name" t-field="registration.event_id.name"/>
+                                                        <h5 class="club-name">
+                                                            <span t-field="registration.event_id.name"/>
+                                                            <t t-if="registration.is_on_waitlist">
+                                                                <span class="badge bg-warning text-dark ms-2">
+                                                                    <i class="fa fa-clock-o"></i> <span t-translation="on">Waitlist</span> #<span t-esc="registration.waitlist_position"/>
+                                                                </span>
+                                                            </t>
+                                                        </h5>
                                                         
                                                         <!-- Club Description Excerpt -->
                                                         <div class="club-description-excerpt">
@@ -313,7 +320,7 @@
                               <t t-if="error_message">
                                   <div class="alert alert-danger alert-dismissible" role="alert">
                                       <i class="fa fa-exclamation-triangle me-2"></i>
-                                      <t t-esc="error_message"/>
+                                      <t t-raw="error_message"/>
                                       <button type="button" class="btn-close" onclick="this.parentElement.remove()" aria-label="Close"></button>
                                   </div>
                               </t>

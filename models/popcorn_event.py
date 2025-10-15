@@ -364,17 +364,21 @@ class EventEvent(models.Model):
 
     @api.model
     def create(self, vals):
-        """Override create to automatically set is_host field when host is assigned"""
+        """Override create to automatically set is_host field when host is assigned and auto-register staff if published"""
         event = super().create(vals)
         
         # If a host is assigned, mark them as a host
         if event.host_id:
             event.host_id.is_host = True
+        
+        # If event is created as published, auto-register staff members
+        if vals.get('is_published'):
+            event._auto_register_staff_members()
             
         return event
     
     def write(self, vals):
-        """Override write to automatically set is_host field when host is assigned and promote waitlist"""
+        """Override write to automatically set is_host field when host is assigned, promote waitlist, auto-register staff, and process referrals"""
         # Store original seats_max to check if capacity increased
         original_seats_max = self.seats_max if hasattr(self, 'seats_max') else None
         
@@ -392,6 +396,18 @@ class EventEvent(models.Model):
                 _logger.info(f"Event {self.id}: Seats increased from {original_seats_max} to {new_seats_max}, triggering auto-promotion")
                 # Trigger the computed field to recalculate and auto-promote
                 self._compute_seat_availability()
+        
+        # Only auto-register staff when event is being published (not on every write to published events)
+        if 'is_published' in vals and vals['is_published']:
+            for event in self:
+                event._auto_register_staff_members()
+        
+        # Process referrals when event stage is changed to "Ended"
+        if 'stage_id' in vals:
+            ended_stage = self.env['event.stage'].search([('name', '=', 'Ended')], limit=1)
+            if ended_stage and vals['stage_id'] == ended_stage.id:
+                for event in self:
+                    event._process_event_referrals()
             
         return result
     
@@ -707,7 +723,7 @@ class EventEvent(models.Model):
                             event.user_waitlist_position = i
                             break
     
-    @api.depends('registration_ids', 'registration_ids.partner_id', 'registration_ids.state')
+    @api.depends('registration_ids', 'registration_ids.partner_id', 'registration_ids.state', 'registration_ids.is_on_waitlist')
     def _compute_has_conflicting_registration(self):
         """Check if current user has conflicting registrations for overlapping events"""
         for event in self:
@@ -720,11 +736,13 @@ class EventEvent(models.Model):
                 
                 # Check if current user has any registrations for events that overlap with this event
                 if event.date_begin and event.date_end:
-                    # Find all events where the user has ACTIVE registrations that overlap with this event's time
-                    # First, find all active registrations for this user
+                    # Find all events where the user has ACTIVE registrations OR WAITLIST registrations that overlap with this event's time
+                    # First, find all active registrations for this user (including waitlist)
                     active_registrations = request.env['event.registration'].search([
                         ('partner_id', '=', current_user_partner.id),
-                        ('state', 'in', ['open', 'done'])  # Only active registrations
+                        '|',
+                        ('state', 'in', ['open', 'done']),  # Active registrations
+                        ('is_on_waitlist', '=', True)  # Or waitlist registrations (even if in draft state)
                     ])
                     
                     # Get the event IDs from these active registrations
@@ -845,29 +863,6 @@ class EventEvent(models.Model):
             self.message_post(
                 body=_('Event marked as ended. Processed %d referrals.') % len(referrals)
             )
-    
-    def write(self, vals):
-        """Override write to handle automatic staff registration when event is published and referral processing when ended"""
-        result = super().write(vals)
-        
-        # Check if the event is being published or if it's already published
-        if 'is_published' in vals and vals['is_published']:
-            for event in self:
-                event._auto_register_staff_members()
-        elif 'is_published' not in vals:
-            # If is_published is not being changed, check if event is already published
-            for event in self:
-                if event.is_published:
-                    event._auto_register_staff_members()
-        
-        # Process referrals when event stage is changed to "Ended"
-        if 'stage_id' in vals:
-            ended_stage = self.env['event.stage'].search([('name', '=', 'Ended')], limit=1)
-            if ended_stage and vals['stage_id'] == ended_stage.id:
-                for event in self:
-                    event._process_event_referrals()
-        
-        return result
     
     def _auto_register_staff_members(self):
         """Automatically register all staff members for this event"""

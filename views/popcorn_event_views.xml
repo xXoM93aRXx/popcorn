@@ -12,7 +12,7 @@
             </xpath>
             
             <xpath expr="//group[@name='right_event_details']" position="inside">
-                <field name="host_id" placeholder="Select host for this event" widget="many2one_avatar"/>
+                <field name="host_id" placeholder="Select host for this event" widget="many2one_avatar" domain="[('is_host', '=', True)]"/>
                 <field name="cancellation_deadline_hours" placeholder="24"/>
                 <field name="event_price" placeholder="0.00"/>
                 <field name="hide_after_minutes" placeholder="15"/>
