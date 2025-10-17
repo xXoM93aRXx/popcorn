@@ -10,9 +10,11 @@
                 <field name="badge_image" widget="image" optional="hide"/>
                 <field name="name"/>
                 <field name="code"/>
+                <field name="partner_id" optional="show"/>
                 <field name="discount_type"/>
                 <field name="discount_value"/>
                 <field name="extra_days" optional="hide"/>
+                <field name="event_type" optional="show"/>
                 <field name="active"/>
                 <field name="is_valid"/>
                 <field name="usage_count"/>
@@ -60,6 +62,8 @@
                             <field name="discount_value"/>
                             <field name="extra_days" invisible="discount_type != 'extra_days'"/>
                             <field name="customer_type"/>
+                            <field name="partner_id"/>
+                            <field name="event_type"/>
                             <field name="is_public"/>
                         </group>
                         <group>
@@ -118,7 +122,9 @@
             <search string="Search Discounts">
                 <field name="name"/>
                 <field name="code"/>
+                <field name="partner_id"/>
                 <field name="discount_type"/>
+                <field name="event_type"/>
                 <field name="membership_plan_ids"/>
                 <separator/>
                 <filter string="Active" name="active" domain="[('active', '=', True)]"/>
@@ -133,6 +139,9 @@
                 <filter string="All Customers" name="all_customers" domain="[('customer_type', '=', 'all')]"/>
                 <filter string="First Timer Only" name="first_timer_only" domain="[('customer_type', '=', 'first_timer')]"/>
                 <filter string="Existing Customers" name="existing_customers" domain="[('customer_type', '=', 'existing')]"/>
+                <separator/>
+                <filter string="Partner Specific" name="partner_specific" domain="[('partner_id', '!=', False)]"/>
+                <filter string="Event Type Restricted" name="event_type_restricted" domain="[('event_type', '!=', False)]"/>
                 <separator/>
                 <group expand="0" string="Group By">
                     <filter string="Discount Type" name="group_discount_type" context="{'group_by': 'discount_type'}"/>

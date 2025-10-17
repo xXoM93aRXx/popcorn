@@ -294,13 +294,14 @@ class PopcornMembershipPlan(models.Model):
         """Get all available discounts for this membership plan"""
         self.ensure_one()
         
-        # Get discounts linked to this plan
-        linked_discounts = self.discount_ids.filtered('is_valid')
+        # Get discounts linked to this plan (exclude partner-specific discounts)
+        linked_discounts = self.discount_ids.filtered(lambda d: d.is_valid and not d.partner_id)
         
-        # Get global discounts (not linked to specific plans)
+        # Get global discounts (not linked to specific plans, and not partner-specific)
         global_discounts = self.env['popcorn.discount'].search([
             ('is_valid', '=', True),
-            ('membership_plan_ids', '=', False)
+            ('membership_plan_ids', '=', False),
+            ('partner_id', '=', False)  # Exclude first-timer discounts
         ])
         
         all_discounts = linked_discounts | global_discounts

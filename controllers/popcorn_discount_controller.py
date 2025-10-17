@@ -64,6 +64,13 @@ class PopcornDiscountController(http.Controller):
                     'message': _('This discount code has expired or reached its usage limit')
                 }
             
+            # Check if discount is restricted to a specific partner
+            if discount.partner_id and discount.partner_id.id != partner.id:
+                return {
+                    'success': False,
+                    'message': _('This discount code is not valid for your account')
+                }
+            
             # Check usage limit per customer
             if discount.usage_limit_per_customer > 0:
                 # Count how many times this customer has used this discount
@@ -80,6 +87,13 @@ class PopcornDiscountController(http.Controller):
             
             # Validate for membership plan
             if plan_id:
+                # First-timer discounts are ONLY for events, not memberships
+                if discount.partner_id:
+                    return {
+                        'success': False,
+                        'message': _('This discount code is only valid for event registrations, not memberships')
+                    }
+                
                 plan = request.env['popcorn.membership.plan'].browse(int(plan_id))
                 if not plan.exists():
                     return {

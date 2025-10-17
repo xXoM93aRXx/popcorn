@@ -276,6 +276,7 @@ class ResPartner(models.Model):
                     'usage_limit': 1,  # Can only be used once
                     'usage_limit_per_customer': 1,
                     'customer_type': 'first_timer',
+                    'partner_id': partner.id,  # Restrict to this specific partner
                     'event_type': 'regular_offline',  # Only valid for regular offline clubs
                     'is_public': True,
                     'website_description': f'Welcome discount for {partner.name}! Get {discount_amount}RMB off your first regular club registration.'

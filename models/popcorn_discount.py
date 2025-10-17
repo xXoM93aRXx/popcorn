@@ -68,6 +68,9 @@ class PopcornDiscount(models.Model):
         ('existing', 'Existing Customers Only'),
         ('new', 'New Customers Only')
     ], string='Customer Type', default='all', required=True)
+    
+    partner_id = fields.Many2one('res.partner', string='Specific Customer',
+                                 help='If set, this discount can only be used by this specific customer')
 
     # Display and Marketing
     display_name = fields.Char(string='Display Name', compute='_compute_display_name', store=True)
@@ -214,6 +217,10 @@ class PopcornDiscount(models.Model):
         if not self.is_valid:
             return original_price
         
+        # Check if discount is restricted to a specific partner
+        if self.partner_id and customer_partner and self.partner_id.id != customer_partner.id:
+            return original_price
+        
         # Check customer type restrictions
         if customer_partner and self.customer_type != 'all':
             if self.customer_type == 'first_timer' and not customer_partner.is_first_timer:
@@ -258,6 +265,10 @@ class PopcornDiscount(models.Model):
         if not self.is_valid:
             return 0
         
+        # Check if discount is restricted to a specific partner
+        if self.partner_id and customer_partner and self.partner_id.id != customer_partner.id:
+            return 0
+        
         # Check customer type restrictions
         if customer_partner and self.customer_type != 'all':
             if self.customer_type == 'first_timer' and not customer_partner.is_first_timer:
@@ -282,6 +293,7 @@ class PopcornDiscount(models.Model):
         """Get all available discounts for a membership plan and customer"""
         domain = [
             ('is_valid', '=', True),
+            ('partner_id', '=', False),  # Exclude partner-specific discounts (first-timer coupons)
             '|',
             ('membership_plan_ids', '=', False),  # Applies to all plans
             ('membership_plan_ids', 'in', membership_plan.id)
