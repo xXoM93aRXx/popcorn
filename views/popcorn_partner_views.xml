@@ -15,6 +15,23 @@
             </xpath>
             <xpath expr="//field[@name='is_first_timer']" position="after">
                 <field name="host_bio" placeholder="Enter host biography or description" invisible="not is_host"/>
+                <field name="first_timer_discount_code" readonly="1" invisible="not is_first_timer"/>
+                <field name="first_timer_discount_expiry" readonly="1" invisible="not is_first_timer"/>
+                <field name="first_timer_discount_remaining_days" readonly="1" invisible="not is_first_timer"/>
+                <field name="first_timer_discount_is_expired" readonly="1" invisible="not is_first_timer"/>
+                <field name="first_timer_discount_is_used" readonly="1" invisible="not is_first_timer"/>
+                <field name="first_timer_discount_is_available" readonly="1" invisible="not is_first_timer"/>
+            </xpath>
+            
+            <!-- Add button to generate first-timer discount in button box -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_generate_first_timer_discount" 
+                        string="Generate Discount Code" 
+                        type="object" 
+                        class="oe_stat_button"
+                        icon="fa-gift"
+                        invisible="not is_first_timer or first_timer_discount_code"
+                        help="Generate a unique discount code for this first-timer customer"/>
             </xpath>
             
             <!-- Host Profile Customization Fields -->
@@ -44,6 +61,12 @@
                 <field name="is_first_timer"/>
                 <field name="book_club_automatically"/>
                 <field name="popcorn_money_balance"/>
+                <field name="first_timer_discount_code"/>
+                <field name="first_timer_discount_expiry"/>
+                <field name="first_timer_discount_remaining_days"/>
+                <field name="first_timer_discount_is_expired"/>
+                <field name="first_timer_discount_is_used"/>
+                <field name="first_timer_discount_is_available"/>
             </xpath>
             <xpath expr="//filter[@name='supplier']" position="after">
                 <filter string="Hosts" name="hosts" domain="[('is_host', '=', True)]"/>
@@ -54,9 +77,78 @@
                 <filter string="Auto Book Contacts" name="auto_book_contacts" domain="[('book_club_automatically', '=', True)]"/>
                 <filter string="Has Popcorn Money" name="has_popcorn_money" domain="[('popcorn_money_balance', '>', 0)]"/>
                 <filter string="No Popcorn Money" name="no_popcorn_money" domain="[('popcorn_money_balance', '=', 0)]"/>
+                <separator/>
+                <filter string="Has Discount Code" name="has_discount_code" domain="[('first_timer_discount_code', '!=', False)]"/>
+                <filter string="No Discount Code" name="no_discount_code" domain="[('first_timer_discount_code', '=', False)]"/>
+                <filter string="Discount Expired" name="discount_expired" domain="[('first_timer_discount_is_expired', '=', True)]"/>
+                <filter string="Discount Active" name="discount_active" domain="[('first_timer_discount_is_expired', '=', False), ('first_timer_discount_code', '!=', False)]"/>
+                <filter string="Discount Used" name="discount_used" domain="[('first_timer_discount_is_used', '=', True)]"/>
+                <filter string="Discount Available" name="discount_available" domain="[('first_timer_discount_is_available', '=', True)]"/>
             </xpath>
         </field>
     </record>
 
+    <!-- First Timer Discount Management List View -->
+    <record id="popcorn_first_timer_discount_tree_view" model="ir.ui.view">
+        <field name="name">popcorn.first.timer.discount.tree</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <list string="First Timer Discounts" decoration-bf="first_timer_discount_is_expired" decoration-muted="not is_first_timer">
+                <field name="name"/>
+                <field name="phone"/>
+                <field name="first_timer_discount_code"/>
+                <field name="first_timer_discount_remaining_days"/>
+                <field name="create_date"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- First Timer Discount Management Search View -->
+    <record id="popcorn_first_timer_discount_search_view" model="ir.ui.view">
+        <field name="name">popcorn.first.timer.discount.search</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <search string="Search First Timer Discounts">
+                <field name="name"/>
+                <field name="email"/>
+                <field name="first_timer_discount_code"/>
+                <separator/>
+                <filter string="First Timers Only" name="first_timers_only" domain="[('is_first_timer', '=', True)]"/>
+                <filter string="Has Discount Code" name="has_discount_code" domain="[('first_timer_discount_code', '!=', False)]"/>
+                <filter string="No Discount Code" name="no_discount_code" domain="[('first_timer_discount_code', '=', False)]"/>
+                <filter string="Discount Expired" name="discount_expired" domain="[('first_timer_discount_is_expired', '=', True)]"/>
+                <filter string="Discount Active" name="discount_active" domain="[('first_timer_discount_is_expired', '=', False), ('first_timer_discount_code', '!=', False)]"/>
+                <separator/>
+                <filter string="Expires Today" name="expires_today" domain="[('first_timer_discount_expiry', '=', context_today())]"/>
+                <filter string="Expires This Week" name="expires_week" domain="[('first_timer_discount_expiry', '&lt;=', (context_today() + datetime.timedelta(days=7)))]"/>
+                <separator/>
+                <group expand="0" string="Group By">
+                    <filter string="Discount Status" name="group_discount_status" context="{'group_by': 'first_timer_discount_is_expired'}"/>
+                    <filter string="Expiry Date" name="group_expiry_date" context="{'group_by': 'first_timer_discount_expiry'}"/>
+                    <filter string="Created Date" name="group_created_date" context="{'group_by': 'create_date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- First Timer Discount Management Action -->
+    <record id="popcorn_first_timer_discount_action" model="ir.actions.act_window">
+        <field name="name">First Timer Discounts</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="popcorn_first_timer_discount_tree_view"/>
+        <field name="domain">[('is_first_timer', '=', True)]</field>
+        <field name="search_view_id" ref="popcorn_first_timer_discount_search_view"/>
+        <field name="context">{'search_default_first_timers_only': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No first-timer customers found!
+            </p>
+            <p>
+                This view shows all first-timer customers and their discount code status.
+                You can generate discount codes for customers who don't have one yet.
+            </p>
+        </field>
+    </record>
 
 </odoo>

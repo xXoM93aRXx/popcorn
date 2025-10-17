@@ -1,0 +1,252 @@
+/* Popcorn Coupon/Discount Code Styles */
+
+/* Coupon Input Group */
+.popcorn-coupon-input-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.popcorn-coupon-input-group .popcorn-form-input {
+    flex: 1;
+    min-width: 200px;
+}
+
+.popcorn-coupon-input-group .popcorn-btn {
+    white-space: nowrap;
+    padding: 10px 20px;
+    font-size: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.popcorn-coupon-input-group .popcorn-btn-secondary {
+    background-color: var(--popcorn-primary-color, #007bff);
+    color: white;
+}
+
+.popcorn-coupon-input-group .popcorn-btn-secondary:hover {
+    background-color: var(--popcorn-primary-dark, #0056b3);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.popcorn-coupon-input-group .popcorn-btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.popcorn-coupon-input-group .popcorn-btn-danger:hover {
+    background-color: #c82333;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+.popcorn-coupon-input-group .popcorn-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Coupon Discount Row in Summary */
+.popcorn-coupon-discount-row {
+    background-color: #d4edda;
+    padding: 8px 0;
+    margin: 5px 0;
+    border-radius: 4px;
+}
+
+.popcorn-coupon-discount-row .popcorn-price-label {
+    color: #155724;
+    font-weight: 600;
+}
+
+.popcorn-coupon-discount-row .popcorn-discount {
+    color: #155724;
+    font-weight: bold;
+}
+
+/* Extra Days Row in Summary */
+.popcorn-extra-days-row {
+    background-color: #fff3cd;
+    padding: 8px 0;
+    margin: 5px 0;
+    border-radius: 4px;
+}
+
+.popcorn-extra-days-row .popcorn-price-label {
+    color: #856404;
+    font-weight: 600;
+}
+
+.popcorn-extra-days-row .popcorn-price-value {
+    color: #856404;
+    font-weight: bold;
+}
+
+/* Banner Styles for Coupon Messages */
+.popcorn-banner-success {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.popcorn-banner-success .popcorn-error-icon {
+    color: #155724;
+}
+
+.popcorn-banner-success .popcorn-error-text {
+    color: #155724;
+}
+
+.popcorn-banner-error {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.popcorn-banner-error .popcorn-error-icon {
+    color: #721c24;
+}
+
+.popcorn-banner-error .popcorn-error-text {
+    color: #721c24;
+}
+
+.popcorn-banner-info {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+}
+
+.popcorn-banner-info .popcorn-error-icon {
+    color: #0c5460;
+}
+
+.popcorn-banner-info .popcorn-error-text {
+    color: #0c5460;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .popcorn-coupon-input-group {
+        flex-direction: column;
+    }
+    
+    .popcorn-coupon-input-group .popcorn-form-input {
+        width: 100%;
+    }
+    
+    .popcorn-coupon-input-group .popcorn-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Loading Spinner */
+.popcorn-coupon-input-group .popcorn-btn .fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Disabled Input State */
+.popcorn-coupon-input-group .popcorn-form-input:disabled {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* First Timer Discount Notification */
+.popcorn-first-timer-discount-notification {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-left: 4px solid #28a745;
+    border-radius: 6px;
+    padding: 15px 20px;
+    margin: 20px 0;
+}
+
+.popcorn-discount-notification-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.popcorn-discount-icon {
+    font-size: 24px;
+    color: #28a745;
+    min-width: 24px;
+    text-align: center;
+}
+
+.popcorn-discount-notification-text {
+    flex: 1;
+    min-width: 250px;
+}
+
+.popcorn-discount-notification-text h4 {
+    color: #155724;
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.popcorn-discount-notification-text p {
+    color: #155724;
+    margin: 4px 0;
+    font-size: 14px;
+}
+
+.popcorn-discount-notification-text strong {
+    color: #0c4128;
+    font-weight: 600;
+    background-color: #c3e6cb;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.popcorn-use-discount-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+}
+
+.popcorn-use-discount-btn:hover {
+    background-color: #218838;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive Design for Notification */
+@media (max-width: 768px) {
+    .popcorn-discount-notification-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .popcorn-discount-notification-text {
+        min-width: auto;
+    }
+    
+    .popcorn-use-discount-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+

@@ -53,6 +53,14 @@ class PopcornDiscount(models.Model):
                                          string='Applicable Plans',
                                          help='Membership plans this discount applies to')
 
+    # Event Type Restriction
+    event_type = fields.Selection([
+        ('regular_offline', 'Regular Offline Only'),
+        ('regular_online', 'Regular Online Only'),
+        ('spclub', 'Special Club Only'),
+    ], string='Event Type Restriction', 
+       help='Restrict discount to specific event types. Leave empty for no restriction.')
+
     # Customer Restrictions
     customer_type = fields.Selection([
         ('all', 'All Customers'),
@@ -152,11 +160,27 @@ class PopcornDiscount(models.Model):
         self.message_post(
             body=_('Discount used - Total usage: %s') % self.usage_count
         )
+        
+        # Refresh partner discount status if this is a first-timer discount
+        if self.code:
+            partners = self.env['res.partner'].sudo().search([
+                ('first_timer_discount_code', '=', self.code)
+            ])
+            for partner in partners:
+                partner._compute_first_timer_discount_status()
 
     def action_reset_usage(self):
         """Reset usage count (staff action)"""
         self.ensure_one()
         self.write({'usage_count': 0})
+        
+        # Refresh partner discount status if this is a first-timer discount
+        if self.code:
+            partners = self.env['res.partner'].sudo().search([
+                ('first_timer_discount_code', '=', self.code)
+            ])
+            for partner in partners:
+                partner._compute_first_timer_discount_status()
         
         # Log the reset
         self.message_post(

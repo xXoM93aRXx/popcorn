@@ -8,9 +8,11 @@ from . import popcorn_website_menu
 from . import popcorn_badge
 from . import popcorn_contract
 from . import popcorn_discount
+from . import popcorn_discount_usage
 from . import popcorn_membership_discount_rel
 from . import popcorn_referral
 from . import popcorn_notification
+from . import res_config_settings
 
 
 

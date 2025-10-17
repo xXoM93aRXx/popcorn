@@ -7,6 +7,40 @@
                   sequence="50"
                   web_icon="popcorn,static/description/icon.png"/>
 
+        <!-- Discount Management Menu -->
+        <menuitem id="menu_popcorn_discounts"
+                  name="Discounts"
+                  parent="menu_popcorn_root"
+                  sequence="10"/>
+
+        <!-- Discount Codes Menu -->
+        <menuitem id="menu_popcorn_discount_codes"
+                  name="Discount Codes"
+                  parent="menu_popcorn_discounts"
+                  action="popcorn_discount_action"
+                  sequence="10"/>
+
+        <!-- Discount Usage Tracking Menu -->
+        <menuitem id="menu_popcorn_discount_usage"
+                  name="Discount Usage"
+                  parent="menu_popcorn_discounts"
+                  action="popcorn_discount_usage_action"
+                  sequence="20"/>
+
+        <!-- First Timer Coupon Management Menu -->
+        <menuitem id="menu_popcorn_first_timer_discounts"
+                  name="First Timer Coupons"
+                  parent="menu_popcorn_discounts"
+                  action="popcorn_first_timer_discount_action"
+                  sequence="30"/>
+
+        <!-- Discount Settings Menu -->
+        <menuitem id="menu_popcorn_discount_settings"
+                  name="Settings"
+                  parent="menu_popcorn_discounts"
+                  action="action_popcorn_discount_settings"
+                  sequence="40"/>
+
     </data>
 </odoo>
 

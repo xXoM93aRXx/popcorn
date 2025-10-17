@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Discount Settings Form View -->
+        <record id="view_popcorn_discount_settings_form" model="ir.ui.view">
+            <field name="name">popcorn.discount.settings.form</field>
+            <field name="model">res.config.settings</field>
+            <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//form" position="inside">
+                    <app string="Popcorn Discounts" name="popcorn">
+                        <block title="First Timer Coupon Settings">
+                            <setting string="First Timer Discount Amount" 
+                                     help="Set the discount amount for first-timer customers. This amount will be used when auto-generating first-timer discount codes.">
+                                <field name="popcorn_first_timer_discount_amount" 
+                                       class="oe_inline"
+                                       widget="monetary"
+                                       options="{'currency_field': 'company_currency_id'}"/>
+                            </setting>
+                        </block>
+                    </app>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Action to open Discount Settings -->
+        <record id="action_popcorn_discount_settings" model="ir.actions.act_window">
+            <field name="name">Discount Settings</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">res.config.settings</field>
+            <field name="view_mode">form</field>
+            <field name="target">inline</field>
+            <field name="context">{'module': 'popcorn_discounts'}</field>
+        </record>
+
+    </data>
+</odoo>
+

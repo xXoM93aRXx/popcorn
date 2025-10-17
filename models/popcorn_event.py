@@ -379,8 +379,11 @@ class EventEvent(models.Model):
     
     def write(self, vals):
         """Override write to automatically set is_host field when host is assigned, promote waitlist, auto-register staff, and process referrals"""
-        # Store original seats_max to check if capacity increased
-        original_seats_max = self.seats_max if hasattr(self, 'seats_max') else None
+        # Store original seats_max values to check if capacity increased (only when seats_max is being changed)
+        original_seats_max_map = {}
+        if 'seats_max' in vals:
+            for event in self:
+                original_seats_max_map[event.id] = event.seats_max
         
         result = super().write(vals)
         
@@ -389,13 +392,15 @@ class EventEvent(models.Model):
             host_partner = self.env['res.partner'].browse(vals['host_id'])
             host_partner.is_host = True
         
-        # If seats_max increased, trigger auto-promotion via computed field
-        if 'seats_max' in vals and original_seats_max is not None:
+        # If seats_max increased, trigger auto-promotion
+        if 'seats_max' in vals:
             new_seats_max = vals['seats_max']
-            if new_seats_max > original_seats_max:
-                _logger.info(f"Event {self.id}: Seats increased from {original_seats_max} to {new_seats_max}, triggering auto-promotion")
-                # Trigger the computed field to recalculate and auto-promote
-                self._compute_seat_availability()
+            for event in self:
+                original_seats_max = original_seats_max_map.get(event.id)
+                if original_seats_max is not None and new_seats_max > original_seats_max:
+                    _logger.info(f"Event {event.id}: Seats increased from {original_seats_max} to {new_seats_max}, triggering auto-promotion")
+                    # Directly call auto-promote to avoid re-entrancy issues
+                    event._auto_promote_waitlist()
         
         # Only auto-register staff when event is being published (not on every write to published events)
         if 'is_published' in vals and vals['is_published']:
@@ -603,8 +608,23 @@ class EventEvent(models.Model):
         """Automatically promote waitlist registrations when seats become available"""
         self.ensure_one()
         
+        # Prevent re-entrancy: if already promoting, skip
+        if self.env.context.get('promoting_waitlist'):
+            _logger.info(f"Event {self.id}: Skipping auto-promotion (already in progress)")
+            return
+        
         if not self.seats_limited or self.seats_available <= 0:
             _logger.info(f"Event {self.id}: No auto-promotion needed (seats_limited={self.seats_limited}, seats_available={self.seats_available})")
+            return
+        
+        # Calculate available seats ONCE at the start to prevent race conditions
+        confirmed_registrations = self.registration_ids.filtered(
+            lambda r: r.state in ['open', 'confirmed', 'done'] and not r.is_on_waitlist
+        )
+        available_seats = max(0, self.seats_max - len(confirmed_registrations))
+        
+        if available_seats <= 0:
+            _logger.info(f"Event {self.id}: No seats available for promotion")
             return
         
         # Get waitlist registrations in order
@@ -613,13 +633,14 @@ class EventEvent(models.Model):
         ).sorted('waitlist_position')
         
         # Promote up to the number of available seats
-        promotions_needed = min(self.seats_available, len(waitlist_registrations))
+        promotions_needed = min(available_seats, len(waitlist_registrations))
         
         _logger.info(f"Event {self.id}: Found {len(waitlist_registrations)} waitlist registrations, promoting {promotions_needed}")
         
+        # Use context flag to prevent re-entrancy
         for i in range(promotions_needed):
             reg = waitlist_registrations[i]
-            reg.write({
+            reg.with_context(promoting_waitlist=True).write({
                 'is_on_waitlist': False,
                 'waitlist_position': 0,
                 'state': 'open'
@@ -643,7 +664,7 @@ class EventEvent(models.Model):
         if promotions_needed > 0:
             remaining_waitlist = waitlist_registrations[promotions_needed:]
             for i, reg in enumerate(remaining_waitlist, 1):
-                reg.write({'waitlist_position': i})
+                reg.with_context(promoting_waitlist=True).write({'waitlist_position': i})
     
     @api.model
     def _search_get_detail(self, website, order, options):
@@ -684,11 +705,6 @@ class EventEvent(models.Model):
                 )
                 event.seats_taken = len(confirmed_registrations)
                 event.seats_available = max(0, event.seats_max - event.seats_taken)
-                
-                # Auto-promote waitlist registrations if seats become available
-                if event.seats_available > 0:
-                    _logger.info(f"Auto-promoting waitlist for event {event.id}: {event.seats_available} seats available")
-                    event._auto_promote_waitlist()
     
     @api.depends('registration_ids', 'registration_ids.is_on_waitlist')
     def _compute_waitlist_info(self):

@@ -833,10 +833,43 @@ class PopcornEventController(http.Controller):
             })
         
         try:
+            # Validate form data
+            if not kwargs.get('name') or not kwargs.get('phone'):
+                return request.redirect(f'/popcorn/event/{event.id}/checkout?error=missing_fields')
+            
+            # Update partner information
+            partner_vals = {
+                'name': kwargs.get('name'),
+                'phone': kwargs.get('phone'),
+            }
+            partner.write(partner_vals)
+            
+            # Get applied discount ID from coupon code (if any)
+            applied_discount_id = kwargs.get('applied_discount_id')
+            _logger.info(f"Applied discount ID received: {applied_discount_id}")
+            applied_discount = None
+            
+            if applied_discount_id:
+                try:
+                    applied_discount = request.env['popcorn.discount'].browse(int(applied_discount_id))
+                    if not applied_discount.exists() or not applied_discount.is_valid:
+                        applied_discount = None
+                except (ValueError, TypeError):
+                    applied_discount = None
+            
             # Check if user wants to use popcorn money
             use_popcorn_money = kwargs.get('use_popcorn_money') == 'on'
             popcorn_money_balance = partner.popcorn_money_balance
+            
+            # Calculate event price with discount if applied
             event_price = event.event_price
+            if applied_discount:
+                # Apply discount calculation
+                if applied_discount.discount_type == 'percentage':
+                    discount_amount = event_price * (applied_discount.discount_value / 100)
+                    event_price = max(0, event_price - discount_amount)
+                elif applied_discount.discount_type == 'fixed_amount':
+                    event_price = max(0, event_price - applied_discount.discount_value)
             
             _logger.info(f"Popcorn money check: use={use_popcorn_money}, balance={popcorn_money_balance}, event_price={event_price}")
             
@@ -908,18 +941,41 @@ class PopcornEventController(http.Controller):
                         _logger.warning(f"Failed to process referral {referral_code}: {str(e)}")
                         # Don't fail the registration if referral processing fails
                 
-                # Deduct popcorn money if used
-                if use_popcorn_money and popcorn_money_to_use > 0:
-                    _logger.info(f"Deducting popcorn money: {popcorn_money_to_use}")
-                    partner.deduct_popcorn_money(popcorn_money_to_use, f'Event registration: {event.name}')
+                # Apply discount if used
+                if applied_discount:
+                    _logger.info(f"Applying discount: {applied_discount.code}")
+                    _logger.info(f"Discount usage count before: {applied_discount.usage_count}")
+                    applied_discount.action_increment_usage()
+                    _logger.info(f"Discount usage count after: {applied_discount.usage_count}")
+                    
+                    # Create usage record
+                    request.env['popcorn.discount.usage'].create_usage_record(
+                        discount_id=applied_discount.id,
+                        partner_id=partner.id,
+                        original_price=event.event_price,
+                        discounted_price=event_price,
+                        currency_id=event.currency_id.id if hasattr(event, 'currency_id') and event.currency_id else request.env.company.currency_id.id,
+                        event_id=event.id,
+                        event_registration_id=registration.id,
+                        extra_days=applied_discount.get_extra_days(None, partner)
+                    )
                 
                 # Log the payment request
                 if remaining_amount <= 0:
-                    payment_message = _('Event registration completed using Popcorn Money for club: %s. Price: %s%s. Popcorn money used: %s%s. No additional payment required.') % (event.name, event.currency_id.symbol, event.event_price, event.currency_id.symbol, popcorn_money_to_use)
+                    # Check if coupon was used
+                    if applied_discount:
+                        payment_message = _('Event registration completed using coupon "%s" for club: %s. Original price: %s%s. Discounted price: %s%s. No additional payment required.') % (
+                            applied_discount.code, event.name, event.currency_id.symbol, event.event_price, 
+                            event.currency_id.symbol, event_price
+                        )
+                    else:
+                        payment_message = _('Event registration completed using Popcorn Money for club: %s. Price: %s%s. Popcorn money used: %s%s. No additional payment required.') % (event.name, event.currency_id.symbol, event.event_price, event.currency_id.symbol, popcorn_money_to_use)
                 else:
                     payment_message = _('Manual payment requested for club: %s. Price: %s%s. Payment method: Manual') % (event.name, event.currency_id.symbol, event.event_price)
                     if use_popcorn_money and popcorn_money_to_use > 0:
                         payment_message += _('. Popcorn money used: %s%s. Remaining: %s%s') % (event.currency_id.symbol, popcorn_money_to_use, event.currency_id.symbol, remaining_amount)
+                    if applied_discount:
+                        payment_message += _('. Coupon "%s" applied. Discounted price: %s%s') % (applied_discount.code, event.currency_id.symbol, event_price)
                 
                 registration.message_post(body=payment_message)
                 _logger.info(f"Registration message posted, redirecting to success page")
@@ -961,6 +1017,7 @@ class PopcornEventController(http.Controller):
                 'use_popcorn_money': use_popcorn_money,
                 'popcorn_money_to_use': popcorn_money_to_use,
                 'remaining_amount': remaining_amount,
+                'applied_discount_id': applied_discount.id if applied_discount else None,
             }
             
             _logger.info(f"Stored pending event purchase in session: {request.session['event_purchase_details']}")
@@ -1053,6 +1110,7 @@ class PopcornEventController(http.Controller):
                     'use_popcorn_money': use_popcorn_money,
                     'popcorn_money_to_use': popcorn_money_to_use,
                     'remaining_amount': remaining_amount,
+                    'applied_discount_id': applied_discount.id if applied_discount else None,
                 }
                 
                 # Redirect to WeChat OAuth2 flow
@@ -1273,6 +1331,32 @@ class PopcornEventController(http.Controller):
             # Deduct popcorn money if used
             if pending_event_purchase.get('use_popcorn_money') and pending_event_purchase.get('popcorn_money_to_use', 0) > 0:
                 partner.deduct_popcorn_money(pending_event_purchase['popcorn_money_to_use'], f'Event registration: {event.name}')
+            
+            # Apply discount if used (CRITICAL: Must mark discount as used to prevent reuse)
+            applied_discount_id = pending_event_purchase.get('applied_discount_id')
+            applied_discount = None
+            if applied_discount_id:
+                applied_discount = request.env['popcorn.discount'].sudo().browse(applied_discount_id)
+                if applied_discount.exists():
+                    _logger.info(f"Applying discount: {applied_discount.code}")
+                    _logger.info(f"Discount usage count before: {applied_discount.usage_count}")
+                    applied_discount.action_increment_usage()
+                    _logger.info(f"Discount usage count after: {applied_discount.usage_count}")
+                    
+                    # Calculate discounted price
+                    discounted_price = applied_discount.get_discounted_price(event.event_price)
+                    
+                    # Create usage record
+                    request.env['popcorn.discount.usage'].sudo().create({
+                        'discount_id': applied_discount.id,
+                        'partner_id': partner.id,
+                        'original_price': event.event_price,
+                        'discounted_price': discounted_price,
+                        'currency_id': event.currency_id.id if event.currency_id else request.env.company.currency_id.id,
+                        'event_id': event.id,
+                        'extra_days': applied_discount.get_extra_days(None, partner)
+                    })
+                    _logger.info(f"Discount usage record created for WeChat payment")
             
             _logger.info(f"Partner exists: {partner.exists()}")
             _logger.info(f"Partner name: {partner.name if partner.exists() else 'N/A'}")

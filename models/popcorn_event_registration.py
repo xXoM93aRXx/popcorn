@@ -401,6 +401,10 @@ class PopcornEventRegistration(models.Model):
         """Cancel the registration and restore membership quota if applicable"""
         self.ensure_one()
         
+        _logger.info(f"=== Portal Cancellation: Registration {self.id} for event {self.event_id.name} (ID: {self.event_id.id}) ===")
+        _logger.info(f"Partner: {self.partner_id.name} (ID: {self.partner_id.id})")
+        _logger.info(f"Current state: {self.state}, is_on_waitlist: {self.is_on_waitlist}")
+        
         # Check if cancellation is allowed
         if not self.event_id.can_cancel_registration(self):
             raise UserError(_('Cancellation is not allowed at this time. Please check the event cancellation deadline.'))
@@ -491,7 +495,10 @@ class PopcornEventRegistration(models.Model):
         
         # Promote next person from waitlist if event has limited seats
         if self.event_id.seats_limited:
+            _logger.info(f"Event has limited seats, attempting to promote from waitlist...")
             self._promote_next_waitlist_registration()
+        else:
+            _logger.info(f"Event has unlimited seats, skipping waitlist promotion")
         
         return True
     
@@ -499,16 +506,45 @@ class PopcornEventRegistration(models.Model):
         """Promote the next person from the waitlist when a spot becomes available"""
         self.ensure_one()
         
+        _logger.info(f"--- Attempting waitlist promotion for event {self.event_id.name} (ID: {self.event_id.id}) ---")
+        
+        # Prevent concurrent promotions for the same event
+        if self.env.context.get('promoting_waitlist'):
+            _logger.info(f"Skipping promotion: already promoting (context flag is set)")
+            return
+        
+        event = self.event_id
+        
+        # Check if there are actually available seats
+        if not event.seats_limited:
+            _logger.info(f"Skipping promotion: event has unlimited seats")
+            return
+        
+        # Calculate current availability
+        confirmed_registrations = event.registration_ids.filtered(
+            lambda r: r.state in ['open', 'confirmed', 'done'] and not r.is_on_waitlist
+        )
+        available_seats = max(0, event.seats_max - len(confirmed_registrations))
+        
+        _logger.info(f"Current confirmed registrations: {len(confirmed_registrations)} / {event.seats_max}")
+        _logger.info(f"Available seats: {available_seats}")
+        
+        if available_seats <= 0:
+            _logger.info(f"No seats available for waitlist promotion")
+            return
+        
         # Find the next person on the waitlist (lowest position number)
         next_waitlist_reg = self.env['event.registration'].search([
-            ('event_id', '=', self.event_id.id),
+            ('event_id', '=', event.id),
             ('is_on_waitlist', '=', True),
             ('state', '=', 'draft')
         ], order='waitlist_position asc', limit=1)
         
         if next_waitlist_reg:
-            # Promote this registration
-            next_waitlist_reg.write({
+            _logger.info(f"Promoting registration {next_waitlist_reg.id} - Partner: {next_waitlist_reg.partner_id.name} (waitlist position: {next_waitlist_reg.waitlist_position})")
+            
+            # Promote this registration with context flag to prevent re-entrancy
+            next_waitlist_reg.with_context(promoting_waitlist=True).write({
                 'is_on_waitlist': False,
                 'waitlist_position': 0,
                 'state': 'open'
@@ -516,7 +552,10 @@ class PopcornEventRegistration(models.Model):
             
             # Consume membership quota for the promoted registration
             if next_waitlist_reg.membership_id and next_waitlist_reg.consumption_state == 'pending':
+                _logger.info(f"Consuming membership quota for promoted registration (membership: {next_waitlist_reg.membership_id.id})")
                 next_waitlist_reg._consume_membership_quota()
+            else:
+                _logger.info(f"No quota consumption needed (membership_id: {next_waitlist_reg.membership_id.id if next_waitlist_reg.membership_id else None}, consumption_state: {next_waitlist_reg.consumption_state})")
             
             # Log the promotion
             next_waitlist_reg.message_post(
@@ -524,7 +563,10 @@ class PopcornEventRegistration(models.Model):
             )
             
             # Update waitlist positions for remaining waitlist registrations
-            self._update_waitlist_positions()
+            self.with_context(promoting_waitlist=True)._update_waitlist_positions()
+            _logger.info(f"Promotion completed successfully")
+        else:
+            _logger.info(f"No registrations found on waitlist to promote")
     
     def _update_waitlist_positions(self):
         """Update waitlist positions after a promotion"""
@@ -650,15 +692,43 @@ class PopcornEventRegistration(models.Model):
         if registration.partner_id and registration.event_id:
             registration._post_create_validation()
         
-        # Only automatically consume membership quota for new registrations (not imports)
-        if not is_import and registration.membership_id and registration.consumption_state == 'pending':
-            # Check if event has seats available
-            if registration.event_id.seats_limited and registration.event_id.seats_available <= 0:
-                # Add to waitlist instead of consuming quota
-                registration._add_to_waitlist()
+        # Check seat availability for all new registrations (not imports)
+        if not is_import and registration.event_id:
+            event = registration.event_id
+            _logger.info(f"=== New Registration Created: ID {registration.id} for event {event.name} (ID: {event.id}) ===")
+            _logger.info(f"Partner: {registration.partner_id.name} (ID: {registration.partner_id.id})")
+            _logger.info(f"Has membership: {bool(registration.membership_id)}")
+            
+            if event.seats_limited:
+                # Force fresh data from database
+                event.flush_recordset()
+                event.invalidate_recordset()
+                
+                # Calculate current availability directly (excluding the newly created registration)
+                confirmed_registrations = event.registration_ids.filtered(
+                    lambda r: r.id != registration.id and r.state in ['open', 'confirmed', 'done'] and not r.is_on_waitlist
+                )
+                available_seats = max(0, event.seats_max - len(confirmed_registrations))
+                
+                _logger.info(f"Event has limited seats: {len(confirmed_registrations)} / {event.seats_max} seats taken (excluding current registration)")
+                _logger.info(f"Available seats: {available_seats}")
+                
+                if available_seats <= 0:
+                    # Add to waitlist instead of consuming quota
+                    _logger.info(f"No seats available - adding to waitlist")
+                    registration._add_to_waitlist()
+                elif registration.membership_id and registration.consumption_state == 'pending':
+                    # Normal registration with membership - consume quota
+                    _logger.info(f"Seats available - confirming registration and consuming quota")
+                    registration._consume_membership_quota()
+                else:
+                    _logger.info(f"Seats available - registration confirmed (no membership quota to consume)")
             else:
-                # Normal registration - consume quota
-                registration._consume_membership_quota()
+                # Unlimited seats - just consume quota if membership exists
+                _logger.info(f"Event has unlimited seats")
+                if registration.membership_id and registration.consumption_state == 'pending':
+                    _logger.info(f"Consuming membership quota")
+                    registration._consume_membership_quota()
         
         # Update partner's first timer status after creating registration
         if registration.partner_id:
@@ -722,8 +792,13 @@ class PopcornEventRegistration(models.Model):
                     if not registration._is_membership_compatible(membership):
                         raise ValidationError(_('Selected membership is not compatible with this event'))
         
-        # Store original states to check for cancellations
+        # Store original states and consumption states to check for cancellations
         original_states = {reg.id: reg.state for reg in self}
+        original_consumption_states = {reg.id: reg.consumption_state for reg in self}
+        
+        # If cancelling from backend, also update consumption_state
+        if 'state' in vals and vals['state'] == 'cancel' and not self._context.get('skip_waitlist_promotion'):
+            vals['consumption_state'] = 'cancelled'
         
         result = super().write(vals)
         
@@ -732,18 +807,35 @@ class PopcornEventRegistration(models.Model):
             if registration.partner_id and registration.event_id:
                 registration._validate_registration()
         
-        # Handle state changes for waitlist promotion
+        # Handle state changes for waitlist promotion and quota restoration
         # Only promote from waitlist if state is being changed directly (not from action_cancel_registration)
         # action_cancel_registration sets a context flag to prevent double promotion
         if 'state' in vals and not self._context.get('skip_waitlist_promotion'):
             new_state = vals['state']
             for registration in self:
                 original_state = original_states.get(registration.id)
+                original_consumption_state = original_consumption_states.get(registration.id)
                 
-                # If registration is being cancelled, promote waitlist
+                # If registration is being cancelled, restore quota and promote waitlist
                 if new_state == 'cancel' and original_state in ['open', 'confirmed']:
+                    _logger.info(f"=== Backend Cancellation: Registration {registration.id} for event {registration.event_id.name} (ID: {registration.event_id.id}) ===")
+                    _logger.info(f"Partner: {registration.partner_id.name} (ID: {registration.partner_id.id})")
+                    _logger.info(f"Original state: {original_state} -> New state: {new_state}")
+                    _logger.info(f"Original consumption_state: {original_consumption_state}")
+                    
+                    # Restore membership quota if it was consumed
+                    if registration.membership_id and original_consumption_state == 'consumed':
+                        _logger.info(f"Restoring membership quota for membership {registration.membership_id.id}")
+                        registration._restore_membership_quota()
+                    else:
+                        _logger.info(f"No quota to restore (membership_id: {registration.membership_id.id if registration.membership_id else None}, consumption_state: {original_consumption_state})")
+                    
+                    # Promote next person from waitlist
                     if registration.event_id.seats_limited:
+                        _logger.info(f"Event has limited seats (max: {registration.event_id.seats_max}), attempting to promote from waitlist...")
                         registration._promote_next_waitlist_registration()
+                    else:
+                        _logger.info(f"Event has unlimited seats, skipping waitlist promotion")
         
         # Update first timer status if registration state changed to 'done' (attended)
         if vals.get('state') == 'done':

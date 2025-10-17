@@ -163,13 +163,33 @@ class PopcornMembershipController(http.Controller):
             # Get customer signature if provided
             customer_signature = post.get('customer_signature')
             
+            # Get applied discount ID from coupon code (if any)
+            applied_discount_id = post.get('applied_discount_id')
+            applied_discount = None
+            
+            if applied_discount_id:
+                try:
+                    applied_discount = request.env['popcorn.discount'].browse(int(applied_discount_id))
+                    if not applied_discount.exists() or not applied_discount.is_valid:
+                        applied_discount = None
+                except (ValueError, TypeError):
+                    applied_discount = None
+            
             # Calculate the amount to charge
             if is_upgrade:
                 amount = upgrade_details.get('upgrade_price', 0)
             else:
-                # Use discount system to determine best price
-                best_price, best_discount = plan.get_best_discount_price(partner)
-                amount = best_price
+                # Use coupon discount if applied, otherwise use automatic best discount
+                if applied_discount:
+                    original_price = plan.price_normal
+                    if partner.is_first_timer and plan.price_first_timer > 0:
+                        original_price = plan.price_first_timer
+                    amount = applied_discount.get_discounted_price(plan, original_price, partner)
+                    best_discount = applied_discount
+                else:
+                    # Use discount system to determine best price
+                    best_price, best_discount = plan.get_best_discount_price(partner)
+                    amount = best_price
             
             # Calculate how much popcorn money to use and remaining amount
             popcorn_money_to_use = 0
@@ -307,6 +327,7 @@ class PopcornMembershipController(http.Controller):
                 'popcorn_money_to_use': popcorn_money_to_use,
                 'remaining_amount': remaining_amount,
                 'customer_signature': customer_signature,
+                'applied_discount_id': applied_discount.id if applied_discount else None,
             }
             
             _logger.info(f"Stored pending membership in session: {request.session['pending_membership']}")
@@ -315,7 +336,7 @@ class PopcornMembershipController(http.Controller):
             _logger.info(f"Payment provider name: '{payment_provider.name}', lowercase: '{payment_provider.name.lower()}'")
             if payment_provider.name.lower() in ['bank transfer', 'bank_transfer']:
                 # For bank transfer, create membership immediately but mark as pending payment
-                membership = self._create_membership_from_plan(plan, partner, customer_signature=customer_signature)
+                membership = self._create_membership_from_plan(plan, partner, customer_signature=customer_signature, applied_discount=applied_discount)
                 membership.write({'state': 'pending_payment'})
                 
                 # Log the bank transfer payment request
@@ -1134,7 +1155,7 @@ class PopcornMembershipController(http.Controller):
                 _logger.info(f"Upgrade membership created with ID: {membership.id}")
             else:
                 _logger.info("Creating regular membership")
-                membership = self._create_membership_from_plan(plan, partner, customer_signature=pending_membership.get('customer_signature') if 'pending_membership' in locals() else None)
+                membership = self._create_membership_from_plan(plan, partner, customer_signature=wechat_pending_membership.get('customer_signature'))
                 _logger.info(f"Membership created with ID: {membership.id}, State: {membership.state}")
                 
                 # Respect the plan's activation policy
@@ -1244,7 +1265,7 @@ class PopcornMembershipController(http.Controller):
         
         return original_membership
     
-    def _create_membership_from_plan(self, plan, partner, purchase_channel='online', price_tier=None, upgrade_discount_allowed=False, first_timer_customer=False, payment_transaction_id=None, payment_reference=None, customer_signature=None):
+    def _create_membership_from_plan(self, plan, partner, purchase_channel='online', price_tier=None, upgrade_discount_allowed=False, first_timer_customer=False, payment_transaction_id=None, payment_reference=None, customer_signature=None, applied_discount=None):
         """Create a membership directly from a plan (bypassing sales orders)"""
         # Determine price tier if not provided
         if price_tier is None:
@@ -1264,7 +1285,14 @@ class PopcornMembershipController(http.Controller):
             purchase_price = plan.price_normal
         
         # Get best discount for this plan and customer (including extra days)
-        best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(partner)
+        if applied_discount:
+            # Use the applied discount
+            best_price = applied_discount.get_discounted_price(plan, purchase_price, partner)
+            best_discount = applied_discount
+            extra_days = applied_discount.get_extra_days(plan, partner)
+        else:
+            # Get best discount for this plan and customer (including extra days)
+            best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(partner)
         
         # Create membership values
         membership_vals = {
@@ -1299,6 +1327,19 @@ class PopcornMembershipController(http.Controller):
         
         # Create the membership
         membership = request.env['popcorn.membership'].create(membership_vals)
+        
+        # Create discount usage record if discount was applied
+        if best_discount:
+            request.env['popcorn.discount.usage'].create_usage_record(
+                discount_id=best_discount.id,
+                partner_id=partner.id,
+                original_price=purchase_price,
+                discounted_price=best_price,
+                currency_id=plan.currency_id.id,
+                membership_plan_id=plan.id,
+                membership_id=membership.id,
+                extra_days=extra_days
+            )
         
         # Increment discount usage if a discount was applied
         if best_discount:
@@ -1410,6 +1451,32 @@ class PopcornMembershipController(http.Controller):
             # Deduct popcorn money if used
             if pending_event_purchase.get('use_popcorn_money') and pending_event_purchase.get('popcorn_money_to_use', 0) > 0:
                 partner.deduct_popcorn_money(pending_event_purchase['popcorn_money_to_use'], f'Event registration: {event.name}')
+            
+            # CRITICAL: Apply discount if used (must mark discount as used to prevent reuse)
+            applied_discount_id = pending_event_purchase.get('applied_discount_id')
+            applied_discount = None
+            if applied_discount_id:
+                applied_discount = request.env['popcorn.discount'].sudo().browse(applied_discount_id)
+                if applied_discount.exists():
+                    _logger.info(f"Applying discount: {applied_discount.code}")
+                    _logger.info(f"Discount usage count before: {applied_discount.usage_count}")
+                    applied_discount.action_increment_usage()
+                    _logger.info(f"Discount usage count after: {applied_discount.usage_count}")
+                    
+                    # Calculate discounted price (pass None for membership_plan since this is an event)
+                    discounted_price = applied_discount.get_discounted_price(None, event.event_price, partner)
+                    
+                    # Create usage record
+                    request.env['popcorn.discount.usage'].sudo().create({
+                        'discount_id': applied_discount.id,
+                        'partner_id': partner.id,
+                        'original_price': event.event_price,
+                        'discounted_price': discounted_price,
+                        'currency_id': event.currency_id.id if event.currency_id else request.env.company.currency_id.id,
+                        'event_id': event.id,
+                        'extra_days': applied_discount.get_extra_days(None, partner)
+                    })
+                    _logger.info(f"✅ Discount usage record created for WeChat event payment")
             
             # Create the event registration (using only standard fields)
             _logger.info("Creating event registration with vals:")

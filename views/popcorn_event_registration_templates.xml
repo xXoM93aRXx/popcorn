@@ -322,7 +322,8 @@
                                         <div class="popcorn-error-content">
                                             <i class="fa fa-exclamation-triangle popcorn-error-icon"></i>
                                             <span class="popcorn-error-text">
-                                                <t t-if="request.params.get('error') == 'missing_payment_method'">Please select a payment method.</t>
+                                                <t t-if="request.params.get('error') == 'missing_fields'">Please fill in all required fields (Name and Phone Number).</t>
+                                                <t t-elif="request.params.get('error') == 'missing_payment_method'">Please select a payment method.</t>
                                                 <t t-elif="request.params.get('error') == 'terms_not_accepted'">Please accept the terms and conditions.</t>
                                                 <t t-elif="request.params.get('error') == 'invalid_payment_method'">Invalid payment method selected.</t>
                                                 <t t-elif="request.params.get('error') == 'payment_access_denied'">Payment access denied. Please try again.</t>
@@ -350,6 +351,21 @@
                                         </script>
                                     </div>
                                     
+                                    <!-- Personal Information -->
+                                    <div class="popcorn-form-section">
+                                        <h3 class="popcorn-section-title">Personal Information</h3>
+                                        <div class="popcorn-form-group">
+                                            <label for="name" class="popcorn-form-label">Full Name</label>
+                                            <input type="text" id="name" name="name" class="popcorn-form-input" 
+                                                   t-att-value="request.env.user.partner_id.name or ''" required="required"/>
+                                        </div>
+                                        <div class="popcorn-form-group">
+                                            <label for="phone" class="popcorn-form-label">Phone Number</label>
+                                            <input type="tel" id="phone" name="phone" class="popcorn-form-input" 
+                                                   t-att-value="request.env.user.partner_id.phone or ''" required="required"/>
+                                        </div>
+                                    </div>
+                                    
                                     <!-- Popcorn Money Section -->
                                     <t t-if="request.env.user.partner_id.popcorn_money_balance > 0">
                                         <div class="popcorn-form-section">
@@ -367,6 +383,44 @@
                                             </div>
                                         </div>
                                     </t>
+                                    
+                                    <!-- First Timer Discount Notification (Only for Regular Offline clubs) -->
+                                    <div class="popcorn-form-section" t-if="request.env.user.partner_id.is_first_timer and request.env.user.partner_id.first_timer_discount_code and request.env.user.partner_id.first_timer_discount_is_available and event.club_type == 'regular_offline'">
+                                        <div class="popcorn-first-timer-discount-notification">
+                                            <div class="popcorn-discount-notification-content">
+                                                <i class="fa fa-gift popcorn-discount-icon"></i>
+                                                <div class="popcorn-discount-notification-text">
+                                                    <h4>🎉 You have a first-timer discount!</h4>
+                                                    <p>Your discount code: <strong t-esc="request.env.user.partner_id.first_timer_discount_code"/></p>
+                                                    <p>Get <t t-esc="'{:,.0f}'.format(float(request.env['ir.config_parameter'].sudo().get_param('popcorn.first_timer_discount_amount', '118')))"/><t t-esc="event.currency_id.symbol"/> off your registration! <span t-if="request.env.user.partner_id.first_timer_discount_remaining_days > 0">Expires in <strong t-esc="request.env.user.partner_id.first_timer_discount_remaining_days"/> days.</span></p>
+                                                </div>
+                                                <button type="button" class="popcorn-btn popcorn-btn-success popcorn-use-discount-btn" 
+                                                        t-att-data-discount-code="request.env.user.partner_id.first_timer_discount_code">
+                                                    <i class="fa fa-check"></i> Use My Discount
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Coupon Code Section -->
+                                    <div class="popcorn-form-section">
+                                        <h3 class="popcorn-section-title">Discount Code</h3>
+                                        <div class="popcorn-form-group">
+                                            <label for="coupon_code" class="popcorn-form-label">Have a coupon code?</label>
+                                            <div class="popcorn-coupon-input-group">
+                                                <input type="text" id="coupon_code" name="coupon_code" class="popcorn-form-input" 
+                                                       placeholder="Enter coupon code"/>
+                                                <button type="button" id="apply_coupon_btn" class="popcorn-btn popcorn-btn-secondary">
+                                                    <i class="fa fa-check"></i> Apply
+                                                </button>
+                                                <button type="button" id="remove_coupon_btn" class="popcorn-btn popcorn-btn-danger" style="display: none;">
+                                                    <i class="fa fa-times"></i> Remove
+                                                </button>
+                                            </div>
+                                            <input type="hidden" id="applied_discount_id" name="applied_discount_id" value=""/>
+                                            <input type="hidden" id="event_id" name="event_id" t-att-value="event.id"/>
+                                        </div>
+                                    </div>
                                     
                                     <!-- Payment Methods -->
                                     <div class="popcorn-form-section">
@@ -454,6 +508,12 @@
                                         <span class="popcorn-price-label">Registration Fee:</span>
                                         <span class="popcorn-price-value">
                                             <t t-esc="event.currency_id.symbol"/><t t-esc="'{:,.2f}'.format(event.event_price)"/>
+                                        </span>
+                                    </div>
+                                    <div class="popcorn-price-row popcorn-discount-row" id="popcorn-discount-row" style="display: none;">
+                                        <span class="popcorn-price-label">Discount Applied:</span>
+                                        <span class="popcorn-price-value popcorn-discount-amount" id="popcorn-discount-amount">
+                                            -<t t-esc="event.currency_id.symbol"/>0.00
                                         </span>
                                     </div>
                                     <t t-if="request.env.user.partner_id.popcorn_money_balance > 0">

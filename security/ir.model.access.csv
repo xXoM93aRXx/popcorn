@@ -49,5 +49,9 @@ access_popcorn_notification_public,popcorn.notification.public,model_popcorn_not
 access_popcorn_notification_rule_user,popcorn.notification.rule.user,model_popcorn_notification_rule,base.group_user,1,0,0,0
 access_popcorn_notification_rule_manager,popcorn.notification.rule.manager,model_popcorn_notification_rule,base.group_system,1,1,1,1
 access_popcorn_notification_rule_portal,popcorn.notification.rule.portal,model_popcorn_notification_rule,base.group_portal,1,0,0,0
+access_popcorn_discount_usage_user,popcorn.discount.usage.user,model_popcorn_discount_usage,base.group_user,1,0,0,0
+access_popcorn_discount_usage_manager,popcorn.discount.usage.manager,model_popcorn_discount_usage,base.group_system,1,1,1,1
+access_popcorn_discount_usage_portal,popcorn.discount.usage.portal,model_popcorn_discount_usage,base.group_portal,1,1,1,0
+access_popcorn_discount_usage_public,popcorn.discount.usage.public,model_popcorn_discount_usage,base.group_public,1,1,1,0
 access_popcorn_notification_rule_public,popcorn.notification.rule.public,model_popcorn_notification_rule,base.group_public,1,0,0,0
 

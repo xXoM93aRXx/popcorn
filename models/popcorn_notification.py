@@ -3,6 +3,9 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 import re
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class PopcornNotification(models.Model):
@@ -228,8 +231,6 @@ class PopcornNotificationRule(models.Model):
             
         except Exception as e:
             # Log error and return False
-            import logging
-            _logger = logging.getLogger(__name__)
             _logger.warning(f"Error evaluating notification rule {self.name}: {str(e)}")
             return False
     
@@ -293,13 +294,17 @@ class PopcornNotificationRule(models.Model):
     
     def _convert_value_to_type(self, field_value, string_value):
         """Convert string value to appropriate type based on field value"""
-        if isinstance(field_value, (int, float)):
+        # Check for boolean FIRST (before int/float, since bool is subclass of int in Python!)
+        if isinstance(field_value, bool) and type(field_value) == bool:
+            # Convert string to boolean
+            if isinstance(string_value, bool):
+                return string_value
+            return str(string_value).lower() in ('true', '1', 'yes', 'on')
+        elif isinstance(field_value, (int, float)):
             try:
                 return float(string_value)
             except ValueError:
                 return string_value
-        elif isinstance(field_value, bool):
-            return string_value.lower() in ('true', '1', 'yes', 'on')
         else:
             return string_value
     

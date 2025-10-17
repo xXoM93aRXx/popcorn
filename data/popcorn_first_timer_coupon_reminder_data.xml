@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <!-- First Timer Coupon Reminder: 14 Days Before Expiry -->
+        <record id="notification_first_timer_coupon_14_days" model="popcorn.notification">
+            <field name="name">First Timer Coupon - 14 Days Reminder</field>
+            <field name="sequence">50</field>
+            <field name="active" eval="True"/>
+            <field name="notification_type">banner</field>
+            <field name="title">Your First-Timer Discount Expires Soon! 🎁</field>
+            <field name="message"><![CDATA[
+                <p><strong>Don't forget!</strong> Your first-timer discount code <strong>{first_timer_discount_code}</strong> expires in 14 days.</p>
+                <p>Use it now to get discounts on Regular Offline clubs before it's too late!</p>
+            ]]></field>
+            <field name="banner_position">top</field>
+            <field name="banner_style">warning</field>
+            <field name="auto_dismiss" eval="True"/>
+            <field name="dismiss_duration">10</field>
+            <field name="show_once_per_session" eval="True"/>
+        </record>
+
+        <!-- Rule: Remaining Days = 14 -->
+        <record id="notification_rule_14days_remaining" model="popcorn.notification.rule">
+            <field name="name">14 Days Remaining</field>
+            <field name="notification_id" ref="notification_first_timer_coupon_14_days"/>
+            <field name="sequence">10</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="field_id" ref="field_res_partner__first_timer_discount_remaining_days"/>
+            <field name="operator">=</field>
+            <field name="value">14</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- Rule: Discount Not Used -->
+        <record id="notification_rule_14days_not_used" model="popcorn.notification.rule">
+            <field name="name">Discount Not Used</field>
+            <field name="notification_id" ref="notification_first_timer_coupon_14_days"/>
+            <field name="sequence">20</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="field_id" ref="field_res_partner__first_timer_discount_is_used"/>
+            <field name="operator">=</field>
+            <field name="value">False</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- First Timer Coupon Reminder: 7 Days Before Expiry -->
+        <record id="notification_first_timer_coupon_7_days" model="popcorn.notification">
+            <field name="name">First Timer Coupon - 7 Days Reminder</field>
+            <field name="sequence">50</field>
+            <field name="active" eval="True"/>
+            <field name="notification_type">banner</field>
+            <field name="title">Only 7 Days Left on Your First-Timer Discount! ⏰</field>
+            <field name="message"><![CDATA[
+                <p><strong>Hurry!</strong> Your first-timer discount code <strong>{first_timer_discount_code}</strong> expires in just 7 days.</p>
+                <p>Book a Regular Offline club now and save!</p>
+            ]]></field>
+            <field name="banner_position">top</field>
+            <field name="banner_style">warning</field>
+            <field name="auto_dismiss" eval="True"/>
+            <field name="dismiss_duration">10</field>
+            <field name="show_once_per_session" eval="True"/>
+        </record>
+
+        <record id="notification_rule_7days_remaining" model="popcorn.notification.rule">
+            <field name="name">7 Days Remaining</field>
+            <field name="notification_id" ref="notification_first_timer_coupon_7_days"/>
+            <field name="sequence">10</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="field_id" ref="field_res_partner__first_timer_discount_remaining_days"/>
+            <field name="operator">=</field>
+            <field name="value">7</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <record id="notification_rule_7days_not_used" model="popcorn.notification.rule">
+            <field name="name">Discount Not Used</field>
+            <field name="notification_id" ref="notification_first_timer_coupon_7_days"/>
+            <field name="sequence">20</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="field_id" ref="field_res_partner__first_timer_discount_is_used"/>
+            <field name="operator">=</field>
+            <field name="value">False</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- First Timer Coupon Reminder: 3 Days Before Expiry -->
+        <record id="notification_first_timer_coupon_3_days" model="popcorn.notification">
+            <field name="name">First Timer Coupon - 3 Days Reminder</field>
+            <field name="sequence">50</field>
+            <field name="active" eval="True"/>
+            <field name="notification_type">banner</field>
+            <field name="title">Last Chance! 3 Days Left on Your Discount! ⚠️</field>
+            <field name="message"><![CDATA[
+                <p><strong>Last chance!</strong> Your first-timer discount code <strong>{first_timer_discount_code}</strong> expires in only 3 days.</p>
+                <p>Don't miss out on your special discount for Regular Offline clubs!</p>
+            ]]></field>
+            <field name="banner_position">top</field>
+            <field name="banner_style">danger</field>
+            <field name="auto_dismiss" eval="True"/>
+            <field name="dismiss_duration">12</field>
+            <field name="show_once_per_session" eval="True"/>
+        </record>
+
+        <record id="notification_rule_3days_remaining" model="popcorn.notification.rule">
+            <field name="name">3 Days Remaining</field>
+            <field name="notification_id" ref="notification_first_timer_coupon_3_days"/>
+            <field name="sequence">10</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="field_id" ref="field_res_partner__first_timer_discount_remaining_days"/>
+            <field name="operator">=</field>
+            <field name="value">3</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <record id="notification_rule_3days_not_used" model="popcorn.notification.rule">
+            <field name="name">Discount Not Used</field>
+            <field name="notification_id" ref="notification_first_timer_coupon_3_days"/>
+            <field name="sequence">20</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="field_id" ref="field_res_partner__first_timer_discount_is_used"/>
+            <field name="operator">=</field>
+            <field name="value">False</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- First Timer Coupon Reminder: 1 Day Before Expiry -->
+        <record id="notification_first_timer_coupon_1_day" model="popcorn.notification">
+            <field name="name">First Timer Coupon - 1 Day Reminder</field>
+            <field name="sequence">50</field>
+            <field name="active" eval="True"/>
+            <field name="notification_type">banner</field>
+            <field name="title">FINAL DAY! Your Discount Expires Tomorrow! 🚨</field>
+            <field name="message"><![CDATA[
+                <p><strong>THIS IS IT!</strong> Your first-timer discount code <strong>{first_timer_discount_code}</strong> expires <strong>TOMORROW</strong>!</p>
+                <p>Book a Regular Offline club today or lose your discount forever!</p>
+            ]]></field>
+            <field name="banner_position">top</field>
+            <field name="banner_style">danger</field>
+            <field name="auto_dismiss" eval="True"/>
+            <field name="dismiss_duration">15</field>
+            <field name="show_once_per_session" eval="False"/>
+        </record>
+
+        <record id="notification_rule_1day_remaining" model="popcorn.notification.rule">
+            <field name="name">1 Day Remaining</field>
+            <field name="notification_id" ref="notification_first_timer_coupon_1_day"/>
+            <field name="sequence">10</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="field_id" ref="field_res_partner__first_timer_discount_remaining_days"/>
+            <field name="operator">=</field>
+            <field name="value">1</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <record id="notification_rule_1day_not_used" model="popcorn.notification.rule">
+            <field name="name">Discount Not Used</field>
+            <field name="notification_id" ref="notification_first_timer_coupon_1_day"/>
+            <field name="sequence">20</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="field_id" ref="field_res_partner__first_timer_discount_is_used"/>
+            <field name="operator">=</field>
+            <field name="value">False</field>
+            <field name="active" eval="True"/>
+        </record>
+
+    </data>
+</odoo>
+

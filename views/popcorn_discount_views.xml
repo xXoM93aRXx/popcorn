@@ -207,6 +207,108 @@
         </field>
     </record>
 
+    <!-- Discount Usage List View -->
+    <record id="popcorn_discount_usage_tree_view" model="ir.ui.view">
+        <field name="name">popcorn.discount.usage.tree</field>
+        <field name="model">popcorn.discount.usage</field>
+        <field name="arch" type="xml">
+            <list string="Discount Usage" decoration-bf="discount_amount > 0">
+                <field name="usage_date"/>
+                <field name="discount_id"/>
+                <field name="partner_id"/>
+                <field name="membership_plan_id" optional="show"/>
+                <field name="event_id" optional="show"/>
+                <field name="original_price"/>
+                <field name="discounted_price"/>
+                <field name="discount_amount"/>
+                <field name="currency_id" optional="hide"/>
+                <field name="extra_days" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Discount Usage Form View -->
+    <record id="popcorn_discount_usage_form_view" model="ir.ui.view">
+        <field name="name">popcorn.discount.usage.form</field>
+        <field name="model">popcorn.discount.usage</field>
+        <field name="arch" type="xml">
+            <form string="Discount Usage" create="false" edit="false">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="display_name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="discount_id" readonly="1"/>
+                            <field name="partner_id" readonly="1"/>
+                            <field name="usage_date" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="membership_plan_id" readonly="1"/>
+                            <field name="event_id" readonly="1"/>
+                            <field name="membership_id" readonly="1"/>
+                            <field name="event_registration_id" readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="original_price" readonly="1"/>
+                            <field name="discounted_price" readonly="1"/>
+                            <field name="discount_amount" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="currency_id" readonly="1"/>
+                            <field name="extra_days" readonly="1"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Discount Usage Search View -->
+    <record id="popcorn_discount_usage_search_view" model="ir.ui.view">
+        <field name="name">popcorn.discount.usage.search</field>
+        <field name="model">popcorn.discount.usage</field>
+        <field name="arch" type="xml">
+            <search string="Search Discount Usage">
+                <field name="discount_id"/>
+                <field name="partner_id"/>
+                <field name="membership_plan_id"/>
+                <field name="event_id"/>
+                <separator/>
+                <filter string="This Month" name="this_month" domain="[('usage_date', '>=', datetime.datetime.now().replace(day=1))]"/>
+                <filter string="This Week" name="this_week" domain="[('usage_date', '>=', (datetime.datetime.now() - datetime.timedelta(days=7)))]"/>
+                <filter string="Today" name="today" domain="[('usage_date', '>=', datetime.datetime.now().replace(hour=0, minute=0, second=0))]"/>
+                <separator/>
+                <group expand="0" string="Group By">
+                    <filter string="Discount" name="group_discount" context="{'group_by': 'discount_id'}"/>
+                    <filter string="Customer" name="group_customer" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Usage Date" name="group_date" context="{'group_by': 'usage_date:day'}"/>
+                    <filter string="Membership Plan" name="group_plan" context="{'group_by': 'membership_plan_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Discount Usage Action -->
+    <record id="popcorn_discount_usage_action" model="ir.actions.act_window">
+        <field name="name">Discount Usage</field>
+        <field name="res_model">popcorn.discount.usage</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="popcorn_discount_usage_search_view"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No discount usage records found!
+            </p>
+            <p>
+                This view shows all discount usage by customers, including membership plans and events.
+            </p>
+        </field>
+    </record>
+
     <!-- Discount Actions -->
     <record id="popcorn_discount_action" model="ir.actions.act_window">
         <field name="name">Discounts</field>
@@ -223,12 +325,5 @@
             </p>
         </field>
     </record>
-
-    <!-- Discount Menu -->
-    <menuitem id="popcorn_discount_menu" 
-              name="Discounts" 
-              parent="menu_popcorn_root" 
-              action="popcorn_discount_action" 
-              sequence="40"/>
 
 </odoo>
