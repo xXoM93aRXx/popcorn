@@ -12,6 +12,8 @@ from . import popcorn_discount_usage
 from . import popcorn_membership_discount_rel
 from . import popcorn_referral
 from . import popcorn_notification
+from . import popcorn_activity_sport
+from . import popcorn_activity_sport_category
 from . import res_config_settings
 
 

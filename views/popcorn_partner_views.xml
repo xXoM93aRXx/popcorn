@@ -38,8 +38,15 @@
             <xpath expr="//field[@name='vat']" position="after">
                 <field name="baidu_map_link" placeholder="Enter Baidu Maps web link"/>
                 <field name="amap_link" placeholder="Enter Amap web link"/>
-            </xpath>
-            <xpath expr="//field[@name='amap_link']" position="after">
+                
+                <!-- Personal Information Fields -->
+                <separator string="Personal Information"/>
+                <field name="mbti"/>
+                <field name="gender"/>
+                <field name="zodiac"/>
+                <field name="preferred_topics" widget="many2many_tags"/>
+                <field name="activities_sports" widget="many2many_tags"/>
+                
                 <field name="excerpt" placeholder="Enter a short excerpt for host listings" invisible="not is_host"/>
                 <field name="online_status" invisible="not is_host"/>
                 <field name="host_poster_image" widget="image" filename="host_poster_image_filename" invisible="not is_host"/>
@@ -61,6 +68,11 @@
                 <field name="is_first_timer"/>
                 <field name="book_club_automatically"/>
                 <field name="popcorn_money_balance"/>
+                <field name="mbti"/>
+                <field name="gender"/>
+                <field name="zodiac"/>
+                <field name="preferred_topics"/>
+                <field name="activities_sports"/>
                 <field name="first_timer_discount_code"/>
                 <field name="first_timer_discount_expiry"/>
                 <field name="first_timer_discount_remaining_days"/>
@@ -84,6 +96,14 @@
                 <filter string="Discount Active" name="discount_active" domain="[('first_timer_discount_is_expired', '=', False), ('first_timer_discount_code', '!=', False)]"/>
                 <filter string="Discount Used" name="discount_used" domain="[('first_timer_discount_is_used', '=', True)]"/>
                 <filter string="Discount Available" name="discount_available" domain="[('first_timer_discount_is_available', '=', True)]"/>
+                <separator/>
+                <group expand="0" string="Group By">
+                    <filter string="MBTI" name="group_mbti" context="{'group_by': 'mbti'}"/>
+                    <filter string="Gender" name="group_gender" context="{'group_by': 'gender'}"/>
+                    <filter string="Zodiac" name="group_zodiac" context="{'group_by': 'zodiac'}"/>
+                    <filter string="Preferred Topics" name="group_topics" context="{'group_by': 'preferred_topics'}"/>
+                    <filter string="Activities &amp; Sports" name="group_activities_sports" context="{'group_by': 'activities_sports'}"/>
+                </group>
             </xpath>
         </field>
     </record>

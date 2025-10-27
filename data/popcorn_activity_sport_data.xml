@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Sports Category -->
+        <record id="popcorn_activity_sport_basketball" model="popcorn.activity_sport">
+            <field name="name">Basketball</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_sport"/>
+            <field name="active" eval="True"/>
+            <field name="description">Team sport involving shooting a ball through a hoop</field>
+        </record>
+
+        <record id="popcorn_activity_sport_football" model="popcorn.activity_sport">
+            <field name="name">Football (Soccer)</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_sport"/>
+            <field name="active" eval="True"/>
+            <field name="description">Team sport played with feet and a ball</field>
+        </record>
+
+        <record id="popcorn_activity_sport_tennis" model="popcorn.activity_sport">
+            <field name="name">Tennis</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_sport"/>
+            <field name="active" eval="True"/>
+            <field name="description">Racquet sport played on a court</field>
+        </record>
+
+        <record id="popcorn_activity_sport_volleyball" model="popcorn.activity_sport">
+            <field name="name">Volleyball</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_sport"/>
+            <field name="active" eval="True"/>
+            <field name="description">Team sport played on a court with a net</field>
+        </record>
+
+        <record id="popcorn_activity_sport_swimming" model="popcorn.activity_sport">
+            <field name="name">Swimming</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_sport"/>
+            <field name="active" eval="True"/>
+            <field name="description">Water-based sport and exercise</field>
+        </record>
+
+        <record id="popcorn_activity_sport_running" model="popcorn.activity_sport">
+            <field name="name">Running</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_sport"/>
+            <field name="active" eval="True"/>
+            <field name="description">Individual sport involving running at various distances</field>
+        </record>
+
+        <record id="popcorn_activity_sport_badminton" model="popcorn.activity_sport">
+            <field name="name">Badminton</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_sport"/>
+            <field name="active" eval="True"/>
+            <field name="description">Racquet sport played with a shuttlecock</field>
+        </record>
+
+        <record id="popcorn_activity_sport_table_tennis" model="popcorn.activity_sport">
+            <field name="name">Table Tennis</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_sport"/>
+            <field name="active" eval="True"/>
+            <field name="description">Indoor racquet sport on a table</field>
+        </record>
+
+        <record id="popcorn_activity_sport_yoga" model="popcorn.activity_sport">
+            <field name="name">Yoga</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_sport"/>
+            <field name="active" eval="True"/>
+            <field name="description">Physical, mental, and spiritual practice</field>
+        </record>
+
+        <record id="popcorn_activity_sport_pilates" model="popcorn.activity_sport">
+            <field name="name">Pilates</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_sport"/>
+            <field name="active" eval="True"/>
+            <field name="description">Physical fitness system</field>
+        </record>
+
+        <record id="popcorn_activity_sport_golf" model="popcorn.activity_sport">
+            <field name="name">Golf</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_sport"/>
+            <field name="active" eval="True"/>
+            <field name="description">Club and ball sport played on a course</field>
+        </record>
+
+        <record id="popcorn_activity_sport_cycling" model="popcorn.activity_sport">
+            <field name="name">Cycling</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_sport"/>
+            <field name="active" eval="True"/>
+            <field name="description">Recreational activity and sport using bicycles</field>
+        </record>
+
+        <record id="popcorn_activity_sport_martial_arts" model="popcorn.activity_sport">
+            <field name="name">Martial Arts</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_sport"/>
+            <field name="active" eval="True"/>
+            <field name="description">Combat sports and fighting disciplines</field>
+        </record>
+
+        <record id="popcorn_activity_sport_rock_climbing" model="popcorn.activity_sport">
+            <field name="name">Rock Climbing</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_sport"/>
+            <field name="active" eval="True"/>
+            <field name="description">Sport involving climbing up rock formations</field>
+        </record>
+
+        <record id="popcorn_activity_sport_dancing" model="popcorn.activity_sport">
+            <field name="name">Dancing</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_sport"/>
+            <field name="active" eval="True"/>
+            <field name="description">Expressive movement to music</field>
+        </record>
+
+        <!-- Activities Category -->
+        <record id="popcorn_activity_sport_reading" model="popcorn.activity_sport">
+            <field name="name">Reading</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_activity"/>
+            <field name="active" eval="True"/>
+            <field name="description">Reading books and literature</field>
+        </record>
+
+        <record id="popcorn_activity_sport_writing" model="popcorn.activity_sport">
+            <field name="name">Writing</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_activity"/>
+            <field name="active" eval="True"/>
+            <field name="description">Creative writing and storytelling</field>
+        </record>
+
+        <record id="popcorn_activity_sport_photography" model="popcorn.activity_sport">
+            <field name="name">Photography</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_activity"/>
+            <field name="active" eval="True"/>
+            <field name="description">Art of capturing images</field>
+        </record>
+
+        <record id="popcorn_activity_sport_cooking" model="popcorn.activity_sport">
+            <field name="name">Cooking</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_activity"/>
+            <field name="active" eval="True"/>
+            <field name="description">Preparing and cooking food</field>
+        </record>
+
+        <record id="popcorn_activity_sport_gardening" model="popcorn.activity_sport">
+            <field name="name">Gardening</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_activity"/>
+            <field name="active" eval="True"/>
+            <field name="description">Cultivating and growing plants</field>
+        </record>
+
+        <record id="popcorn_activity_sport_travel" model="popcorn.activity_sport">
+            <field name="name">Travel</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_activity"/>
+            <field name="active" eval="True"/>
+            <field name="description">Exploring new places and cultures</field>
+        </record>
+
+        <record id="popcorn_activity_sport_music" model="popcorn.activity_sport">
+            <field name="name">Music</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_activity"/>
+            <field name="active" eval="True"/>
+            <field name="description">Playing instruments or listening to music</field>
+        </record>
+
+        <record id="popcorn_activity_sport_chess" model="popcorn.activity_sport">
+            <field name="name">Chess</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_activity"/>
+            <field name="active" eval="True"/>
+            <field name="description">Strategy board game</field>
+        </record>
+
+        <record id="popcorn_activity_sport_board_games" model="popcorn.activity_sport">
+            <field name="name">Board Games</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_activity"/>
+            <field name="active" eval="True"/>
+            <field name="description">Tabletop games with friends</field>
+        </record>
+
+        <record id="popcorn_activity_sport_language_learning" model="popcorn.activity_sport">
+            <field name="name">Language Learning</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_activity"/>
+            <field name="active" eval="True"/>
+            <field name="description">Learning new languages</field>
+        </record>
+
+        <record id="popcorn_activity_sport_meditation" model="popcorn.activity_sport">
+            <field name="name">Meditation</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_activity"/>
+            <field name="active" eval="True"/>
+            <field name="description">Mindfulness and mental training</field>
+        </record>
+
+        <record id="popcorn_activity_sport_puzzles" model="popcorn.activity_sport">
+            <field name="name">Puzzles</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_activity"/>
+            <field name="active" eval="True"/>
+            <field name="description">Solving puzzles and brain teasers</field>
+        </record>
+
+        <record id="popcorn_activity_sport_film" model="popcorn.activity_sport">
+            <field name="name">Film &amp; Cinema</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_activity"/>
+            <field name="active" eval="True"/>
+            <field name="description">Watching and discussing films</field>
+        </record>
+
+        <record id="popcorn_activity_sport_theater" model="popcorn.activity_sport">
+            <field name="name">Theater</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_activity"/>
+            <field name="active" eval="True"/>
+            <field name="description">Live drama and theatrical performances</field>
+        </record>
+
+        <!-- Art & Creative Category -->
+        <record id="popcorn_activity_sport_painting" model="popcorn.activity_sport">
+            <field name="name">Painting</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_art"/>
+            <field name="active" eval="True"/>
+            <field name="description">Creating artworks with paint</field>
+        </record>
+
+        <record id="popcorn_activity_sport_drawing" model="popcorn.activity_sport">
+            <field name="name">Drawing</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_art"/>
+            <field name="active" eval="True"/>
+            <field name="description">Sketching and illustrating</field>
+        </record>
+
+        <record id="popcorn_activity_sport_sculpting" model="popcorn.activity_sport">
+            <field name="name">Sculpting</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_art"/>
+            <field name="active" eval="True"/>
+            <field name="description">Creating three-dimensional art</field>
+        </record>
+
+        <record id="popcorn_activity_sport_pottery" model="popcorn.activity_sport">
+            <field name="name">Pottery</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_art"/>
+            <field name="active" eval="True"/>
+            <field name="description">Making ceramic objects</field>
+        </record>
+
+        <record id="popcorn_activity_sport_crafting" model="popcorn.activity_sport">
+            <field name="name">Crafting</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_art"/>
+            <field name="active" eval="True"/>
+            <field name="description">Handmade craft activities</field>
+        </record>
+
+        <record id="popcorn_activity_sport_crochet" model="popcorn.activity_sport">
+            <field name="name">Crochet &amp; Knitting</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_art"/>
+            <field name="active" eval="True"/>
+            <field name="description">Fiber arts and textile crafts</field>
+        </record>
+
+        <record id="popcorn_activity_sport_music_production" model="popcorn.activity_sport">
+            <field name="name">Music Production</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_art"/>
+            <field name="active" eval="True"/>
+            <field name="description">Creating and producing music</field>
+        </record>
+
+        <record id="popcorn_activity_sport_singing" model="popcorn.activity_sport">
+            <field name="name">Singing</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_art"/>
+            <field name="active" eval="True"/>
+            <field name="description">Vocal performance and singing</field>
+        </record>
+
+        <record id="popcorn_activity_sport_acting" model="popcorn.activity_sport">
+            <field name="name">Acting</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_art"/>
+            <field name="active" eval="True"/>
+            <field name="description">Theatrical and film acting</field>
+        </record>
+
+        <record id="popcorn_activity_sport_poetry" model="popcorn.activity_sport">
+            <field name="name">Poetry</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_art"/>
+            <field name="active" eval="True"/>
+            <field name="description">Writing and reciting poetry</field>
+        </record>
+
+        <!-- Outdoor Category -->
+        <record id="popcorn_activity_sport_hiking" model="popcorn.activity_sport">
+            <field name="name">Hiking</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_outdoor"/>
+            <field name="active" eval="True"/>
+            <field name="description">Walking on trails and mountains</field>
+        </record>
+
+        <record id="popcorn_activity_sport_camping" model="popcorn.activity_sport">
+            <field name="name">Camping</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_outdoor"/>
+            <field name="active" eval="True"/>
+            <field name="description">Outdoor camping and survival</field>
+        </record>
+
+        <record id="popcorn_activity_sport_fishing" model="popcorn.activity_sport">
+            <field name="name">Fishing</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_outdoor"/>
+            <field name="active" eval="True"/>
+            <field name="description">Catching fish as recreational activity</field>
+        </record>
+
+        <record id="popcorn_activity_sport_kayaking" model="popcorn.activity_sport">
+            <field name="name">Kayaking</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_outdoor"/>
+            <field name="active" eval="True"/>
+            <field name="description">Paddling water sport</field>
+        </record>
+
+        <record id="popcorn_activity_sport_surfing" model="popcorn.activity_sport">
+            <field name="name">Surfing</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_outdoor"/>
+            <field name="active" eval="True"/>
+            <field name="description">Riding waves on a board</field>
+        </record>
+
+        <record id="popcorn_activity_sport_skiing" model="popcorn.activity_sport">
+            <field name="name">Skiing</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_outdoor"/>
+            <field name="active" eval="True"/>
+            <field name="description">Winter sport on snow</field>
+        </record>
+
+        <record id="popcorn_activity_sport_snowboarding" model="popcorn.activity_sport">
+            <field name="name">Snowboarding</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_outdoor"/>
+            <field name="active" eval="True"/>
+            <field name="description">Winter sport on a single board</field>
+        </record>
+
+        <record id="popcorn_activity_sport_horseback_riding" model="popcorn.activity_sport">
+            <field name="name">Horseback Riding</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_outdoor"/>
+            <field name="active" eval="True"/>
+            <field name="description">Riding horses</field>
+        </record>
+
+        <record id="popcorn_activity_sport_bird_watching" model="popcorn.activity_sport">
+            <field name="name">Bird Watching</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_outdoor"/>
+            <field name="active" eval="True"/>
+            <field name="description">Observing birds in their natural habitat</field>
+        </record>
+
+        <record id="popcorn_activity_sport_beach_volleyball" model="popcorn.activity_sport">
+            <field name="name">Beach Volleyball</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_outdoor"/>
+            <field name="active" eval="True"/>
+            <field name="description">Volleyball played on sand</field>
+        </record>
+
+        <record id="popcorn_activity_sport_picnicking" model="popcorn.activity_sport">
+            <field name="name">Picnicking</field>
+            <field name="category_id" ref="popcorn_activity_sport_category_outdoor"/>
+            <field name="active" eval="True"/>
+            <field name="description">Outdoor meal and social gathering</field>
+        </record>
+
+    </data>
+</odoo>
+

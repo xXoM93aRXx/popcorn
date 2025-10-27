@@ -45,9 +45,22 @@
         </xpath>
     </template>
 
-    <!-- Add Popcorn Money to Portal Side Content -->
+    <!-- Add Edit Profile button after contact name -->
+    <template id="portal_side_content_edit_profile_button" inherit_id="portal.side_content">
+        <xpath expr="//div[@class='o_portal_my_details']" position="inside">
+            <!-- Edit Profile Button after contact name -->
+            <div class="mt-2">
+                <a href="/my/profile" class="btn btn-outline-secondary btn-sm w-100">
+                    <i class="fa fa-edit me-2"></i>Edit Profile
+                </a>
+            </div>
+        </xpath>
+    </template>
+    
+    <!-- Add Popcorn Money and Personal Information to Portal Side Content -->
     <template id="portal_side_content_popcorn_money" inherit_id="portal.side_content">
         <xpath expr="//div[@class='o_portal_my_details']" position="after">
+            <!-- Popcorn Money -->
             <div class="mt-3">
                 <div class="d-flex align-items-center">
                     <i class="fa fa-money me-2 text-success"></i>
@@ -57,20 +70,150 @@
                     </span>
                 </div>
             </div>
+            
+            <!-- Personal Information Section -->
+            <div class="mt-4">
+                <h6 class="text-muted mb-3">
+                    <i class="fa fa-user me-2"></i>Personal Information
+                </h6>
+                
+                <!-- MBTI -->
+                <t t-if="request.env.user.partner_id.mbti">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fa fa-brain me-2 text-muted"></i>
+                        <small class="text-muted me-2">MBTI:</small>
+                        <strong t-esc="request.env.user.partner_id.mbti"/>
+                    </div>
+                </t>
+                
+                <!-- Gender -->
+                <t t-if="request.env.user.partner_id.gender">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fa fa-venus-mars me-2 text-muted"></i>
+                        <small class="text-muted me-2">Gender:</small>
+                        <strong t-esc="dict(request.env.user.partner_id._fields['gender'].selection).get(request.env.user.partner_id.gender, request.env.user.partner_id.gender)"/>
+                    </div>
+                </t>
+                
+                <!-- Zodiac -->
+                <t t-if="request.env.user.partner_id.zodiac">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fa fa-star me-2 text-muted"></i>
+                        <small class="text-muted me-2">Zodiac:</small>
+                        <strong t-esc="dict(request.env.user.partner_id._fields['zodiac'].selection).get(request.env.user.partner_id.zodiac, request.env.user.partner_id.zodiac)"/>
+                    </div>
+                </t>
+                
+                <!-- Preferred Topics -->
+                <t t-if="request.env.user.partner_id.preferred_topics">
+                    <div class="mb-2">
+                        <small class="text-muted me-2">
+                            <i class="fa fa-tags me-2"></i>Preferred Topics:
+                        </small>
+                        <div class="mt-2">
+                            <t t-foreach="request.env.user.partner_id.preferred_topics" t-as="topic">
+                                <span class="badge bg-secondary me-1 mb-1" t-esc="topic.name"/>
+                            </t>
+                        </div>
+                    </div>
+                </t>
+                
+                <!-- Activities & Sports -->
+                <t t-if="request.env.user.partner_id.activities_sports">
+                    <div class="mb-2">
+                        <small class="text-muted me-2">
+                            <i class="fa fa-heart me-2"></i>Activities &amp; Sports:
+                        </small>
+                        <div class="mt-2">
+                            <t t-foreach="request.env.user.partner_id.activities_sports" t-as="activity">
+                                <span class="badge bg-primary me-1 mb-1" t-esc="activity.name"/>
+                            </t>
+                        </div>
+                    </div>
+                </t>
+                
+                <!-- Show message if no personal info -->
+                <t t-if="not request.env.user.partner_id.mbti and not request.env.user.partner_id.gender and not request.env.user.partner_id.zodiac and not request.env.user.partner_id.preferred_topics and not request.env.user.partner_id.activities_sports">
+                    <p class="text-muted small">No personal information available.</p>
+                </t>
+            </div>
         </xpath>
     </template>
 
-    <!-- Add Popcorn Money to Portal Layout for Mobile -->
+    <!-- Add Popcorn Money and Personal Information to Portal Layout for Mobile -->
     <template id="portal_layout_popcorn_money_mobile" inherit_id="portal.portal_layout">
         <xpath expr="//div[@class='wrapper col-12 d-flex flex-wrap justify-content-between align-items-center']" position="after">
             <div class="d-lg-none mb-3">
-                <div class="d-flex align-items-center">
+                <!-- Popcorn Money -->
+                <div class="d-flex align-items-center mb-3">
                     <i class="fa fa-money me-2 text-success"></i>
                     <strong>Popcorn Money:</strong>
                     <span class="text-success ms-2">
                         <span t-esc="request.env.user.partner_id.currency_id.symbol"/><span t-esc="request.env.user.partner_id.popcorn_money_balance"/>
                     </span>
                 </div>
+                
+                <!-- Personal Information Section (Mobile) -->
+                <t t-if="request.env.user.partner_id.mbti or request.env.user.partner_id.gender or request.env.user.partner_id.zodiac or request.env.user.partner_id.preferred_topics or request.env.user.partner_id.activities_sports">
+                    <div class="border-top pt-3">
+                        <h6 class="text-muted mb-2">
+                            <i class="fa fa-user me-2"></i>Personal Information
+                        </h6>
+                        
+                        <!-- MBTI -->
+                        <t t-if="request.env.user.partner_id.mbti">
+                            <div class="mb-1">
+                                <small class="text-muted">MBTI:</small> <strong t-esc="request.env.user.partner_id.mbti"/>
+                            </div>
+                        </t>
+                        
+                        <!-- Gender -->
+                        <t t-if="request.env.user.partner_id.gender">
+                            <div class="mb-1">
+                                <small class="text-muted">Gender:</small> 
+                                <strong t-esc="dict(request.env.user.partner_id._fields['gender'].selection).get(request.env.user.partner_id.gender, request.env.user.partner_id.gender)"/>
+                            </div>
+                        </t>
+                        
+                        <!-- Zodiac -->
+                        <t t-if="request.env.user.partner_id.zodiac">
+                            <div class="mb-1">
+                                <small class="text-muted">Zodiac:</small> 
+                                <strong t-esc="dict(request.env.user.partner_id._fields['zodiac'].selection).get(request.env.user.partner_id.zodiac, request.env.user.partner_id.zodiac)"/>
+                            </div>
+                        </t>
+                        
+                        <!-- Preferred Topics -->
+                        <t t-if="request.env.user.partner_id.preferred_topics">
+                            <div class="mb-2">
+                                <small class="text-muted">Topics:</small>
+                                <div class="mt-1">
+                                    <t t-foreach="request.env.user.partner_id.preferred_topics[:3]" t-as="topic">
+                                        <span class="badge bg-secondary me-1" t-esc="topic.name"/>
+                                    </t>
+                                    <t t-if="len(request.env.user.partner_id.preferred_topics) > 3">
+                                        <span class="text-muted">+<t t-esc="len(request.env.user.partner_id.preferred_topics) - 3"/> more</span>
+                                    </t>
+                                </div>
+                            </div>
+                        </t>
+                        
+                        <!-- Activities & Sports -->
+                        <t t-if="request.env.user.partner_id.activities_sports">
+                            <div class="mb-2">
+                                <small class="text-muted">Activities:</small>
+                                <div class="mt-1">
+                                    <t t-foreach="request.env.user.partner_id.activities_sports[:3]" t-as="activity">
+                                        <span class="badge bg-primary me-1" t-esc="activity.name"/>
+                                    </t>
+                                    <t t-if="len(request.env.user.partner_id.activities_sports) > 3">
+                                        <span class="text-muted">+<t t-esc="len(request.env.user.partner_id.activities_sports) - 3"/> more</span>
+                                    </t>
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+                </t>
             </div>
         </xpath>
     </template>
@@ -897,4 +1040,177 @@
               </div>
           </div>
       </template>
+
+    <!-- Profile Edit Page -->
+    <template id="popcorn_profile_edit_page" name="Profile Edit Page">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="True"/>
+            
+            <div class="o_portal_profile_edit">
+                <div class="container">
+                    <div class="row justify-content-center">
+                        <div class="col-md-8">
+                            <h2 class="mb-4">
+                                <i class="fa fa-user me-2"></i>Edit Profile
+                            </h2>
+                            
+                            <!-- Success/Error Messages -->
+                            <t t-if="request.params.get('success')">
+                                <div class="alert alert-success alert-dismissible" role="alert">
+                                    <i class="fa fa-check-circle me-2"></i>
+                                    <strong>Success!</strong> Your profile has been updated.
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            </t>
+                            
+                            <t t-if="request.params.get('error')">
+                                <div class="alert alert-danger alert-dismissible" role="alert">
+                                    <i class="fa fa-exclamation-circle me-2"></i>
+                                    <span t-esc="request.params.get('error')"/>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            </t>
+                            
+                            <!-- Profile Form -->
+                            <form method="post" action="/my/profile/update" class="needs-validation" novalidate="">
+                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">
+                                            <i class="fa fa-info-circle me-2"></i>Personal Information
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <!-- MBTI -->
+                                        <div class="mb-3">
+                                            <label for="mbti" class="form-label">
+                                                <i class="fa fa-brain me-2 text-muted"></i>MBTI
+                                            </label>
+                                            <select class="form-select" name="mbti" id="mbti">
+                                                <option value="">-- Select MBTI --</option>
+                                                <t t-foreach="mbti_options" t-as="option">
+                                                    <option t-att-value="option[0]" t-esc="option[1]" t-att-selected="option[0] == partner.mbti"/>
+                                                </t>
+                                            </select>
+                                        </div>
+                                        
+                                        <!-- Gender -->
+                                        <div class="mb-3">
+                                            <label for="gender" class="form-label">
+                                                <i class="fa fa-venus-mars me-2 text-muted"></i>Gender
+                                            </label>
+                                            <select class="form-select" name="gender" id="gender">
+                                                <option value="">-- Select Gender --</option>
+                                                <t t-foreach="gender_options" t-as="option">
+                                                    <option t-att-value="option[0]" t-esc="option[1]" t-att-selected="option[0] == partner.gender"/>
+                                                </t>
+                                            </select>
+                                        </div>
+                                        
+                                        <!-- Zodiac -->
+                                        <div class="mb-3">
+                                            <label for="zodiac" class="form-label">
+                                                <i class="fa fa-star me-2 text-muted"></i>Zodiac Sign
+                                            </label>
+                                            <select class="form-select" name="zodiac" id="zodiac">
+                                                <option value="">-- Select Zodiac --</option>
+                                                <t t-foreach="zodiac_options" t-as="option">
+                                                    <option t-att-value="option[0]" t-esc="option[1]" t-att-selected="option[0] == partner.zodiac"/>
+                                                </t>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Preferred Topics -->
+                                <div class="card mt-3">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">
+                                            <i class="fa fa-tags me-2"></i>Preferred Topics
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-2">
+                                            <small class="text-muted">Select topics you're interested in:</small>
+                                        </div>
+                                        <div class="row">
+                                            <t t-foreach="available_topics" t-as="topic">
+                                                <div class="col-md-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" 
+                                                               name="preferred_topics" 
+                                                               t-att-value="topic.id" 
+                                                               t-att-id="'topic_' + str(topic.id)"
+                                                               t-att-checked="topic.id in partner.preferred_topics.ids"/>
+                                                        <label class="form-check-label" t-att-for="'topic_' + str(topic.id)" t-esc="topic.name"/>
+                                                    </div>
+                                                </div>
+                                            </t>
+                                        </div>
+                                        <t t-if="not available_topics">
+                                            <p class="text-muted small">No topics available.</p>
+                                        </t>
+                                    </div>
+                                </div>
+                                
+                                <!-- Activities & Sports -->
+                                <div class="card mt-3">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">
+                                            <i class="fa fa-heart me-2"></i>Activities &amp; Sports
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-2">
+                                            <small class="text-muted">Select activities and sports you're interested in:</small>
+                                        </div>
+                                        
+                                        <!-- Activities grouped by category with scrollable container -->
+                                        <div style="max-height: 400px; overflow-y: auto; padding-right: 8px;">
+                                            <t t-foreach="activities_by_category.items()" t-as="category_data">
+                                                <div class="mb-3">
+                                                    <h6 class="text-muted mb-2">
+                                                        <i class="fa fa-folder me-2"></i><span t-esc="category_data[0]"/>
+                                                    </h6>
+                                                    <div class="row">
+                                                        <t t-foreach="category_data[1]" t-as="activity">
+                                                            <div class="col-md-6 mb-2">
+                                                                <div class="form-check">
+                                                                    <input class="form-check-input" type="checkbox" 
+                                                                           name="activities_sports" 
+                                                                           t-att-value="activity.id" 
+                                                                           t-att-id="'activity_' + str(activity.id)"
+                                                                           t-att-checked="activity.id in partner.activities_sports.ids"/>
+                                                                    <label class="form-check-label" t-att-for="'activity_' + str(activity.id)" t-esc="activity.name"/>
+                                                                </div>
+                                                            </div>
+                                                        </t>
+                                                    </div>
+                                                </div>
+                                            </t>
+                                        </div>
+                                        
+                                        <t t-if="not activities_by_category">
+                                            <p class="text-muted small">No activities available.</p>
+                                        </t>
+                                    </div>
+                                </div>
+                                
+                                <!-- Form Actions -->
+                                <div class="mt-4 d-flex justify-content-between">
+                                    <a href="/my" class="btn btn-outline-secondary">
+                                        <i class="fa fa-arrow-left me-2"></i>Cancel
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fa fa-save me-2"></i>Save Changes
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
 </odoo>

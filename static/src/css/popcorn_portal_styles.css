@@ -241,3 +241,41 @@
     clear: none;
     position: static;
 }
+
+/* Profile Edit Page Styles */
+.o_portal_profile_edit .card-body {
+    padding: 1.5rem;
+}
+
+/* Scrollable container for activities */
+.o_portal_profile_edit [style*="max-height: 400px"] {
+    scrollbar-width: thin;
+    scrollbar-color: #c1c1c1 #f1f1f1;
+}
+
+.o_portal_profile_edit [style*="max-height: 400px"]::-webkit-scrollbar {
+    width: 6px;
+}
+
+.o_portal_profile_edit [style*="max-height: 400px"]::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.o_portal_profile_edit [style*="max-height: 400px"]::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.o_portal_profile_edit [style*="max-height: 400px"]::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Activity category headers */
+.o_portal_profile_edit h6.text-muted {
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid #e9ecef;
+    margin-bottom: 0.75rem;
+}

@@ -54,4 +54,10 @@ access_popcorn_discount_usage_manager,popcorn.discount.usage.manager,model_popco
 access_popcorn_discount_usage_portal,popcorn.discount.usage.portal,model_popcorn_discount_usage,base.group_portal,1,1,1,0
 access_popcorn_discount_usage_public,popcorn.discount.usage.public,model_popcorn_discount_usage,base.group_public,1,1,1,0
 access_popcorn_notification_rule_public,popcorn.notification.rule.public,model_popcorn_notification_rule,base.group_public,1,0,0,0
+access_popcorn_activity_sport_user,popcorn.activity_sport.user,popcorn.model_popcorn_activity_sport,base.group_user,1,0,0,0
+access_popcorn_activity_sport_manager,popcorn.activity_sport.manager,popcorn.model_popcorn_activity_sport,base.group_system,1,1,1,1
+access_popcorn_activity_sport_portal,popcorn.activity_sport.portal,popcorn.model_popcorn_activity_sport,base.group_portal,1,0,0,0
+access_popcorn_activity_sport_category_user,popcorn.activity_sport.category.user,popcorn.model_popcorn_activity_sport_category,base.group_user,1,0,0,0
+access_popcorn_activity_sport_category_manager,popcorn.activity_sport.category.manager,popcorn.model_popcorn_activity_sport_category,base.group_system,1,1,1,1
+access_popcorn_activity_sport_category_portal,popcorn.activity_sport.category.portal,popcorn.model_popcorn_activity_sport_category,base.group_portal,1,0,0,0
 

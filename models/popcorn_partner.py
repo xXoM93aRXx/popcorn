@@ -134,6 +134,60 @@ class ResPartner(models.Model):
         help='When the Popcorn money balance was last updated'
     )
     
+    # Personal Information fields
+    mbti = fields.Selection([
+        ('INTJ', 'INTJ - Architect'),
+        ('INTP', 'INTP - Thinker'),
+        ('ENTJ', 'ENTJ - Commander'),
+        ('ENTP', 'ENTP - Debater'),
+        ('INFJ', 'INFJ - Advocate'),
+        ('INFP', 'INFP - Mediator'),
+        ('ENFJ', 'ENFJ - Protagonist'),
+        ('ENFP', 'ENFP - Campaigner'),
+        ('ISTJ', 'ISTJ - Logistician'),
+        ('ISFJ', 'ISFJ - Defender'),
+        ('ESTJ', 'ESTJ - Executive'),
+        ('ESFJ', 'ESFJ - Consul'),
+        ('ISTP', 'ISTP - Virtuoso'),
+        ('ISFP', 'ISFP - Adventurer'),
+        ('ESTP', 'ESTP - Entrepreneur'),
+        ('ESFP', 'ESFP - Entertainer'),
+    ], string='MBTI', help='Myers-Briggs Type Indicator personality type')
+    
+    gender = fields.Selection([
+        ('male', 'Male'),
+        ('female', 'Female'),
+        ('prefer_not_to_say', 'Prefer Not to Say'),
+    ], string='Gender', help='Gender identity')
+    
+    zodiac = fields.Selection([
+        ('aries', 'Aries'),
+        ('taurus', 'Taurus'),
+        ('gemini', 'Gemini'),
+        ('cancer', 'Cancer'),
+        ('leo', 'Leo'),
+        ('virgo', 'Virgo'),
+        ('libra', 'Libra'),
+        ('scorpio', 'Scorpio'),
+        ('sagittarius', 'Sagittarius'),
+        ('capricorn', 'Capricorn'),
+        ('aquarius', 'Aquarius'),
+        ('pisces', 'Pisces'),
+    ], string='Zodiac Sign', help='Zodiac sign')
+    
+    preferred_topics = fields.Many2many(
+        'event.tag',
+        string='Preferred Topics',
+        help='Preferred event topics/tags this partner is interested in',
+        domain="[('category_id.name', 'ilike', 'Topic')]"
+    )
+    
+    activities_sports = fields.Many2many(
+        'popcorn.activity_sport',
+        string='Activities & Sports',
+        help='Activities and sports this partner is interested in'
+    )
+    
     @api.depends('is_host')
     def _compute_hosted_events_count(self):
         """Compute the number of events hosted by this partner"""

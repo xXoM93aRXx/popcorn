@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Activity/Sport List View -->
+    <record id="view_popcorn_activity_sport_list" model="ir.ui.view">
+        <field name="name">popcorn.activity_sport.list</field>
+        <field name="model">popcorn.activity_sport</field>
+        <field name="type">list</field>
+        <field name="arch" type="xml">
+            <list string="Activities &amp; Sports">
+                <field name="name"/>
+                <field name="category_id"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Activity/Sport Form View -->
+    <record id="view_popcorn_activity_sport_form" model="ir.ui.view">
+        <field name="name">popcorn.activity_sport.form</field>
+        <field name="model">popcorn.activity_sport</field>
+        <field name="type">form</field>
+        <field name="arch" type="xml">
+            <form string="Activity/Sport">
+                <header>
+                    <button name="toggle_active" type="object" string="Archive" class="oe_highlight" 
+                            invisible="active == False"/>
+                    <button name="toggle_active" type="object" string="Unarchive" 
+                            invisible="active == True"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name" placeholder="Activity/Sport Name"/>
+                            <field name="category_id"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="description" placeholder="Description" nolabel="1"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Activity/Sport Search View -->
+    <record id="view_popcorn_activity_sport_search" model="ir.ui.view">
+        <field name="name">popcorn.activity_sport.search</field>
+        <field name="model">popcorn.activity_sport</field>
+        <field name="type">search</field>
+        <field name="arch" type="xml">
+            <search string="Search Activities &amp; Sports">
+                <field name="name"/>
+                <field name="category_id"/>
+                <filter string="Active" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Archived" name="archived" domain="[('active', '=', False)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Category" name="group_category" context="{'group_by': 'category_id'}"/>
+                    <filter string="Status" name="group_active" context="{'group_by': 'active'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_popcorn_activity_sport" model="ir.actions.act_window">
+        <field name="name">Activities &amp; Sports</field>
+        <field name="res_model">popcorn.activity_sport</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_popcorn_activity_sport_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first activity or sport!
+            </p>
+            <p>
+                Define activities and sports that partners can select as their interests.
+                These can be used for matching and recommendations.
+            </p>
+        </field>
+    </record>
+
+    <!-- Category List View -->
+    <record id="view_popcorn_activity_sport_category_list" model="ir.ui.view">
+        <field name="name">popcorn.activity_sport.category.list</field>
+        <field name="model">popcorn.activity_sport.category</field>
+        <field name="type">list</field>
+        <field name="arch" type="xml">
+            <list string="Categories">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="activity_sport_count"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Category Form View -->
+    <record id="view_popcorn_activity_sport_category_form" model="ir.ui.view">
+        <field name="name">popcorn.activity_sport.category.form</field>
+        <field name="model">popcorn.activity_sport.category</field>
+        <field name="type">form</field>
+        <field name="arch" type="xml">
+            <form string="Category">
+                <header>
+                    <button name="toggle_active" type="object" string="Archive" class="oe_highlight" 
+                            invisible="active == False"/>
+                    <button name="toggle_active" type="object" string="Unarchive" 
+                            invisible="active == True"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name" placeholder="Category Name"/>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="activity_sport_count" readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="description" placeholder="Description"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Category Search View -->
+    <record id="view_popcorn_activity_sport_category_search" model="ir.ui.view">
+        <field name="name">popcorn.activity_sport.category.search</field>
+        <field name="model">popcorn.activity_sport.category</field>
+        <field name="type">search</field>
+        <field name="arch" type="xml">
+            <search string="Search Categories">
+                <field name="name"/>
+                <filter string="Active" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Archived" name="archived" domain="[('active', '=', False)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Status" name="group_active" context="{'group_by': 'active'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Category Action -->
+    <record id="action_popcorn_activity_sport_category" model="ir.actions.act_window">
+        <field name="name">Categories</field>
+        <field name="res_model">popcorn.activity_sport.category</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_popcorn_activity_sport_category_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first category!
+            </p>
+            <p>
+                Define categories to organize activities and sports. 
+                You can create categories like "Activity", "Sport", or any custom category you need.
+            </p>
+        </field>
+    </record>
+
+</odoo>
+

@@ -9,3 +9,4 @@ from . import popcorn_referral_controller
 from . import popcorn_signature_controller
 from . import popcorn_notification_controller
 from . import popcorn_discount_controller
+from . import popcorn_profile_controller

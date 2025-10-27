@@ -214,4 +214,16 @@
               sequence="10"
               action="action_popcorn_badge_rule"/>
 
+    <menuitem id="menu_popcorn_activity_sport" 
+              name="Activities &amp; Sports" 
+              parent="menu_popcorn_badges" 
+              sequence="60"
+              action="action_popcorn_activity_sport"/>
+
+    <menuitem id="menu_popcorn_activity_sport_category" 
+              name="Activity/Sport Categories" 
+              parent="menu_popcorn_badges" 
+              sequence="70"
+              action="action_popcorn_activity_sport_category"/>
+
 </odoo>
