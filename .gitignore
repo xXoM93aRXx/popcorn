@@ -58,6 +58,7 @@ coverage.xml
 # Unit test / coverage reports
 .pytest_cache/
 .tox/
+tests/
 
 # Translations (keep .po files but ignore compiled .mo files)
 *.mo
