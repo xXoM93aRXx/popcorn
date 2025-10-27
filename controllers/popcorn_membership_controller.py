@@ -41,19 +41,95 @@ class PopcornMembershipController(http.Controller):
         # Check if user is a first-timer
         is_first_timer = request.env.user.partner_id.is_first_timer
         
+        # Check for renewable memberships
+        active_memberships = request.env['popcorn.membership'].search([
+            ('partner_id', '=', request.env.user.partner_id.id),
+            ('state', 'in', ['active', 'frozen'])
+        ])
+        
+        renewal_banner_info = None
+        for membership in active_memberships:
+            if membership.is_eligible_for_renewal():
+                plan = membership.membership_plan_id
+                
+                # Calculate days/points left for banner display
+                days_left = 0
+                points_left = 0
+                
+                # Get user name for placeholder replacement
+                user_name = ''
+                if request.env.user.partner_id:
+                    user_name = request.env.user.partner_id.name or ''
+                
+                if plan.quota_mode == 'points':
+                    # Freedom card - show points left
+                    points_left = membership.points_remaining
+                    banner_text = plan.renewal_banner_text or ''
+                    banner_text = banner_text.replace('{points_left}', str(points_left))
+                    banner_text = banner_text.replace('{name}', user_name)
+                else:
+                    # Gold/Experience - show days left until discounted price expires
+                    if membership.effective_end_date:
+                        # Calculate days left until discounted price expires
+                        if plan.quota_mode == 'bucket_counts' and plan.renewal_window_end_days > 0:
+                            # Experience card: days left until renewal_window_end_days from activation
+                            if membership.activation_date:
+                                days_since_activation = (fields.Date.today() - membership.activation_date).days
+                                days_left = plan.renewal_window_end_days - days_since_activation
+                            else:
+                                days_left = 0
+                        else:
+                            # Gold cards: days left until early_renew_window_days before expiry
+                            days_until_expiry = (membership.effective_end_date - fields.Date.today()).days
+                            min_days = plan.early_renew_window_days or 30
+                            days_left = days_until_expiry - min_days
+                        
+                        banner_text = plan.renewal_banner_text or ''
+                        banner_text = banner_text.replace('{days_left}', str(max(0, days_left)))
+                        banner_text = banner_text.replace('{name}', user_name)
+                    else:
+                        banner_text = plan.renewal_banner_text or ''
+                        banner_text = banner_text.replace('{name}', user_name)
+                
+                renewal_banner_info = {
+                    'membership': membership,
+                    'banner_text': banner_text,
+                    'days_left': days_left,
+                    'points_left': points_left,
+                }
+                break  # Only show banner for first eligible membership
+        
+        # Check if user is eligible for renewal discount (has active membership eligible for renewal)
+        has_renewal_discount = False
+        for membership in active_memberships:
+            if membership.is_eligible_for_renewal_discount():
+                has_renewal_discount = True
+                break
+        
         # Get discount information for each plan
         plan_discounts = {}
         for plan in membership_plans:
-            available_discounts = plan.get_available_discounts(request.env.user.partner_id)
-            best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(request.env.user.partner_id)
+            # If user has renewal discount eligibility, show first-timer price
+            if has_renewal_discount:
+                best_price = plan.price_first_timer
+                best_discount = None
+                extra_days = 0
+            else:
+                # Determine correct original price based on first-timer status
+                is_first_timer = request.env.user.partner_id.is_first_timer
+                original_price = plan.price_first_timer if (is_first_timer and plan.price_first_timer > 0) else plan.price_normal
+                
+                available_discounts = plan.get_available_discounts(request.env.user.partner_id)
+                best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(request.env.user.partner_id, original_price=original_price)
             
             plan_discounts[plan.id] = {
-                'available_discounts': available_discounts,
+                'available_discounts': plan.get_available_discounts(request.env.user.partner_id) if not has_renewal_discount else [],
                 'best_price': best_price,
                 'best_discount': best_discount,
                 'original_price': plan.price_normal,
                 'first_timer_price': plan.price_first_timer,
                 'extra_days': extra_days,
+                'is_renewal': has_renewal_discount,
             }
         
         values = {
@@ -61,6 +137,7 @@ class PopcornMembershipController(http.Controller):
             'error_message': error_message,
             'is_first_timer': is_first_timer,
             'plan_discounts': plan_discounts,
+            'renewal_banner_info': renewal_banner_info,
         }
         
         return request.render('popcorn.membership_plans_website_page', values)
@@ -104,12 +181,46 @@ class PopcornMembershipController(http.Controller):
             upgrade_details = request.session.get('upgrade_details', {})
             if not upgrade_details or upgrade_details.get('target_plan_id') != plan.id:
                 return request.redirect('/my/cards')
+            # Clear any old renewal details to prevent interference
+            request.session.pop('renewal_details', None)
+        
+        # Check if this is a renewal (from URL parameter or from renewal eligibility)
+        is_renewal = post.get('renew') == 'true'
+        renewal_details = None
+        
+        if is_renewal:
+            renewal_details = request.session.get('renewal_details', {})
+            if not renewal_details or renewal_details.get('plan_id') != plan.id:
+                return request.redirect('/my/cards')
+            # Clear any old upgrade details to prevent interference
+            request.session.pop('upgrade_details', None)
+        
+        # Auto-detect renewal eligibility if user has an active membership eligible for renewal discount
+        if not is_renewal:
+            active_memberships = request.env['popcorn.membership'].search([
+                ('partner_id', '=', request.env.user.partner_id.id),
+                ('state', 'in', ['active', 'frozen'])
+            ])
+            for membership in active_memberships:
+                if membership.is_eligible_for_renewal_discount():
+                    is_renewal = True
+                    break
         
         # Check if user is a first-timer
         is_first_timer = request.env.user.partner_id.is_first_timer
         
         # Get discount information for this plan (including extra days)
-        best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(request.env.user.partner_id)
+        # For renewals, force first-timer price
+        if is_renewal:
+            best_price = plan.price_first_timer
+            best_discount = None
+            extra_days = 0
+        else:
+            # Determine correct original price based on first-timer status
+            original_price = plan.price_first_timer if (is_first_timer and plan.price_first_timer > 0) else plan.price_normal
+            
+            best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(request.env.user.partner_id, original_price=original_price)
+        
         plan_discounts = {
             plan.id: {
                 'best_price': best_price,
@@ -123,6 +234,8 @@ class PopcornMembershipController(http.Controller):
             'plan': plan,
             'is_upgrade': is_upgrade,
             'upgrade_details': upgrade_details,
+            'is_renewal': is_renewal,
+            'renewal_details': renewal_details,
             'is_first_timer': is_first_timer,
             'plan_discounts': plan_discounts,
         }
@@ -140,6 +253,10 @@ class PopcornMembershipController(http.Controller):
             # Check if this is an upgrade
             upgrade_details = request.session.get('upgrade_details', {})
             is_upgrade = upgrade_details.get('is_upgrade', False)
+            
+            # Check if this is a renewal
+            renewal_details = request.session.get('renewal_details', {})
+            is_renewal = renewal_details.get('is_renewal', False)
             
             # Check if user wants to use popcorn money
             use_popcorn_money = post.get('use_popcorn_money') == 'on'
@@ -178,6 +295,9 @@ class PopcornMembershipController(http.Controller):
             # Calculate the amount to charge
             if is_upgrade:
                 amount = upgrade_details.get('upgrade_price', 0)
+            elif is_renewal:
+                # Renewals always get first-timer price
+                amount = plan.price_first_timer
             else:
                 # Use coupon discount if applied, otherwise use automatic best discount
                 if applied_discount:
@@ -650,6 +770,8 @@ class PopcornMembershipController(http.Controller):
             _logger.error(f"Failed to process payment: {str(e)}")
             # Clear session data on error
             request.session.pop('pending_membership', None)
+            request.session.pop('upgrade_details', None)
+            request.session.pop('renewal_details', None)
             return request.redirect('/memberships?error=payment_processing_failed')
 
     @http.route(['/memberships/payment/callback'], type='http', auth="public", website=True, methods=['GET', 'POST'])
@@ -734,6 +856,7 @@ class PopcornMembershipController(http.Controller):
                 request.session.pop('payment_transaction_id', None)
                 request.session.pop('pending_membership', None)
                 request.session.pop('upgrade_details', None)
+                request.session.pop('renewal_details', None)
                 
                 _logger.info(f"WeChat payment successful. Membership created with ID: {membership.id}")
                 return request.redirect(redirect_url)
@@ -812,6 +935,7 @@ class PopcornMembershipController(http.Controller):
                 request.session.pop('payment_transaction_id', None)
                 request.session.pop('pending_membership', None)
                 request.session.pop('upgrade_details', None)
+                request.session.pop('renewal_details', None)
                 
                 _logger.info(f"Payment successful. Membership created with ID: {membership.id}")
                 return request.redirect(redirect_url)
@@ -824,6 +948,7 @@ class PopcornMembershipController(http.Controller):
                 request.session.pop('payment_transaction_id', None)
                 request.session.pop('pending_membership', None)
                 request.session.pop('upgrade_details', None)
+                request.session.pop('renewal_details', None)
                 
                 return request.redirect('/memberships/payment/failed?error=payment_cancelled')
                 
@@ -835,6 +960,7 @@ class PopcornMembershipController(http.Controller):
                 request.session.pop('payment_transaction_id', None)
                 request.session.pop('pending_membership', None)
                 request.session.pop('upgrade_details', None)
+                request.session.pop('renewal_details', None)
                 
                 return request.redirect('/memberships/payment/failed?error=payment_failed')
                 
@@ -1034,6 +1160,8 @@ class PopcornMembershipController(http.Controller):
             request.session.pop('payment_transaction_id', None)
             request.session.pop('pending_membership', None)
             request.session.pop('wechat_pending_membership', None)
+            request.session.pop('upgrade_details', None)
+            request.session.pop('renewal_details', None)
             
             _logger.info(f"WeChat payment successful. Membership created with ID: {membership.id}")
             _logger.info(f"Final membership details - ID: {membership.id}, State: {membership.state}, Partner: {membership.partner_id.name}")
@@ -1184,6 +1312,8 @@ class PopcornMembershipController(http.Controller):
             request.session.pop('payment_transaction_id', None)
             request.session.pop('pending_membership', None)
             request.session.pop('wechat_pending_membership', None)
+            request.session.pop('upgrade_details', None)
+            request.session.pop('renewal_details', None)
             
             _logger.info(f"WeChat payment successful. Membership created with ID: {membership.id}")
             _logger.info(f"Final membership details - ID: {membership.id}, State: {membership.state}, Partner: {membership.partner_id.name}")
@@ -1200,6 +1330,8 @@ class PopcornMembershipController(http.Controller):
             # Clear session data on error
             request.session.pop('wechat_pending_membership', None)
             request.session.pop('pending_membership', None)
+            request.session.pop('upgrade_details', None)
+            request.session.pop('renewal_details', None)
             return request.redirect('/memberships/payment/failed?error=processing_failed')
     
     @http.route(['/memberships/payment/failed'], type='http', auth="public", website=True)
@@ -1292,7 +1424,8 @@ class PopcornMembershipController(http.Controller):
             extra_days = applied_discount.get_extra_days(plan, partner)
         else:
             # Get best discount for this plan and customer (including extra days)
-            best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(partner)
+            # Pass purchase_price as original_price so discounts are calculated from the correct base price
+            best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(partner, original_price=purchase_price)
         
         # Create membership values
         membership_vals = {
@@ -1520,6 +1653,8 @@ class PopcornMembershipController(http.Controller):
             # Clear session data on error
             request.session.pop('wechat_pending_event_purchase', None)
             request.session.pop('event_purchase_details', None)
+            request.session.pop('upgrade_details', None)
+            request.session.pop('renewal_details', None)
             return request.redirect('/event?error=processing_failed')
 
     def _handle_event_purchase(self, plan, partner, payment_transaction_id=None, payment_reference=None):

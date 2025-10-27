@@ -595,7 +595,7 @@ class EventEvent(models.Model):
                             body=_('Promoted from waitlist to confirmed registration')
                         )
                 except Exception as e:
-                    _logger.warning(f"Could not post message to registration {reg.id}: {e}")
+                    _logger.warning("Could not post message to registration %s: %s" % (reg.id, e))
                     # Continue processing even if message posting fails
             
             # Update remaining waitlist positions
@@ -604,27 +604,27 @@ class EventEvent(models.Model):
                 for i, reg in enumerate(remaining_waitlist, 1):
                     reg.write({'waitlist_position': i})
     
-    def _auto_promote_waitlist(self):
-        """Automatically promote waitlist registrations when seats become available"""
+    def _safe_promote_from_waitlist(self):
+        """Safely promote waitlist registrations to handle concurrent cancellations"""
         self.ensure_one()
         
-        # Prevent re-entrancy: if already promoting, skip
-        if self.env.context.get('promoting_waitlist'):
-            _logger.info(f"Event {self.id}: Skipping auto-promotion (already in progress)")
+        # Simplified promotion logic that calculates available seats and promotes accordingly
+        _logger.info("Event %s: Starting safe waitlist promotion" % self.id)
+        
+        if not self.seats_limited:
+            _logger.info("Event %s: No promotion needed (seats not limited)" % self.id)
             return
         
-        if not self.seats_limited or self.seats_available <= 0:
-            _logger.info(f"Event {self.id}: No auto-promotion needed (seats_limited={self.seats_limited}, seats_available={self.seats_available})")
-            return
-        
-        # Calculate available seats ONCE at the start to prevent race conditions
+        # Calculate available seats
         confirmed_registrations = self.registration_ids.filtered(
             lambda r: r.state in ['open', 'confirmed', 'done'] and not r.is_on_waitlist
         )
         available_seats = max(0, self.seats_max - len(confirmed_registrations))
         
+        _logger.info("Event %s: Available seats: %s (confirmed: %s, max: %s)" % (self.id, available_seats, len(confirmed_registrations), self.seats_max))
+        
         if available_seats <= 0:
-            _logger.info(f"Event {self.id}: No seats available for promotion")
+            _logger.info("Event %s: No seats available for promotion" % self.id)
             return
         
         # Get waitlist registrations in order
@@ -635,12 +635,21 @@ class EventEvent(models.Model):
         # Promote up to the number of available seats
         promotions_needed = min(available_seats, len(waitlist_registrations))
         
-        _logger.info(f"Event {self.id}: Found {len(waitlist_registrations)} waitlist registrations, promoting {promotions_needed}")
+        _logger.info("Event %s: Found %s waitlist registrations, promoting %s" % (self.id, len(waitlist_registrations), promotions_needed))
         
-        # Use context flag to prevent re-entrancy
+        if promotions_needed <= 0:
+            return
+        
+        # Perform all promotions
+        promoted_registrations = []
         for i in range(promotions_needed):
             reg = waitlist_registrations[i]
-            reg.with_context(promoting_waitlist=True).write({
+            promoted_registrations.append(reg)
+            
+            _logger.info("Event %s: Promoting registration %s - Partner: %s (position: %s)" % (self.id, reg.id, reg.partner_id.name, reg.waitlist_position))
+            
+            # Update registration
+            reg.write({
                 'is_on_waitlist': False,
                 'waitlist_position': 0,
                 'state': 'open'
@@ -657,14 +666,92 @@ class EventEvent(models.Model):
                         body=_('Automatically promoted from waitlist to confirmed registration')
                     )
             except Exception as e:
-                _logger.warning(f"Could not post message to registration {reg.id}: {e}")
-                # Continue processing even if message posting fails
+                _logger.warning("Could not post message to registration %s: %s" % (reg.id, e))
         
         # Update remaining waitlist positions
-        if promotions_needed > 0:
-            remaining_waitlist = waitlist_registrations[promotions_needed:]
-            for i, reg in enumerate(remaining_waitlist, 1):
-                reg.with_context(promoting_waitlist=True).write({'waitlist_position': i})
+        remaining_waitlist = waitlist_registrations[promotions_needed:]
+        for i, reg in enumerate(remaining_waitlist, 1):
+            reg.write({'waitlist_position': i})
+        
+        _logger.info("Event %s: Successfully promoted %s registrations from waitlist" % (self.id, len(promoted_registrations)))
+    
+    def _promote_waitlist_safe(self):
+        """Simple safe waitlist promotion method"""
+        self.ensure_one()
+        
+        _logger.info("=== WAITLIST PROMOTION DEBUG ===")
+        _logger.info("Event ID: %s, Seats Limited: %s, Seats Max: %s" % (self.id, self.seats_limited, self.seats_max))
+        
+        try:
+            if not self.seats_limited:
+                _logger.info("Event %s: No promotion needed (seats not limited)" % self.id)
+                return
+            
+            # Get fresh data to avoid stale recordset issues
+            event = self.env['event.event'].browse(self.id)
+            event.invalidate_recordset()
+            
+            confirmed_count = len(event.registration_ids.filtered(
+                lambda r: r.state in ['open', 'confirmed', 'done'] and not r.is_on_waitlist
+            ))
+            
+            available_seats = max(0, event.seats_max - confirmed_count)
+            _logger.info("Event %s: Confirmed count: %s, Available seats: %s" % (event.id, confirmed_count, available_seats))
+            
+            if available_seats <= 0:
+                _logger.info("Event %s: No seats available for promotion" % event.id)
+                return
+            
+            waitlist_regs = event.registration_ids.filtered(
+                lambda r: r.is_on_waitlist and r.state == 'draft'
+            ).sorted('waitlist_position')
+            
+            promotions_count = min(available_seats, len(waitlist_regs))
+            _logger.info("Event %s: Found %s waitlist registrations, promoting %s" % (event.id, len(waitlist_regs), promotions_count))
+            
+            if promotions_count <= 0:
+                _logger.info("Event %s: No promotions to perform" % event.id)
+                return
+            
+            for i in range(promotions_count):
+                reg = waitlist_regs[i]
+                _logger.info("Event %s: Promoting registration %s - Partner: %s (position: %s)" % (event.id, reg.id, reg.partner_id.name, reg.waitlist_position))
+                
+                reg.write({
+                    'is_on_waitlist': False,
+                    'waitlist_position': 0,
+                    'state': 'open'
+                })
+                
+                if reg.membership_id and reg.consumption_state == 'pending':
+                    reg._consume_membership_quota()
+            
+            remaining_regs = waitlist_regs[promotions_count:]
+            for i, reg in enumerate(remaining_regs, 1):
+                reg.write({'waitlist_position': i})
+            
+            _logger.info("Event %s: Successfully promoted %s registrations from waitlist" % (event.id, promotions_count))
+                
+        except Exception as e:
+            _logger.error("Error in waitlist promotion: %s" % str(e))
+            import traceback
+            _logger.error("Full traceback: %s" % traceback.format_exc())
+    
+    def _auto_promote_waitlist(self):
+        """Automatically promote waitlist registrations when seats become available"""
+        self.ensure_one()
+        
+        # Prevent re-entrancy: if already promoting, skip
+        if self.env.context.get('promoting_waitlist'):
+            _logger.info(f"Event {self.id}: Skipping auto-promotion (already in progress)")
+            return
+        
+        if not self.seats_limited or self.seats_available <= 0:
+            _logger.info(f"Event {self.id}: No auto-promotion needed (seats_limited={self.seats_limited}, seats_available={self.seats_available})")
+            return
+        
+        # Use the safe promotion method for consistency
+        self._promote_waitlist_safe()
     
     @api.model
     def _search_get_detail(self, website, order, options):
@@ -710,7 +797,9 @@ class EventEvent(models.Model):
     def _compute_waitlist_info(self):
         """Compute waitlist count"""
         for event in self:
-            waitlist_registrations = event.registration_ids.filtered('is_on_waitlist')
+            waitlist_registrations = event.registration_ids.filtered(
+                lambda r: r.is_on_waitlist and r.state != 'cancel'
+            )
             event.waitlist_count = len(waitlist_registrations)
     
     @api.depends('registration_ids', 'registration_ids.partner_id', 'registration_ids.is_on_waitlist')
@@ -725,13 +814,13 @@ class EventEvent(models.Model):
                 
                 # Find user's waitlist registration
                 user_waitlist_reg = event.registration_ids.filtered(
-                    lambda r: r.partner_id == user_partner and r.is_on_waitlist
+                    lambda r: r.partner_id == user_partner and r.is_on_waitlist and r.state != 'cancel'
                 )
                 
                 if user_waitlist_reg:
                     # Count registrations before this user on the waitlist
                     all_waitlist_regs = event.registration_ids.filtered(
-                        lambda r: r.is_on_waitlist
+                        lambda r: r.is_on_waitlist and r.state != 'cancel'
                     ).sorted('waitlist_position')
                     
                     for i, reg in enumerate(all_waitlist_regs, 1):

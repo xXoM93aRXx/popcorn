@@ -86,8 +86,24 @@
                         </group>
                         
                         <group>
+                            <group string="Renewal Windows">
+                                <label for="early_renew_window_days" string="Banner Stops At (Days/Lower Bound)"/>
+                                <field name="early_renew_window_days" help="Gold: Banner stops at X days before expiry. Experience: Banner stops at X days from activation. Also the discount closes at this point."/>
+                                
+                                <label for="renewal_window_max_days" string="Banner Starts At (Days/Upper Bound)"/>
+                                <field name="renewal_window_max_days" help="Gold: Banner starts at X days before expiry"/>
+                                
+                                <label for="renewal_window_end_days" string="Experience: Banner Stops At (Days from Activation)"/>
+                                <field name="renewal_window_end_days" help="Experience: Banner stops at X days from activation. Discount also closes here."/>
+                                
+                                <label for="renewal_points_max" string="Freedom: Banner Starts At (Points)"/>
+                                <field name="renewal_points_max" help="Freedom: Banner starts when points drop to this value"/>
+                                
+                                <label for="renewal_points_threshold" string="Freedom: Banner Stops At (Points/Lower Bound)"/>
+                                <field name="renewal_points_threshold" help="Freedom: Banner stops when points drop below this. Discount also closes here."/>
+                            </group>
+                            
                             <group string="Upgrade Windows">
-                                <field name="early_renew_window_days"/>
                                 <field name="upgrade_window_days"/>
                                 <field name="first_timer_default_upgrade_ability"/>
                                 <field name="expiry_followup_days" placeholder="e.g., 50,45,35,31"/>
@@ -97,6 +113,12 @@
                                 <field name="can_upgrade_to_ids" widget="many2many_tags"/>
                                 <field name="unit_base_count"/>
                                 <field name="unit_value_fixed"/>
+                            </group>
+                        </group>
+                        
+                        <group>
+                            <group string="Renewal Banner Configuration">
+                                <field name="renewal_banner_text" placeholder="e.g., You have {days_left} days left to renew with first-timer discount!" widget="text"/>
                             </group>
                         </group>
                         

@@ -85,20 +85,38 @@ class PopcornEventRegistration(models.Model):
         """Format event time for display in user's timezone"""
         for registration in self:
             if registration.event_id and registration.event_id.date_begin:
-                # Convert from UTC to user's timezone
-                user_tz = self.env.user.tz or 'UTC'
-                import pytz
-                from datetime import datetime
-                
-                # Convert the datetime to user's timezone
-                utc_time = registration.event_id.date_begin
-                if isinstance(utc_time, datetime):
-                    utc_time = pytz.UTC.localize(utc_time) if utc_time.tzinfo is None else utc_time
-                    local_tz = pytz.timezone(user_tz)
-                    local_time = utc_time.astimezone(local_tz)
-                    # Format as "HH:MM AM/PM"
-                    registration.event_time_formatted = local_time.strftime('%I:%M %p')
-                else:
+                try:
+                    # Use Odoo's datetime context utilities for proper timezone handling
+                    # This ensures the time is displayed in the correct timezone for the notification context
+                    from odoo import fields
+                    import pytz
+                    from datetime import datetime
+                    
+                    # Get the datetime field value (always stored in UTC in Odoo)
+                    date_begin = registration.event_id.date_begin
+                    
+                    # Get timezone - prefer context, then user's tz, then partner's tz
+                    tz = (self._context.get('tz') or 
+                          (self.env.user.tz if self.env and self.env.user else None) or
+                          (registration.partner_id.tz if registration.partner_id else None) or
+                          'UTC')
+                    
+                    # If timezone-naive, localize to UTC (Odoo stores as naive UTC)
+                    if isinstance(date_begin, datetime):
+                        if date_begin.tzinfo is None:
+                            # Odoo stores datetimes as naive in UTC
+                            date_begin = pytz.UTC.localize(date_begin)
+                        
+                        # Convert to target timezone
+                        target_tz = pytz.timezone(tz)
+                        local_time = date_begin.astimezone(target_tz)
+                        
+                        # Format as "HH:MM AM/PM"
+                        registration.event_time_formatted = local_time.strftime('%I:%M %p')
+                    else:
+                        registration.event_time_formatted = ''
+                except Exception as e:
+                    _logger.error(f"Error formatting event_time_formatted for registration {registration.id}: {e}", exc_info=True)
                     registration.event_time_formatted = ''
             else:
                 registration.event_time_formatted = ''
@@ -496,7 +514,8 @@ class PopcornEventRegistration(models.Model):
         # Promote next person from waitlist if event has limited seats
         if self.event_id.seats_limited:
             _logger.info(f"Event has limited seats, attempting to promote from waitlist...")
-            self._promote_next_waitlist_registration()
+            # Use centralized promotion to handle concurrent cancellations
+            self.event_id._promote_waitlist_safe()
         else:
             _logger.info(f"Event has unlimited seats, skipping waitlist promotion")
         
@@ -618,6 +637,8 @@ class PopcornEventRegistration(models.Model):
         membership.message_post(
             body=_('Quota consumed for event registration: %s') % self.event_id.name
         )
+        
+        # Note: Automatic expiration is now handled by cron job for reliability
     
     def _add_to_waitlist(self):
         """Add registration to waitlist and assign position"""
@@ -686,6 +707,16 @@ class PopcornEventRegistration(models.Model):
             vals['is_imported'] = True
         
         # Create the record first
+        # For limited-seat events, create with state='draft' initially, then decide based on availability
+        event = None
+        if 'event_id' in vals:
+            event = self.env['event.event'].browse(vals['event_id'])
+            if event.exists() and event.seats_limited and not is_import:
+                # Initially create as draft to prevent over-booking
+                # We'll decide on state based on availability after creation
+                if vals.get('state') == 'open':
+                    vals['state'] = 'draft'
+        
         registration = super().create(vals)
         
         # Post-create validation and auto-selection
@@ -700,29 +731,33 @@ class PopcornEventRegistration(models.Model):
             _logger.info(f"Has membership: {bool(registration.membership_id)}")
             
             if event.seats_limited:
-                # Force fresh data from database
-                event.flush_recordset()
-                event.invalidate_recordset()
+                # Force fresh data from database - CRITICAL for preventing race conditions
+                # Flush all pending changes to ensure search() sees them
+                self.env.flush_all()
                 
-                # Calculate current availability directly (excluding the newly created registration)
-                confirmed_registrations = event.registration_ids.filtered(
-                    lambda r: r.id != registration.id and r.state in ['open', 'confirmed', 'done'] and not r.is_on_waitlist
-                )
+                # Query database directly for current availability
+                # This includes ALL confirmed registrations including other concurrent requests
+                confirmed_registrations = self.env['event.registration'].search([
+                    ('event_id', '=', event.id),
+                    ('state', 'in', ['open', 'confirmed', 'done']),
+                    ('is_on_waitlist', '=', False)
+                ])
                 available_seats = max(0, event.seats_max - len(confirmed_registrations))
                 
-                _logger.info(f"Event has limited seats: {len(confirmed_registrations)} / {event.seats_max} seats taken (excluding current registration)")
+                _logger.info(f"Event has limited seats: {len(confirmed_registrations)} / {event.seats_max} seats taken")
                 _logger.info(f"Available seats: {available_seats}")
                 
                 if available_seats <= 0:
-                    # Add to waitlist instead of consuming quota
+                    # No seats available - add to waitlist
                     _logger.info(f"No seats available - adding to waitlist")
                     registration._add_to_waitlist()
-                elif registration.membership_id and registration.consumption_state == 'pending':
-                    # Normal registration with membership - consume quota
-                    _logger.info(f"Seats available - confirming registration and consuming quota")
-                    registration._consume_membership_quota()
                 else:
-                    _logger.info(f"Seats available - registration confirmed (no membership quota to consume)")
+                    # Seats available - confirm registration
+                    _logger.info(f"Seats available - confirming registration")
+                    registration.write({'state': 'open'})
+                    if registration.membership_id and registration.consumption_state == 'pending':
+                        _logger.info(f"Consuming membership quota")
+                        registration._consume_membership_quota()
             else:
                 # Unlimited seats - just consume quota if membership exists
                 _logger.info(f"Event has unlimited seats")
@@ -730,9 +765,9 @@ class PopcornEventRegistration(models.Model):
                     _logger.info(f"Consuming membership quota")
                     registration._consume_membership_quota()
         
-        # Update partner's first timer status after creating registration
-        if registration.partner_id:
-            self.env['res.partner']._update_first_timer_status(registration.partner_id.id)
+        # Note: Club registrations do NOT affect first-timer status
+        # Only memberships affect is_first_timer (for membership pricing eligibility)
+        # First-timer coupon usage for clubs is completely independent from membership pricing
         
         # Clear UI caches to ensure fresh data
         registration.env['ir.ui.view'].clear_caches()
@@ -833,15 +868,62 @@ class PopcornEventRegistration(models.Model):
                     # Promote next person from waitlist
                     if registration.event_id.seats_limited:
                         _logger.info(f"Event has limited seats (max: {registration.event_id.seats_max}), attempting to promote from waitlist...")
-                        registration._promote_next_waitlist_registration()
+                        # Use centralized promotion to handle concurrent cancellations
+                        registration.event_id._promote_waitlist_safe()
                     else:
                         _logger.info(f"Event has unlimited seats, skipping waitlist promotion")
+                
+                # Handle waitlist registration cancellations from backend
+                elif new_state == 'cancel' and original_state == 'draft' and registration.is_on_waitlist:
+                    _logger.info(f"=== Backend Waitlist Cancellation: Registration {registration.id} for event {registration.event_id.name} (ID: {registration.event_id.id}) ===")
+                    _logger.info(f"Partner: {registration.partner_id.name} (ID: {registration.partner_id.id})")
+                    _logger.info(f"Original state: {original_state} -> New state: {new_state}")
+                    _logger.info(f"Waitlist position: {registration.waitlist_position}")
+                    
+                    # Store event info before deletion for waitlist promotion
+                    event_id = registration.event_id
+                    seats_limited = event_id.seats_limited
+                    
+                    # Log the cancellation before deletion
+                    registration.message_post(
+                        body=_('Waitlist registration cancelled from backend')
+                    )
+                    
+                    # Delete the waitlist registration
+                    registration.unlink()
+                    
+                    # Promote next person from waitlist if event has limited seats
+                    if seats_limited:
+                        # Find the next person on the waitlist (lowest position number)
+                        next_waitlist_reg = self.env['event.registration'].search([
+                            ('event_id', '=', event_id.id),
+                            ('is_on_waitlist', '=', True),
+                            ('state', '=', 'draft')
+                        ], order='waitlist_position asc', limit=1)
+                        
+                        if next_waitlist_reg:
+                            # Promote this registration
+                            next_waitlist_reg.write({
+                                'is_on_waitlist': False,
+                                'waitlist_position': 0,
+                                'state': 'open'
+                            })
+                            
+                            # Consume membership quota for the promoted registration
+                            if next_waitlist_reg.membership_id and next_waitlist_reg.consumption_state == 'pending':
+                                next_waitlist_reg._consume_membership_quota()
+                            
+                            # Log the promotion
+                            next_waitlist_reg.message_post(
+                                body=_('Promoted from waitlist to confirmed registration')
+                            )
+                            
+                            # Update waitlist positions for remaining waitlist registrations
+                            self._update_waitlist_positions_after_deletion(event_id)
         
-        # Update first timer status if registration state changed to 'done' (attended)
-        if vals.get('state') == 'done':
-            for registration in self:
-                if registration.partner_id:
-                    self.env['res.partner']._update_first_timer_status(registration.partner_id.id)
+        # Note: Club attendance (state='done') does NOT affect first-timer status
+        # Only memberships affect is_first_timer (for membership pricing eligibility)
+        # First-timer coupon usage for clubs is completely independent from membership pricing
         
         # Clear UI caches to ensure fresh data
         self.env['ir.ui.view'].clear_caches()
@@ -857,31 +939,25 @@ class PopcornEventRegistration(models.Model):
             if not registration.event_id.seats_limited:
                 raise UserError(_('This event does not have limited seats'))
             
-            # Check if there are available seats
-            confirmed_registrations = registration.event_id.registration_ids.filtered(
-                lambda r: r.state in ['open', 'confirmed', 'done'] and not r.is_on_waitlist
-            )
-            if len(confirmed_registrations) >= registration.event_id.seats_max:
-                raise UserError(_('No seats available for promotion'))
-            
-            # Promote the registration
-            registration.write({
-                'is_on_waitlist': False,
-                'waitlist_position': 0,
-                'state': 'open'
-            })
-            
-            # Consume membership quota
-            if registration.membership_id and registration.consumption_state == 'pending':
-                registration._consume_membership_quota()
-            
-            # Log the promotion
-            registration.message_post(
-                body=_('Manually promoted from waitlist to confirmed registration')
-            )
-            
-            # Update remaining waitlist positions
-            registration._update_waitlist_positions()
+            # Use the safe promotion method to handle concurrent scenarios
+            # This will check availability and promote appropriately
+            try:
+                registration.event_id._promote_waitlist_safe()
+                
+                # Refresh the registration to get updated state
+                registration.invalidate_recordset()
+                
+                if not registration.is_on_waitlist:
+                    # Log the manual promotion
+                    registration.message_post(
+                        body=_('Manually promoted from waitlist to confirmed registration')
+                    )
+                else:
+                    raise UserError(_('No seats available for promotion'))
+                    
+            except Exception as e:
+                _logger.error(f"Error promoting registration {registration.id}: {e}")
+                raise UserError(_('Failed to promote from waitlist: %s') % str(e))
     
     def action_add_to_waitlist(self):
         """Manually add a registration to the waitlist"""

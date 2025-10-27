@@ -649,6 +649,8 @@ class PopcornEventController(http.Controller):
             )
         
         # Auto-create the registration with membership details
+        # Note: state will be set by the model's create() method based on availability
+        # It creates as 'draft' first, then promotes to 'open' if seats available
         registration_vals = {
             'event_id': event.id,
             'partner_id': partner.id,
@@ -656,8 +658,8 @@ class PopcornEventController(http.Controller):
             'email': partner.email,
             'phone': partner.phone,
             'membership_id': best_membership.id,
-            'consumption_state': 'pending',  # was 'consumed'
-            'state': 'open'
+            'consumption_state': 'pending',  # will be consumed if promoted from draft
+            'state': 'open'  # Will be changed to 'draft' by model if needed
         }
         
         # Create the registration (consumption is now handled automatically in create method)
@@ -1675,73 +1677,27 @@ class PopcornPortalController(CustomerPortal):
             return request.redirect(f'/my/cards/{membership.id}/upgrade?error=upgrade_failed')
     
     def _get_available_upgrade_plans(self, membership):
-        """Get available upgrade plans based on membership rules"""
+        """Get available upgrade plans - uses configured can_upgrade_to_ids from plan"""
         current_plan = membership.membership_plan_id
         
-        # Get all active plans that can be upgraded to
-        available_plans = request.env['popcorn.membership.plan'].search([
-            ('active', '=', True),
-            ('id', '!=', current_plan.id)
-        ])
-        
-        # Filter based on upgrade rules
-        filtered_plans = []
-        for plan in available_plans:
-            if self._can_upgrade_to(membership, plan):
-                filtered_plans.append(plan)
-        
-        return filtered_plans
-    
-    def _can_upgrade_to(self, membership, target_plan):
-        """Check if membership can upgrade to target plan"""
-        current_plan = membership.membership_plan_id
-        
-        # Check if upgrade is allowed within time window
-        if not self._is_within_upgrade_window(membership):
-            return False
-        
-        # Apply specific upgrade rules based on current plan type
-        if current_plan.quota_mode == 'bucket_counts':
-            # Experience/Online cards can upgrade to Gold or Freedom
-            return target_plan.quota_mode in ['unlimited', 'points']
-        
-        elif current_plan.quota_mode == 'points':
-            # Freedom card can upgrade to Gold cards (except 90 GR)
-            if target_plan.quota_mode == 'unlimited':
-                return '90 GR' not in target_plan.name
-        
-        elif current_plan.quota_mode == 'unlimited':
-            # Gold cards can upgrade to higher Gold cards
-            if target_plan.quota_mode == 'unlimited':
-                return self._is_higher_gold_card(current_plan, target_plan)
-        
-        return False
-    
-    def _is_within_upgrade_window(self, membership):
-        """Check if membership is within upgrade window from activation"""
+        # Check if membership is within upgrade window
         if not membership.activation_date:
-            return False
+            return request.env['popcorn.membership.plan']
         
         days_since_activation = (fields.Date.today() - membership.activation_date).days
-        upgrade_window_days = membership.membership_plan_id.upgrade_window_days
-        return days_since_activation <= upgrade_window_days
-    
-    def _is_higher_gold_card(self, current_plan, target_plan):
-        """Check if target plan is a higher gold card"""
-        # Extract duration from plan names
-        current_duration = self._extract_duration_from_name(current_plan.name)
-        target_duration = self._extract_duration_from_name(target_plan.name)
+        if days_since_activation > current_plan.upgrade_window_days:
+            return request.env['popcorn.membership.plan']
         
-        if current_duration and target_duration:
-            return target_duration > current_duration
+        # Check if user has upgrade discount ability
+        if not membership.upgrade_discount_allowed:
+            return request.env['popcorn.membership.plan']
         
-        return False
-    
-    def _extract_duration_from_name(self, plan_name):
-        """Extract duration from plan name (e.g., '90 GR' -> 90)"""
-        import re
-        match = re.search(r'(\d+)', plan_name)
-        return int(match.group(1)) if match else None
+        # Use configured upgrade paths from plan data
+        if current_plan.can_upgrade_to_ids:
+            return current_plan.can_upgrade_to_ids.filtered(lambda p: p.active)
+        
+        # Return empty if no upgrade paths configured
+        return request.env['popcorn.membership.plan']
     
     def _calculate_upgrade_price(self, membership, target_plan):
         """Calculate upgrade price based on membership rules"""
@@ -1780,11 +1736,16 @@ class PopcornPortalController(CustomerPortal):
         """Calculate upgrade price for Freedom card"""
         points_remaining = membership.points_remaining
         
-        # Calculate unit value based on plan configuration
-        unit_value = membership.purchase_price_paid / membership.membership_plan_id.unit_base_count
+        # Calculate remaining clubs from points
+        # 108 points = 36 clubs (3 points per club)
+        clubs_left = points_remaining / 3
+        
+        # Calculate unit value per club
+        # Freedom has 108 points = 36 clubs equivalent
+        unit_value = membership.purchase_price_paid / 36
         
         # Calculate upgrade price
-        upgrade_price = target_plan.price_first_timer - (unit_value * (points_remaining / membership.membership_plan_id.points_per_offline))
+        upgrade_price = target_plan.price_first_timer - (unit_value * clubs_left)
         return round(max(0, upgrade_price), 2)
     
     def _calculate_gold_upgrade_price(self, membership, target_plan):
@@ -1837,6 +1798,20 @@ class PopcornPortalController(CustomerPortal):
         )
         
         return new_membership
+    
+    @http.route(['/my/cards/<model("popcorn.membership"):membership>/renew'], type='http', auth="user", website=True)
+    def portal_membership_renew(self, membership, **kwargs):
+        """Process renewal request - redirect to memberships page"""
+        # Check if user owns this membership
+        if membership.partner_id.id != request.env.user.partner_id.id:
+            return request.redirect('/my/cards')
+        
+        # Check if eligible for renewal discount
+        if not membership.is_eligible_for_renewal_discount():
+            return request.redirect('/my/cards?error=not_eligible_for_renewal')
+        
+        # Redirect to memberships page where they can see renewal banner and choose their plan
+        return request.redirect('/memberships')
     
     @http.route(['/my/cards/upgrade/success'], type='http', auth="user", website=True)
     def portal_membership_upgrade_success(self, **kwargs):

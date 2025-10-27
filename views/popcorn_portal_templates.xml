@@ -407,10 +407,16 @@
                                                          <div class="col-md-6">
                                                              <h6 class="text-muted mb-2"><span t-translation="on">Actions</span></h6>
                                                              <div class="d-flex flex-wrap gap-2">
-                                                                 <t t-if="membership.activation_date and (current_date - membership.activation_date).days &lt;= membership.membership_plan_id.upgrade_window_days">
+                                                                 <t t-if="membership.activation_date and membership.upgrade_discount_allowed and (current_date - membership.activation_date).days &lt;= membership.membership_plan_id.upgrade_window_days and membership.membership_plan_id.can_upgrade_to_ids">
                                                                      <a t-attf-href="/my/cards/#{membership.id}/upgrade" 
                                                                         class="btn btn-outline-success btn-sm">
                                                                          <i class="fa fa-arrow-up"></i> <span t-translation="on">Upgrade</span>
+                                                                     </a>
+                                                                 </t>
+                                                                 <t t-if="membership.can_renew_discount">
+                                                                     <a t-attf-href="/my/cards/#{membership.id}/renew" 
+                                                                        class="btn btn-outline-primary btn-sm">
+                                                                         <i class="fa fa-refresh"></i> <span t-translation="on">Renew</span>
                                                                      </a>
                                                                  </t>
                                                                  <t t-if="membership.membership_plan_id.freeze_allowed and membership.state == 'active' and not membership.freeze_active">

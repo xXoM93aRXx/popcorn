@@ -106,6 +106,12 @@ class PopcornNotification(models.Model):
             ('event_start_time', '>', fields.Datetime.now())
         ], order='event_start_time asc', limit=1)
         
+        # Pass partner's timezone in context so computed fields use correct timezone
+        eval_context = self.env.context.copy() if self.env.context else {}
+        partner_tz = partner.tz or False
+        if partner_tz:
+            eval_context['tz'] = partner_tz
+        
         for placeholder in placeholders:
             value = None
             
@@ -117,7 +123,8 @@ class PopcornNotification(models.Model):
                 value = getattr(active_membership, placeholder, '')
             # Then try from upcoming event registration
             elif upcoming_registration and hasattr(upcoming_registration, placeholder):
-                value = getattr(upcoming_registration, placeholder, '')
+                # Evaluate with correct timezone context
+                value = getattr(upcoming_registration.with_context(eval_context), placeholder, '')
             
             # Handle different field types
             if value:

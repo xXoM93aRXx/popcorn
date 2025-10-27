@@ -204,24 +204,25 @@ class ResPartner(models.Model):
     
     @api.model
     def _compute_is_first_timer_auto(self, partner_id):
-        """Compute if this partner is a first timer (auto-computation)"""
+        """Compute if this partner is a first timer (auto-computation)
+        
+        Note: is_first_timer status is ONLY for membership pricing eligibility.
+        Using first-timer coupon for club registrations does NOT affect this status.
+        Only memberships (existing or expired) determine first-timer status.
+        """
         if not partner_id:
             return True
             
         try:
-            # Check if customer has any prior attended registrations
-            prior_registrations = self.env['event.registration'].sudo().search([
-                ('partner_id', '=', partner_id),
-                ('state', '=', 'done'),  # Attended
-            ], limit=1)
-            
             # Check if customer has any prior memberships (including expired)
+            # This determines first-timer pricing eligibility for memberships
             prior_memberships = self.env['popcorn.membership'].sudo().search([
                 ('partner_id', '=', partner_id),
             ], limit=1)
             
-            # If no prior registrations AND no prior memberships, they are a first-timer
-            return not bool(prior_registrations) and not bool(prior_memberships)
+            # First-timer status is ONLY based on prior memberships
+            # Club registrations (even attended) do NOT affect this status
+            return not bool(prior_memberships)
         except Exception:
             # If access denied or error, assume not first-timer for safety
             return False
@@ -300,7 +301,11 @@ class ResPartner(models.Model):
     
     @api.model
     def _is_first_timer_customer(self, partner_id):
-        """Check if customer is a first-timer (never joined a club before AND never had a membership)"""
+        """Check if customer is a first-timer for membership pricing
+        
+        Note: Club registrations (even attended) do NOT affect first-timer status.
+        Only memberships determine first-timer pricing eligibility.
+        """
         if not partner_id:
             return False
             

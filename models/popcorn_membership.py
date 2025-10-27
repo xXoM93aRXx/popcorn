@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import logging
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError, UserError
 from datetime import datetime, timedelta
+
+_logger = logging.getLogger(__name__)
 
 class PopcornMembership(models.Model):
     """Membership instances for customers"""
@@ -92,6 +95,9 @@ class PopcornMembership(models.Model):
     days_until_expiry = fields.Integer(string='Days Until Expiry', compute='_compute_days_until_expiry', store=False)
     total_clubs_remaining = fields.Integer(string='Total Clubs Remaining', compute='_compute_total_clubs_remaining', store=False)
     
+    # Computed fields for eligibility
+    can_renew_discount = fields.Boolean(string='Can Renew with Discount', compute='_compute_can_renew_discount', store=False)
+    
     @api.depends('membership_plan_id.duration_days', 'extra_days_extension')
     def _compute_total_duration_days(self):
         """Compute total duration including extra days"""
@@ -123,6 +129,11 @@ class PopcornMembership(models.Model):
             else:
                 # Unlimited plans
                 membership.total_clubs_remaining = -1
+    
+    def _compute_can_renew_discount(self):
+        """Compute if membership is eligible for renewal discount"""
+        for membership in self:
+            membership.can_renew_discount = membership.is_eligible_for_renewal_discount()
     
     @api.depends('activation_date', 'total_duration_days')
     def _compute_end_date_base(self):
@@ -191,6 +202,8 @@ class PopcornMembership(models.Model):
                 membership.remaining_sp = 0
                 points_start = getattr(plan, 'points_start', 0) or 0
                 membership.points_remaining = max(0, points_start - used_points + membership.adj_points)
+                
+                # Note: Auto-expiration will be handled by cron job for reliability
     
     @api.depends('partner_id', 'membership_plan_id')
     def _compute_display_name(self):
@@ -268,13 +281,18 @@ class PopcornMembership(models.Model):
         """Override create to set default values based on purchase channel and first-timer status"""
         partner_id = vals.get('partner_id')
         purchase_channel = vals.get('purchase_channel')
+        price_tier = vals.get('price_tier')
         
         # Check if customer is a first-timer (no prior club attendance AND no prior memberships)
         is_first_timer = self._is_first_timer_customer(partner_id)
         
-        # Set upgrade discount allowed based on first-timer status
-        # First-timers get upgrade discount ability by default
-        vals['upgrade_discount_allowed'] = is_first_timer
+        # Set upgrade discount allowed based on purchase channel and price tier
+        # Only pitch_day purchases with first_timer pricing get upgrade discount by default
+        # Online purchases default to FALSE (staff can manually enable)
+        if purchase_channel == 'pitch_day' and price_tier == 'first_timer':
+            vals['upgrade_discount_allowed'] = True
+        else:
+            vals['upgrade_discount_allowed'] = False
         
         membership = super().create(vals)
         
@@ -283,6 +301,8 @@ class PopcornMembership(models.Model):
             self.env['res.partner']._update_first_timer_status(partner_id)
         
         return membership
+    
+    # Note: Automatic expiration is now handled by cron job for reliability
     
     @api.model
     def _is_first_timer_customer(self, partner_id):
@@ -538,12 +558,16 @@ class PopcornMembership(models.Model):
         if not plan.unit_base_count:
             return target_plan.price_first_timer
         
-        # Calculate remaining units from points
+        # Calculate remaining clubs from points
+        # 108 points = 36 clubs (3 points per club)
         points_remaining = self.points_remaining
-        units_left = points_remaining / 3  # Assuming 3 points = 1 club unit
+        clubs_left = points_remaining / 3
         
-        unit_value = self.purchase_price_paid / plan.unit_base_count
-        upgrade_price = target_plan.price_first_timer - (unit_value * units_left)
+        # Calculate unit value per club
+        # Freedom has 108 points = 36 clubs equivalent
+        unit_value = self.purchase_price_paid / 36
+        
+        upgrade_price = target_plan.price_first_timer - (unit_value * clubs_left)
         return max(0, upgrade_price)
     
     def _calculate_gold_upgrade_price(self, target_plan):
@@ -566,9 +590,97 @@ class PopcornMembership(models.Model):
         upgrade_price = new_remaining_value - old_remaining_value
         return max(0, upgrade_price)
     
+    def is_eligible_for_renewal(self):
+        """Check if membership is eligible to show renewal banner (within reminder window)"""
+        self.ensure_one()
+        
+        # Only active or frozen memberships can renew
+        if self.state not in ['active', 'frozen']:
+            return False
+        
+        plan = self.membership_plan_id
+        
+        # Check if plan allows renewal (early_renew_window_days > 0)
+        if plan.early_renew_window_days == 0:
+            return False
+        
+        # Points-based plans (Freedom): Check points remaining
+        if plan.quota_mode == 'points':
+            # Banner shows when points are within the window (24-15)
+            min_threshold = plan.renewal_points_threshold or 15
+            max_threshold = plan.renewal_points_max or 24
+            return min_threshold <= self.points_remaining <= max_threshold
+        
+        # Time-based plans (Gold, Experience): Check days until expiry
+        else:
+            if not self.effective_end_date:
+                return False
+            
+            days_until_expiry = (self.effective_end_date - fields.Date.today()).days
+            
+            # Experience card: banner shows within configured window from activation (15-30)
+            if plan.quota_mode == 'bucket_counts' and plan.renewal_window_end_days > 0:
+                if not self.activation_date:
+                    return False
+                days_since_activation = (fields.Date.today() - self.activation_date).days
+                # Banner shows between early_renew_window_days and renewal_window_end_days
+                return plan.early_renew_window_days <= days_since_activation <= plan.renewal_window_end_days
+            
+            # Gold cards: banner shows within the window (45-30 days before expiry)
+            else:
+                min_days = plan.early_renew_window_days or 30
+                max_days = plan.renewal_window_max_days or 45
+                return min_days <= days_until_expiry <= max_days
+        
+        return False
+    
+    def is_eligible_for_renewal_discount(self):
+        """Check if membership is eligible for renewal discount (first-timer price)"""
+        self.ensure_one()
+        
+        # Only active or frozen memberships can renew
+        if self.state not in ['active', 'frozen']:
+            return False
+        
+        plan = self.membership_plan_id
+        
+        # Check if plan allows renewal
+        if plan.early_renew_window_days == 0:
+            return False
+        
+        # Points-based plans (Freedom): Discount available until points drop below threshold
+        if plan.quota_mode == 'points':
+            # Discount available from purchase → closes at 15 points
+            min_threshold = plan.renewal_points_threshold or 15
+            return self.points_remaining >= min_threshold
+        
+        # Time-based plans (Gold, Experience): Discount available until lower bound
+        else:
+            if not self.effective_end_date:
+                return False
+            
+            # Experience card: discount available until end of window (30 days from activation)
+            if plan.quota_mode == 'bucket_counts' and plan.renewal_window_end_days > 0:
+                if not self.activation_date:
+                    return False
+                days_since_activation = (fields.Date.today() - self.activation_date).days
+                # Discount available from activation → closes at renewal_window_end_days
+                return days_since_activation <= plan.renewal_window_end_days
+            
+            # Gold cards: discount available until lower bound (30 days before expiry)
+            else:
+                days_until_expiry = (self.effective_end_date - fields.Date.today()).days
+                min_days = plan.early_renew_window_days or 30
+                # Discount available from purchase → closes at min_days
+                return days_until_expiry >= min_days
+        
+        return False
+    
     @api.model
     def _cron_expire_memberships(self):
-        """Cron job to expire memberships past their effective end date"""
+        """Cron job to expire memberships past their effective end date or with zero points"""
+        
+        # 1. Expire memberships past their effective end date
         expired_memberships = self.search([
             ('state', 'in', ['active', 'frozen']),
             ('effective_end_date', '<', fields.Date.today())
@@ -576,6 +688,24 @@ class PopcornMembership(models.Model):
         
         for membership in expired_memberships:
             membership.action_expire()
+        
+        # 2. Expire points-based memberships with zero points
+        points_memberships = self.search([
+            ('state', 'in', ['active', 'frozen']),
+            ('membership_plan_id.quota_mode', '=', 'points')
+        ])
+        
+        for membership in points_memberships:
+            # Force recomputation of points_remaining
+            membership.invalidate_recordset(['points_remaining'])
+            membership.flush_recordset(['points_remaining'])
+            
+            if membership.points_remaining == 0:
+                _logger.info(f"Cron: Auto-expiring membership {membership.id} due to zero points")
+                membership.action_expire()
+                membership.message_post(
+                    body=_('Membership automatically expired by cron: All points have been used')
+                )
     
     @api.model
     def _cron_check_renewal_eligibility(self):

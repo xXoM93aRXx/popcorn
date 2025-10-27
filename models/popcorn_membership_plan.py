@@ -60,7 +60,16 @@ class PopcornMembershipPlan(models.Model):
     price_first_timer = fields.Monetary(string='First Timer Price', currency_field='currency_id', default=0.0, tracking=True)
     
     # Upgrade Windows
-    early_renew_window_days = fields.Integer(string='Early Renewal Window (Days)', default=30, tracking=True)
+    early_renew_window_days = fields.Integer(string='Early Renewal Window Start (Days)', default=30, tracking=True,
+                                             help='For Gold: min days before expiry. For Experience: start days from activation')
+    renewal_window_end_days = fields.Integer(string='Renewal Window End (Days)', default=0, tracking=True,
+                                             help='For Experience: max days from activation. For Gold: max days before expiry to start renewal')
+    renewal_window_max_days = fields.Integer(string='Renewal Window Max (Days)', default=45, tracking=True,
+                                             help='For Gold cards: maximum days before expiry to start showing renewal (shows between max and min)')
+    renewal_points_threshold = fields.Integer(string='Renewal Points Threshold (Min)', default=15, tracking=True,
+                                             help='For Freedom card: minimum points remaining to allow renewal')
+    renewal_points_max = fields.Integer(string='Renewal Points Threshold (Max)', default=24, tracking=True,
+                                       help='For Freedom card: maximum points to start showing renewal (banner shows when points between min and max)')
     upgrade_window_days = fields.Integer(string='Upgrade Window (Days)', default=60, tracking=True)
     first_timer_default_upgrade_ability = fields.Selection([
         ('yes', 'Yes'),
@@ -80,6 +89,13 @@ class PopcornMembershipPlan(models.Model):
                                          'from_plan_id', 'to_plan_id',
                                          string='Can Upgrade To', 
                                          domain="[('active', '=', True), ('id', '!=', id)]")
+    
+    # Renewal Banner Configuration
+    renewal_banner_text = fields.Text(
+        string='Renewal Banner Message',
+        translate=True,
+        help='Message to display on memberships page when user is eligible for renewal. Use {days_left}, {points_left}, or {name} as placeholders.'
+    )
     
     # Discount Relationships
     discount_ids = fields.Many2many('popcorn.discount', 
@@ -377,22 +393,31 @@ class PopcornMembershipPlan(models.Model):
         
         return best_price, best_discount
     
-    def get_best_discount_with_extra_days(self, customer_partner=None):
-        """Get the best discount including extra days information"""
+    def get_best_discount_with_extra_days(self, customer_partner=None, original_price=None):
+        """Get the best discount including extra days information
+        
+        Args:
+            customer_partner: Partner to check discounts for
+            original_price: Original price to calculate discounts from (defaults to price_normal)
+        """
         self.ensure_one()
+        
+        # Use provided original price or default to price_normal
+        if original_price is None:
+            original_price = self.price_normal
         
         available_discounts = self.get_available_discounts(customer_partner)
         if not available_discounts:
-            return self.price_normal, None, 0
+            return original_price, None, 0
         
-        best_price = self.price_normal
+        best_price = original_price
         best_discount = None
         total_extra_days = 0
         best_value = 0  # Track the best value (price savings or extra days)
         
         # First pass: find the best price discount
         for discount in available_discounts:
-            discounted_price = discount.get_discounted_price(self, self.price_normal, customer_partner)
+            discounted_price = discount.get_discounted_price(self, original_price, customer_partner)
             extra_days = discount.get_extra_days(self, customer_partner)
             
             # Calculate value: price savings or extra days
@@ -401,7 +426,7 @@ class PopcornMembershipPlan(models.Model):
                 discount_value = extra_days
             else:
                 # For price discounts, calculate the savings
-                discount_value = self.price_normal - discounted_price
+                discount_value = original_price - discounted_price
             
             # Choose the discount with the highest value
             if discount_value > best_value:

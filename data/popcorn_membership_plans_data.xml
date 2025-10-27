@@ -20,6 +20,7 @@
             <field name="price_normal">1398.00</field>
             <field name="price_first_timer">1398.00</field>
             <field name="early_renew_window_days">15</field>
+            <field name="renewal_window_end_days">30</field>
             <field name="upgrade_window_days">30</field>
             <field name="first_timer_default_upgrade_ability">no</field>
             <field name="unit_base_count">6</field>
@@ -41,6 +42,7 @@
             <field name="price_normal">5988.00</field>
             <field name="price_first_timer">5388.00</field>
             <field name="early_renew_window_days">30</field>
+            <field name="renewal_window_max_days">45</field>
             <field name="upgrade_window_days">30</field>
             <field name="first_timer_default_upgrade_ability">no</field>
         </record>
@@ -61,6 +63,7 @@
             <field name="price_normal">7777.00</field>
             <field name="price_first_timer">6999.00</field>
             <field name="early_renew_window_days">30</field>
+            <field name="renewal_window_max_days">45</field>
             <field name="upgrade_window_days">30</field>
             <field name="first_timer_default_upgrade_ability">no</field>
         </record>
@@ -81,6 +84,7 @@
             <field name="price_normal">8788.00</field>
             <field name="price_first_timer">7888.00</field>
             <field name="early_renew_window_days">30</field>
+            <field name="renewal_window_max_days">45</field>
             <field name="upgrade_window_days">30</field>
             <field name="first_timer_default_upgrade_ability">no</field>
         </record>
@@ -101,6 +105,7 @@
             <field name="price_normal">10988.00</field>
             <field name="price_first_timer">9888.00</field>
             <field name="early_renew_window_days">30</field>
+            <field name="renewal_window_max_days">45</field>
             <field name="upgrade_window_days">30</field>
             <field name="first_timer_default_upgrade_ability">no</field>
         </record>
@@ -121,6 +126,7 @@
             <field name="price_normal">13988.00</field>
             <field name="price_first_timer">12588.00</field>
             <field name="early_renew_window_days">30</field>
+            <field name="renewal_window_max_days">45</field>
             <field name="upgrade_window_days">0</field>
             <field name="first_timer_default_upgrade_ability">no</field>
         </record>
@@ -141,6 +147,7 @@
             <field name="price_normal">16988.00</field>
             <field name="price_first_timer">15288.00</field>
             <field name="early_renew_window_days">30</field>
+            <field name="renewal_window_max_days">45</field>
             <field name="upgrade_window_days">0</field>
             <field name="first_timer_default_upgrade_ability">no</field>
         </record>
@@ -165,6 +172,8 @@
             <field name="price_normal">7388.00</field>
             <field name="price_first_timer">6666.00</field>
             <field name="early_renew_window_days">15</field>
+            <field name="renewal_points_threshold">15</field>
+            <field name="renewal_points_max">24</field>
             <field name="upgrade_window_days">30</field>
             <field name="first_timer_default_upgrade_ability">no</field>
             <field name="unit_base_count">108</field>

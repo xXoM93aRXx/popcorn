@@ -3,6 +3,22 @@
     <!-- Template (QWeb) -->
     <template id="membership_plans_website_page" name="Membership Plans">
         <t t-call="website.layout">
+            <!-- Sticky Renewal Banner (non-dismissable) -->
+            <t t-if="renewal_banner_info">
+                <div class="popcorn-renewal-banner-sticky" 
+                     t-att-data-days-left="renewal_banner_info.get('days_left', 0)"
+                     t-att-data-points-left="renewal_banner_info.get('points_left', 0)"
+                     t-att-data-template-text="renewal_banner_info['membership'].membership_plan_id.renewal_banner_text or ''"
+                     t-att-data-user-name="request.env.user.partner_id.name or ''">
+                    <div class="popcorn-renewal-banner-content">
+                        <i class="fa fa-clock-o popcorn-renewal-icon"></i>
+                        <span class="popcorn-renewal-text">
+                            <t t-raw="renewal_banner_info['banner_text']"/>
+                        </span>
+                    </div>
+                </div>
+            </t>
+            
             <div class="popcorn-membership-plans-page">
                 <div class="popcorn-container">
                     <!-- Error Toast/Banner -->
@@ -209,6 +225,7 @@
                             <div class="popcorn-checkout-form">
                                 <h2 class="popcorn-checkout-title">
                                     <t t-if="is_upgrade">Complete Your Membership Upgrade</t>
+                                    <t t-elif="is_renewal">Complete Your Membership Renewal</t>
                                     <t t-else="">Complete Your Membership Purchase</t>
                                 </h2>
                                 
@@ -301,6 +318,7 @@
                                         <button type="submit" class="popcorn-checkout-submit-btn">
                                             <i class="fa fa-lock"></i> 
                                             <t t-if="is_upgrade">Complete Upgrade</t>
+                                            <t t-elif="is_renewal">Complete Renewal</t>
                                             <t t-else="">Complete Purchase</t>
                                         </button>
                                     </div>
@@ -394,7 +412,15 @@
                                                 <t t-esc="plan.currency_id.symbol"/><t t-esc="plan_discounts[plan.id]['original_price']"/>
                                             </span>
                                         </div>
-                                        <t t-if="plan_discounts[plan.id]['best_discount']">
+                                        <t t-if="is_renewal">
+                                            <div class="popcorn-price-row popcorn-discount-row">
+                                                <span class="popcorn-price-label">Renewal Discount:</span>
+                                                <span class="popcorn-price-value popcorn-discount">
+                                                    -<t t-esc="plan.currency_id.symbol"/><t t-esc="plan_discounts[plan.id]['original_price'] - plan_discounts[plan.id]['best_price']"/>
+                                                </span>
+                                            </div>
+                                        </t>
+                                        <t t-elif="plan_discounts[plan.id]['best_discount']">
                                             <div class="popcorn-price-row popcorn-discount-row">
                                                 <span class="popcorn-price-label">
                                                     <t t-if="plan_discounts[plan.id]['best_discount'].discount_type == 'percentage'">
