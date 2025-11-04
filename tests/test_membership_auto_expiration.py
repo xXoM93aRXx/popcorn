@@ -18,8 +18,8 @@ from datetime import datetime, timedelta
 # Configuration
 ODOO_URL = 'http://localhost:8069'
 DB_NAME = 'popcorn'
-USERNAME = 'omar.mahdy246@gmail.com'
-PASSWORD = 'congr4t5'
+USERNAME = 'admin@odoo.com'
+PASSWORD = 'admin123'
 
 def test_membership_auto_expiration():
     """Test automatic membership expiration when points reach zero"""

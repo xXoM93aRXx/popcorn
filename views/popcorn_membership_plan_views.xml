@@ -86,6 +86,12 @@
                         </group>
                         
                         <group>
+                            <group string="Buy Together Settings">
+                                <field name="buy_together_enabled"/>
+                                <field name="buy_together_discount_amount" invisible="not buy_together_enabled"/>
+                                <field name="buy_together_instructions" invisible="not buy_together_enabled" widget="text"/>
+                            </group>
+                            
                             <group string="Renewal Windows">
                                 <label for="early_renew_window_days" string="Banner Stops At (Days/Lower Bound)"/>
                                 <field name="early_renew_window_days" help="Gold: Banner stops at X days before expiry. Experience: Banner stops at X days from activation. Also the discount closes at this point."/>

@@ -54,6 +54,8 @@
                                     <field name="field_id"/>
                                     <field name="operator"/>
                                     <field name="value"/>
+                                    <field name="use_time_filter"/>
+                                    <field name="time_filter_months"/>
                                     <field name="active"/>
                                 </list>
                             </field>
@@ -96,6 +98,8 @@
                 <field name="field_id"/>
                 <field name="operator"/>
                 <field name="value"/>
+                <field name="use_time_filter"/>
+                <field name="time_filter_months"/>
                 <field name="active"/>
             </list>
         </field>
@@ -132,6 +136,24 @@
                             <field name="operator"/>
                             <field name="value"/>
                         </group>
+                    </group>
+                    <separator string="Time Filter"/>
+                    <group>
+                        <group>
+                            <field name="use_time_filter"/>
+                            <field name="time_filter_months" readonly="not use_time_filter"/>
+                            <field name="time_filter_anchor_date" readonly="not use_time_filter"
+                                  invisible="not use_time_filter"/>
+                            <field name="time_filter_field" readonly="not use_time_filter"/>
+                        </group>
+                    </group>
+                    <separator string="Note" invisible="not use_time_filter"/>
+                    <group invisible="not use_time_filter">
+                        <p class="o_row">
+                            <i class="fa fa-info-circle"/> 
+                            If <b>Start Date</b> is set, the time window is fixed from that date. 
+                            If not set, it uses a rolling window counting backwards from today.
+                        </p>
                     </group>
                     <group>
                         <field name="description" placeholder="Rule Description"/>

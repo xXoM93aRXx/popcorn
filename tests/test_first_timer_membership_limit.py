@@ -19,8 +19,8 @@ from datetime import datetime, timedelta, date
 # Configuration
 ODOO_URL = 'http://localhost:8069'
 DB_NAME = 'popcorn'
-USERNAME = 'omar.mahdy246@gmail.com'
-PASSWORD = 'congr4t5'
+USERNAME = 'admin@odoo.com'
+PASSWORD = 'admin123'
 
 
 def authenticate():

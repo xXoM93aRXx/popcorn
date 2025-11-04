@@ -229,8 +229,10 @@
                                     <t t-else="">Complete Your Membership Purchase</t>
                                 </h2>
                                 
-                                <form t-attf-action="/memberships/#{plan.id}/process_checkout" method="post" class="popcorn-checkout-form-content popcorn-membership-checkout-form">
+                                <form t-attf-action="/memberships/#{plan.id}/process_checkout" method="post" class="popcorn-checkout-form-content popcorn-membership-checkout-form" t-att-data-plan-id="plan.id">
                                     <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                    <input type="hidden" name="plan_id" t-att-value="plan.id"/>
+                                    <input type="hidden" class="popcorn-plan-id" t-att-value="plan.id"/>
                                     
                                     <!-- Personal Information -->
                                     <div class="popcorn-form-section">
@@ -264,6 +266,47 @@
                                             </div>
                                         </div>
                                     </t>
+                                    
+                                    <!-- Pair Activation (Phone) Section -->
+                                    <t t-if="plan.buy_together_enabled and not is_upgrade and not is_renewal">
+                                        <div class="popcorn-form-section">
+                                            <h3 class="popcorn-section-title">
+                                                <i class="fa fa-users"></i> Activate Together with a Friend
+                                            </h3>
+                                            <div class="popcorn-form-group">
+                                                <p class="popcorn-buy-together-description">
+                                                    Your membership activates when two people buy the same plan. Enter your friend's phone to auto-activate together when they buy.
+                                                </p>
+                                            </div>
+                                            <div class="popcorn-buy-together-section">
+                                                <div class="popcorn-form-group">
+                                                    <label for="friend_phone" class="popcorn-form-label">Friend's Phone *</label>
+                                                    <input type="tel" id="friend_phone" name="friend_phone" class="popcorn-form-input" 
+                                                           placeholder="Enter your friend's phone number" required="required"/>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </t>
+                                    
+                                    <!-- Coupon Code Section -->
+                                    <div class="popcorn-form-section">
+                                        <h3 class="popcorn-section-title">Discount Code</h3>
+                                        <div class="popcorn-form-group">
+                                            <label for="coupon_code" class="popcorn-form-label">Have a discount code?</label>
+                                            <div class="popcorn-coupon-input-group">
+                                                <input type="text" id="coupon_code" name="coupon_code" class="popcorn-form-input" 
+                                                       placeholder="Enter discount code"/>
+                                                <button type="button" id="apply_coupon_btn" class="popcorn-btn popcorn-btn-secondary">
+                                                    <i class="fa fa-check"></i> Apply
+                                                </button>
+                                                <button type="button" id="remove_coupon_btn" class="popcorn-btn popcorn-btn-danger" style="display: none;">
+                                                    <i class="fa fa-times"></i> Remove
+                                                </button>
+                                            </div>
+                                            <input type="hidden" id="applied_discount_id" name="applied_discount_id" value=""/>
+                                            <input type="hidden" id="plan_id_for_coupon" name="plan_id_for_coupon" t-att-value="plan.id"/>
+                                        </div>
+                                    </div>
                                     
                                     <!-- Payment Methods -->
                                     <div class="popcorn-form-section">
@@ -408,8 +451,15 @@
                                         <!-- Regular pricing with discount system -->
                                         <div class="popcorn-price-row">
                                             <span class="popcorn-price-label" t-translation="on">Membership Fee:</span>
-                                            <span class="popcorn-price-value">
+                                            <span class="popcorn-price-value" id="popcorn-original-price-value">
                                                 <t t-esc="plan.currency_id.symbol"/><t t-esc="plan_discounts[plan.id]['original_price']"/>
+                                            </span>
+                                        </div>
+                                        <!-- Dynamic coupon discount row (updated by JavaScript) -->
+                                        <div class="popcorn-price-row popcorn-coupon-discount-row" id="popcorn-coupon-discount-row" style="display: none;">
+                                            <span class="popcorn-price-label">Discount Applied:</span>
+                                            <span class="popcorn-price-value popcorn-discount" id="popcorn-coupon-discount-amount">
+                                                -<t t-esc="plan.currency_id.symbol"/>0.00
                                             </span>
                                         </div>
                                         <t t-if="is_renewal">
@@ -460,7 +510,7 @@
                                         <div class="popcorn-price-row popcorn-total-row">
                                             <span class="popcorn-price-label" t-translation="on">Total:</span>
                                             <span class="popcorn-price-value popcorn-total" id="popcorn-total-price">
-                                                <t t-esc="plan.currency_id.symbol"/><t t-esc="plan_discounts[plan.id]['best_price']"/>
+                                                <t t-esc="plan.currency_id.symbol"/><span id="popcorn-total-price-value"><t t-esc="plan_discounts[plan.id]['best_price']"/></span>
                                             </span>
                                         </div>
                                     </t>

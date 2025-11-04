@@ -84,6 +84,10 @@ class PopcornDiscount(models.Model):
     # Computed Fields
     is_valid = fields.Boolean(string='Currently Valid', compute='_compute_is_valid', store=True)
     remaining_usage = fields.Integer(string='Remaining Usage', compute='_compute_remaining_usage')
+    days_until_expiry = fields.Integer(string='Days Until Expiry', compute='_compute_days_until_expiry', store=False,
+                                       help='Number of days from today until date_to. Empty if no date_to.')
+    
+    # Buy-Together flag removed (deprecated)
 
     @api.depends('name', 'discount_type', 'discount_value')
     def _compute_display_name(self):
@@ -123,6 +127,17 @@ class PopcornDiscount(models.Model):
                 discount.remaining_usage = -1  # Unlimited
             else:
                 discount.remaining_usage = max(0, discount.usage_limit - discount.usage_count)
+
+    def _compute_days_until_expiry(self):
+        """Compute days until the discount's valid-to date."""
+        today = fields.Date.today()
+        for discount in self:
+            if discount.date_to:
+                delta = (discount.date_to - today).days
+                discount.days_until_expiry = delta
+            else:
+                # No explicit expiry
+                discount.days_until_expiry = 0
 
     @api.constrains('discount_value', 'discount_type')
     def _check_discount_value(self):
@@ -171,6 +186,8 @@ class PopcornDiscount(models.Model):
             ])
             for partner in partners:
                 partner._compute_first_timer_discount_status()
+        
+        return True
 
     def action_reset_usage(self):
         """Reset usage count (staff action)"""
@@ -189,6 +206,8 @@ class PopcornDiscount(models.Model):
         self.message_post(
             body=_('Usage count reset by staff')
         )
+        
+        return True
 
     def action_duplicate(self):
         """Duplicate this discount"""

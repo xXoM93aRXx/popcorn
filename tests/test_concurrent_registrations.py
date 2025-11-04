@@ -19,8 +19,8 @@ from datetime import datetime
 # Configuration
 ODOO_URL = 'http://localhost:8069'
 DB_NAME = 'popcorn'  # Change to your database name
-USERNAME = 'omar.mahdy246@gmail.com'  # Change as needed
-PASSWORD = 'congr4t5'  # Change as needed
+USERNAME = 'admin@odoo.com'  # Change as needed
+PASSWORD = 'admin123'  # Change as needed
 EVENT_ID = 7  # Change to your test event ID
 
 # Test parameters

@@ -22,6 +22,7 @@ class PopcornMembership(models.Model):
     state = fields.Selection([
         ('pending', 'Pending'),
         ('pending_payment', 'Pending Payment'),
+        ('pending_buy_together', 'Pending Buy-Together'),
         ('active', 'Active'),
         ('frozen', 'Frozen'),
         ('expired', 'Expired')
@@ -35,6 +36,10 @@ class PopcornMembership(models.Model):
         ('discount', 'Discount Applied')
     ], string='Price Tier', required=True, default='normal')
     applied_discount_id = fields.Many2one('popcorn.discount', string='Applied Discount', readonly=True)
+    # Buy-Together linking
+    buy_together_discount_id = fields.Many2one('popcorn.discount', string='Buy-Together Discount', readonly=True)
+    buy_together_partner_id = fields.Many2one('res.partner', string='Buy-Together Partner', readonly=True,
+                                              help='The partner who purchased together with this member')
     purchase_channel = fields.Selection([
         ('online', 'Online'),
         ('pitch_day', 'Pitch Day'),

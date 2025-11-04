@@ -32,7 +32,7 @@ access_popcorn_contract_manager,popcorn.contract.manager,model_popcorn_contract,
 access_popcorn_contract_portal,popcorn.contract.portal,model_popcorn_contract,base.group_portal,1,0,0,0
 access_popcorn_discount_user,popcorn.discount.user,model_popcorn_discount,base.group_user,1,0,0,0
 access_popcorn_discount_manager,popcorn.discount.manager,model_popcorn_discount,base.group_system,1,1,1,1
-access_popcorn_discount_portal,popcorn.discount.portal,model_popcorn_discount,base.group_portal,1,1,0,0
+access_popcorn_discount_portal,popcorn.discount.portal,model_popcorn_discount,base.group_portal,1,1,1,0
 access_popcorn_membership_discount_rel_user,popcorn.membership.discount.rel.user,model_popcorn_membership_discount_rel,base.group_user,1,0,0,0
 access_popcorn_membership_discount_rel_manager,popcorn.membership.discount.rel.manager,model_popcorn_membership_discount_rel,base.group_system,1,1,1,1
 access_popcorn_membership_discount_rel_portal,popcorn.membership.discount.rel.portal,model_popcorn_membership_discount_rel,base.group_portal,1,0,0,0

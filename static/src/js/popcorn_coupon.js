@@ -267,7 +267,82 @@ function setupCouponFunctionality() {
 // Helper functions
 function showMessage(message, type) {
     console.log(`${type.toUpperCase()}: ${message}`);
-    // You can add visual message display here if needed
+    
+    // Remove any existing toasts
+    const existingToast = document.querySelector('.popcorn-toast-notification');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    // Create toast container if it doesn't exist
+    let toastContainer = document.querySelector('.popcorn-toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'popcorn-toast-container';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Map type to banner style
+    const styleMap = {
+        'success': 'popcorn-banner-success',
+        'error': 'popcorn-banner-danger',
+        'warning': 'popcorn-banner-warning',
+        'info': 'popcorn-banner-info'
+    };
+    
+    const iconMap = {
+        'success': 'fa-check-circle',
+        'error': 'fa-exclamation-circle',
+        'warning': 'fa-exclamation-triangle',
+        'info': 'fa-info-circle'
+    };
+    
+    const bannerStyle = styleMap[type] || 'popcorn-banner-info';
+    const icon = iconMap[type] || 'fa-info-circle';
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `popcorn-banner ${bannerStyle} popcorn-toast-notification`;
+    toast.innerHTML = `
+        <div class="popcorn-banner-content">
+            <div class="popcorn-banner-header">
+                <i class="fa ${icon}"></i>
+                <span style="flex: 1; margin-left: 10px;">${message}</span>
+                <button class="popcorn-banner-close" aria-label="Close">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Add to container
+    toastContainer.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => {
+        toast.classList.add('popcorn-banner-show');
+    }, 10);
+    
+    // Auto-dismiss after 5 seconds
+    const autoDismissTimer = setTimeout(() => {
+        dismissToast(toast);
+    }, 5000);
+    
+    // Close button handler
+    const closeBtn = toast.querySelector('.popcorn-banner-close');
+    closeBtn.addEventListener('click', () => {
+        clearTimeout(autoDismissTimer);
+        dismissToast(toast);
+    });
+    
+    function dismissToast(toastElement) {
+        toastElement.classList.remove('popcorn-banner-show');
+        setTimeout(() => {
+            if (toastElement.parentNode) {
+                toastElement.remove();
+            }
+        }, 300);
+    }
 }
 
 function updateTotalPrice(pricingData = null) {

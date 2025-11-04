@@ -59,6 +59,14 @@ class PopcornMembershipPlan(models.Model):
     price_normal = fields.Monetary(string='Normal Price', currency_field='currency_id', default=0.0, required=True, tracking=True)
     price_first_timer = fields.Monetary(string='First Timer Price', currency_field='currency_id', default=0.0, tracking=True)
     
+    # Buy Together Settings
+    buy_together_enabled = fields.Boolean(string='Enable Buy Together', default=False, tracking=True,
+                                         help='Allow customers to generate discount codes to invite friends')
+    buy_together_instructions = fields.Text(string='Buy Together Instructions', tracking=True, translate=True,
+                                           help='Instructions shown to customers when they generate a buy-together code')
+    buy_together_discount_amount = fields.Float(string='Buy Together Discount (%)', default=0.0, tracking=True,
+                                               help='Discount percentage to apply when both people purchase together')
+    
     # Upgrade Windows
     early_renew_window_days = fields.Integer(string='Early Renewal Window Start (Days)', default=30, tracking=True,
                                              help='For Gold: min days before expiry. For Experience: start days from activation')
@@ -307,17 +315,29 @@ class PopcornMembershipPlan(models.Model):
         return benefits
     
     def get_available_discounts(self, customer_partner=None):
-        """Get all available discounts for this membership plan"""
+        """Get all available discounts for this membership plan
+        
+        Excludes:
+        - Discounts with codes (coupon codes - require manual entry)
+        - Discounts with partner_id (specific customer coupons - like first-timer)
+        - Buy-together discounts (require manual code entry and special flow)
+        """
         self.ensure_one()
         
-        # Get discounts linked to this plan (exclude partner-specific discounts)
-        linked_discounts = self.discount_ids.filtered(lambda d: d.is_valid and not d.partner_id)
+        # Get discounts linked to this plan (exclude partner-specific and codes)
+        linked_discounts = self.discount_ids.filtered(
+            lambda d: d.is_valid and 
+                     not d.partner_id and 
+                     not d.code  # Exclude coupon codes
+        )
         
-        # Get global discounts (not linked to specific plans, and not partner-specific)
+        # Get global discounts (not linked to specific plans)
+        # Exclude partner-specific and codes
         global_discounts = self.env['popcorn.discount'].search([
             ('is_valid', '=', True),
             ('membership_plan_ids', '=', False),
-            ('partner_id', '=', False)  # Exclude first-timer discounts
+            ('partner_id', '=', False),  # Exclude first-timer discounts
+            ('code', '=', False),  # Exclude coupon codes (require manual entry)
         ])
         
         all_discounts = linked_discounts | global_discounts

@@ -121,6 +121,22 @@ class ResPartner(models.Model):
         help='Indicates if this contact should be automatically registered for all published events.'
     )
     
+    # Badge tracking: count of distinct hosts attended
+    distinct_hosts_count = fields.Integer(
+        string='Distinct Hosts Count',
+        compute='_compute_distinct_hosts_count',
+        store=True,
+        help='Number of different hosts this partner has attended events with'
+    )
+    
+    # Badge tracking: count of distinct hosts attended within a time period
+    distinct_hosts_count_in_period = fields.Integer(
+        string='Distinct Hosts Count (Period)',
+        compute='_compute_distinct_hosts_count_in_period',
+        store=False,
+        help='Number of different hosts this partner has attended events with within a specific time period (for badges)'
+    )
+    
     # Popcorn Money fields
     popcorn_money_balance = fields.Float(
         string='Popcorn Money Balance',
@@ -203,6 +219,39 @@ class ResPartner(models.Model):
                     partner.hosted_events_count = 0
             else:
                 partner.hosted_events_count = 0
+    
+    def _compute_distinct_hosts_count(self):
+        """Compute the number of distinct hosts this partner has attended"""
+        for partner in self:
+            try:
+                # Get all registrations for this partner where state is 'done' (attended)
+                attended_registrations = self.env['event.registration'].sudo().search([
+                    ('partner_id', '=', partner.id),
+                    ('state', '=', 'done')
+                ])
+                
+                # Get all unique host IDs from these registrations
+                unique_host_ids = attended_registrations.mapped('event_id.host_id').filtered('id')
+                unique_host_ids_list = list(set(unique_host_ids.mapped('id')))
+                
+                partner.distinct_hosts_count = len(unique_host_ids_list)
+            except Exception as e:
+                # Log error but don't fail
+                import logging
+                _logger = logging.getLogger(__name__)
+                _logger.warning(f"Error computing distinct_hosts_count for partner {partner.id}: {e}")
+                partner.distinct_hosts_count = 0
+    
+    @api.model
+    def recompute_distinct_hosts_count(self, partner_ids=None):
+        """Manually recompute distinct hosts count for specified partners or all partners"""
+        if partner_ids:
+            partners = self.browse(partner_ids)
+        else:
+            partners = self.search([])
+        
+        partners._compute_distinct_hosts_count()
+        return True
     
     @api.depends('first_timer_discount_expiry')
     def _compute_first_timer_discount_remaining_days(self):

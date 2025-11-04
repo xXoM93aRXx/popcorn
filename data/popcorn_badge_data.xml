@@ -2,61 +2,7 @@
 <odoo>
     <data noupdate="1">
         
-        <!-- Sample Badge: First Event -->
-        <record id="badge_first_event" model="popcorn.badge">
-            <field name="name">First Event</field>
-            <field name="description">Attend your first event to earn this badge!</field>
-            <field name="active">True</field>
-        </record>
-        
-        <record id="badge_rule_first_event" model="popcorn.badge.rule">
-            <field name="name">Attend First Event</field>
-            <field name="badge_id" ref="badge_first_event"/>
-            <field name="model_id" ref="event.model_event_registration"/>
-            <field name="field_id" ref="event.field_event_registration__partner_id"/>
-            <field name="operator">>=</field>
-            <field name="value">1</field>
-            <field name="description">Have at least 1 event registration</field>
-            <field name="active">True</field>
-        </record>
-        
-        <!-- Sample Badge: Event Enthusiast -->
-        <record id="badge_event_enthusiast" model="popcorn.badge">
-            <field name="name">Event Enthusiast</field>
-            <field name="description">Attend 5 or more events to become an event enthusiast!</field>
-            <field name="active">True</field>
-        </record>
-        
-        <record id="badge_rule_event_enthusiast" model="popcorn.badge.rule">
-            <field name="name">Attend Multiple Events</field>
-            <field name="badge_id" ref="badge_event_enthusiast"/>
-            <field name="model_id" ref="event.model_event_registration"/>
-            <field name="field_id" ref="event.field_event_registration__partner_id"/>
-            <field name="operator">>=</field>
-            <field name="value">5</field>
-            <field name="description">Have at least 5 event registrations</field>
-            <field name="active">True</field>
-        </record>
-        
-        <!-- Sample Badge: VIP Member -->
-        <record id="badge_vip_member" model="popcorn.badge">
-            <field name="name">VIP Member</field>
-            <field name="description">Achieve VIP status by having an active membership!</field>
-            <field name="active">True</field>
-        </record>
-        
-        <record id="badge_rule_vip_member" model="popcorn.badge.rule">
-            <field name="name">Active Membership</field>
-            <field name="badge_id" ref="badge_vip_member"/>
-            <field name="model_id" ref="popcorn.model_popcorn_membership"/>
-            <field name="field_id" ref="popcorn.field_popcorn_membership__partner_id"/>
-            <field name="operator">>=</field>
-            <field name="value">1</field>
-            <field name="description">Have at least 1 active membership</field>
-            <field name="active">True</field>
-        </record>
-        
-        <!-- Sample Badge: Social Butterfly -->
+        <!-- Badge: Social Butterfly -->
         <record id="badge_social_butterfly" model="popcorn.badge">
             <field name="name">Social Butterfly</field>
             <field name="description">Connect with others by having a complete profile!</field>
@@ -69,7 +15,7 @@
             <field name="model_id" ref="base.model_res_partner"/>
             <field name="field_id" ref="base.field_res_partner__email"/>
             <field name="operator">!=</field>
-            <field name="value">False</field>
+            <field name="value"></field>
             <field name="description">Email field is not empty</field>
             <field name="active">True</field>
         </record>
@@ -80,8 +26,173 @@
             <field name="model_id" ref="base.model_res_partner"/>
             <field name="field_id" ref="base.field_res_partner__phone"/>
             <field name="operator">!=</field>
-            <field name="value">False</field>
+            <field name="value"></field>
             <field name="description">Phone field is not empty</field>
+            <field name="active">True</field>
+        </record>
+        
+        <record id="badge_rule_social_butterfly_mbti" model="popcorn.badge.rule">
+            <field name="name">Has MBTI</field>
+            <field name="badge_id" ref="badge_social_butterfly"/>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="field_id" ref="popcorn.field_res_partner__mbti"/>
+            <field name="operator">!=</field>
+            <field name="value"></field>
+            <field name="description">MBTI field is not empty</field>
+            <field name="active">True</field>
+        </record>
+        
+        <record id="badge_rule_social_butterfly_gender" model="popcorn.badge.rule">
+            <field name="name">Has Gender</field>
+            <field name="badge_id" ref="badge_social_butterfly"/>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="field_id" ref="popcorn.field_res_partner__gender"/>
+            <field name="operator">!=</field>
+            <field name="value"></field>
+            <field name="description">Gender field is not empty</field>
+            <field name="active">True</field>
+        </record>
+        
+        <record id="badge_rule_social_butterfly_zodiac" model="popcorn.badge.rule">
+            <field name="name">Has Zodiac</field>
+            <field name="badge_id" ref="badge_social_butterfly"/>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="field_id" ref="popcorn.field_res_partner__zodiac"/>
+            <field name="operator">!=</field>
+            <field name="value"></field>
+            <field name="description">Zodiac field is not empty</field>
+            <field name="active">True</field>
+        </record>
+        
+        <record id="badge_rule_social_butterfly_topics" model="popcorn.badge.rule">
+            <field name="name">Has Preferred Topics</field>
+            <field name="badge_id" ref="badge_social_butterfly"/>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="field_id" ref="popcorn.field_res_partner__preferred_topics"/>
+            <field name="operator">>=</field>
+            <field name="value">1</field>
+            <field name="description">Has at least 1 preferred topic</field>
+            <field name="active">True</field>
+        </record>
+        
+        <record id="badge_rule_social_butterfly_activities" model="popcorn.badge.rule">
+            <field name="name">Has Activities &amp; Sports</field>
+            <field name="badge_id" ref="badge_social_butterfly"/>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="field_id" ref="popcorn.field_res_partner__activities_sports"/>
+            <field name="operator">>=</field>
+            <field name="value">1</field>
+            <field name="description">Has at least 1 activity or sport</field>
+            <field name="active">True</field>
+        </record>
+        
+        <!-- 999 Clubber Badge (99 clubs in 9 months) -->
+        <record id="badge_999_clubber" model="popcorn.badge">
+            <field name="name">999 Clubber</field>
+            <field name="description">Complete 99 clubs in 9 months!</field>
+            <field name="active">True</field>
+        </record>
+        
+        <record id="badge_rule_999_clubber" model="popcorn.badge.rule">
+            <field name="name">99 Clubs in 9 Months</field>
+            <field name="badge_id" ref="badge_999_clubber"/>
+            <field name="model_id" ref="event.model_event_registration"/>
+            <field name="field_id" ref="event.field_event_registration__partner_id"/>
+            <field name="operator">>=</field>
+            <field name="value">99</field>
+            <field name="use_time_filter" eval="True"/>
+            <field name="time_filter_months" eval="9"/>
+            <field name="time_filter_anchor_date">2025-10-27</field>
+            <field name="time_filter_field">create_date</field>
+            <field name="description">Have registered for at least 99 clubs in 9 months</field>
+            <field name="active">True</field>
+        </record>
+        
+        <!-- 666 Clubber Badge (66 clubs in 6 months) -->
+        <record id="badge_666_clubber" model="popcorn.badge">
+            <field name="name">666 Clubber</field>
+            <field name="description">Complete 66 clubs in 6 months!</field>
+            <field name="active">True</field>
+        </record>
+        
+        <record id="badge_rule_666_clubber" model="popcorn.badge.rule">
+            <field name="name">66 Clubs in 6 Months</field>
+            <field name="badge_id" ref="badge_666_clubber"/>
+            <field name="model_id" ref="event.model_event_registration"/>
+            <field name="field_id" ref="event.field_event_registration__partner_id"/>
+            <field name="operator">>=</field>
+            <field name="value">66</field>
+            <field name="use_time_filter" eval="True"/>
+            <field name="time_filter_months" eval="6"/>
+            <field name="time_filter_anchor_date">2025-10-27</field>
+            <field name="time_filter_field">create_date</field>
+            <field name="description">Have registered for at least 66 clubs in 6 months</field>
+            <field name="active">True</field>
+        </record>
+        
+        <!-- Disco Clubber Badge (54 clubs in 6 months) -->
+        <record id="badge_disco_clubber" model="popcorn.badge">
+            <field name="name">Disco Clubber</field>
+            <field name="description">Complete 54 clubs in 6 months!</field>
+            <field name="active">True</field>
+        </record>
+        
+        <record id="badge_rule_disco_clubber" model="popcorn.badge.rule">
+            <field name="name">54 Clubs in 6 Months</field>
+            <field name="badge_id" ref="badge_disco_clubber"/>
+            <field name="model_id" ref="event.model_event_registration"/>
+            <field name="field_id" ref="event.field_event_registration__partner_id"/>
+            <field name="operator">>=</field>
+            <field name="value">54</field>
+            <field name="use_time_filter" eval="True"/>
+            <field name="time_filter_months" eval="6"/>
+            <field name="time_filter_anchor_date">2025-10-27</field>
+            <field name="time_filter_field">create_date</field>
+            <field name="description">Have registered for at least 54 clubs in 6 months</field>
+            <field name="active">True</field>
+        </record>
+        
+        <!-- Cool Clubber Badge (33 clubs in 6 months) -->
+        <record id="badge_cool_clubber" model="popcorn.badge">
+            <field name="name">Cool Clubber</field>
+            <field name="description">Complete 33 clubs in 6 months!</field>
+            <field name="active">True</field>
+        </record>
+        
+        <record id="badge_rule_cool_clubber" model="popcorn.badge.rule">
+            <field name="name">33 Clubs in 6 Months</field>
+            <field name="badge_id" ref="badge_cool_clubber"/>
+            <field name="model_id" ref="event.model_event_registration"/>
+            <field name="field_id" ref="event.field_event_registration__partner_id"/>
+            <field name="operator">>=</field>
+            <field name="value">33</field>
+            <field name="use_time_filter" eval="True"/>
+            <field name="time_filter_months" eval="6"/>
+            <field name="time_filter_anchor_date">2025-10-27</field>
+            <field name="time_filter_field">create_date</field>
+            <field name="description">Have registered for at least 33 clubs in 6 months</field>
+            <field name="active">True</field>
+        </record>
+        
+        <!-- Badge: Diversity -->
+        <record id="badge_diversity" model="popcorn.badge">
+            <field name="name">Diversity</field>
+            <field name="description">Attend events from at least 10 different hosts!</field>
+            <field name="active">True</field>
+        </record>
+        
+        <record id="badge_rule_diversity" model="popcorn.badge.rule">
+            <field name="name">10 Distinct Hosts</field>
+            <field name="badge_id" ref="badge_diversity"/>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="field_id" ref="popcorn.field_res_partner__distinct_hosts_count_in_period"/>
+            <field name="operator">>=</field>
+            <field name="value">10</field>
+            <field name="use_time_filter" eval="True"/>
+            <field name="time_filter_months" eval="12"/>
+            <field name="time_filter_anchor_date">2025-01-01</field>
+            <field name="time_filter_field">create_date</field>
+            <field name="description">Attend events from at least 10 different hosts within the time period</field>
             <field name="active">True</field>
         </record>
         

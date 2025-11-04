@@ -22,9 +22,9 @@ from datetime import datetime
 # Configuration
 ODOO_URL = 'http://localhost:8069'
 DB_NAME = 'popcorn'
-USERNAME = 'omar.mahdy246@gmail.com'  # Admin user
-PASSWORD = 'congr4t5'
-EVENT_ID = 7
+USERNAME = 'admin@odoo.com'  # Admin user
+PASSWORD = 'admin123'
+EVENT_ID = 8
 
 # Test parameters
 SEATS_MAX = 5  # Set your event to this capacity

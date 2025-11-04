@@ -24,8 +24,8 @@ import pytz
 # Configuration
 ODOO_URL = 'http://localhost:8069'
 DB_NAME = 'popcorn'  # Change to your database name
-USERNAME = 'omar.mahdy246@gmail.com'  # Change to your username
-PASSWORD = 'congr4t5'  # Change to your password
+USERNAME = 'admin@odoo.com'  # Change to your username
+PASSWORD = 'admin123'  # Change to your password
 
 
 def authenticate():

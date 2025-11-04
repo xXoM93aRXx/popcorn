@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from odoo import http, _
+from odoo import http, _, fields
 from odoo.http import request
 import logging
+import time
 
 _logger = logging.getLogger(__name__)
 
@@ -87,7 +88,7 @@ class PopcornDiscountController(http.Controller):
             
             # Validate for membership plan
             if plan_id:
-                # First-timer discounts are ONLY for events, not memberships
+                # First-timer discounts (with partner_id) are ONLY for events, not memberships
                 if discount.partner_id:
                     return {
                         'success': False,
@@ -261,4 +262,6 @@ class PopcornDiscountController(http.Controller):
                 'success': False,
                 'message': _('Error removing discount code: %s') % str(e)
             }
+    
+    # Removed buy-together code generation endpoint (no longer used)
 

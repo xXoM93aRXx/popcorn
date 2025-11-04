@@ -1,0 +1,59 @@
+/* Toast Notification Container */
+.popcorn-toast-container {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 500px;
+    z-index: 10000;
+    pointer-events: none;
+}
+
+.popcorn-toast-notification {
+    pointer-events: auto;
+    margin-bottom: 10px;
+    animation: slideInDown 0.3s ease-out;
+}
+
+.popcorn-toast-notification .popcorn-banner-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0;
+}
+
+.popcorn-toast-notification .popcorn-banner-close {
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: inherit;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popcorn-toast-notification .popcorn-banner-close:hover {
+    opacity: 0.7;
+}
+
+.popcorn-toast-notification.popcorn-banner-show {
+    animation: slideInDown 0.3s ease-out;
+}
+
+.popcorn-toast-notification.fade-out {
+    animation: slideOutUp 0.3s ease-in forwards;
+}
+
+@keyframes slideOutUp {
+    from {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+}
+

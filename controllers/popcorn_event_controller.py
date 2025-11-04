@@ -313,18 +313,26 @@ class PopcornEventController(http.Controller):
         if not membership or not club_type:
             return False
         
+        # Pending memberships with activation policy first_attendance or immediate should be
+        # eligible regardless of current quota counters; they will activate on first use.
+        is_pending_auto_eligible = (
+            membership.state == 'pending' and
+            membership.membership_plan_id and
+            membership.membership_plan_id.activation_policy in ['first_attendance', 'immediate']
+        )
+
         # First check if membership has sufficient quota
         if membership.plan_quota_mode == 'unlimited':
             # For unlimited, only check club type permissions
             pass
-        elif membership.plan_quota_mode == 'bucket_counts':
+        elif membership.plan_quota_mode == 'bucket_counts' and not is_pending_auto_eligible:
             if club_type == 'regular_offline' and membership.remaining_offline < 1:
                 return False
             elif club_type == 'regular_online' and membership.remaining_online < 1:
                 return False
             elif club_type == 'spclub' and membership.remaining_sp < 1:
                 return False
-        elif membership.plan_quota_mode == 'points':
+        elif membership.plan_quota_mode == 'points' and not is_pending_auto_eligible:
             # Calculate points needed for this club type
             plan = membership.membership_plan_id
             points_needed = (plan.points_per_offline if club_type == 'regular_offline' 
@@ -354,28 +362,30 @@ class PopcornEventController(http.Controller):
             # If no specific club type is determined, default to regular_offline
             event_club_type = 'regular_offline'
         
-        # Get all active memberships and pending memberships with first_attendance policy
+        # Strategy: always prefer currently active/frozen memberships. Only if none are
+        # compatible do we fall back to pending memberships with first_attendance policy.
         active_memberships = request.env['popcorn.membership'].sudo().search([
             ('partner_id', '=', partner.id),
             ('state', 'in', ['active', 'frozen'])
         ])
-        
-        pending_first_attendance = request.env['popcorn.membership'].sudo().search([
-            ('partner_id', '=', partner.id),
-            ('state', '=', 'pending'),
-            ('membership_plan_id.activation_policy', '=', 'first_attendance')
-        ])
-        
-        memberships = active_memberships | pending_first_attendance
-        
-        if not memberships:
-            return False
-        
-        # Filter memberships that allow this club type and have sufficient quota
+
+        # Filter active/frozen memberships first
         compatible_memberships = []
-        for membership in memberships:
+        for membership in active_memberships:
             if self._can_membership_attend_event(membership, event_club_type):
                 compatible_memberships.append(membership)
+
+        # If no compatible active/frozen membership exists, consider pending memberships
+        if not compatible_memberships:
+            pending_auto = request.env['popcorn.membership'].sudo().search([
+                ('partner_id', '=', partner.id),
+                ('state', '=', 'pending'),
+                ('membership_plan_id.activation_policy', 'in', ['first_attendance', 'immediate'])
+            ])
+
+            for membership in pending_auto:
+                if self._can_membership_attend_event(membership, event_club_type):
+                    compatible_memberships.append(membership)
         
         if not compatible_memberships:
             return False
@@ -635,18 +645,27 @@ class PopcornEventController(http.Controller):
         if not event_club_type:
             event_club_type = 'regular_offline'  # Default fallback
         
-        # Handle membership activation for "first attendance" policy
-        if best_membership.state == 'pending' and best_membership.membership_plan_id.activation_policy == 'first_attendance':
-            # Set activation date to event date (not current date)
-            event_date = event.date_begin.date() if event.date_begin else fields.Date.today()
-            best_membership.write({
-                'state': 'active',
-                'activation_date': event_date
-            })
-            # Log the activation
-            best_membership.message_post(
-                body=_('Membership activated upon first attendance for event: %s') % event.name
-            )
+        # Handle membership activation for pending policies
+        if best_membership.state == 'pending':
+            policy = best_membership.membership_plan_id.activation_policy
+            if policy == 'first_attendance':
+                # Set activation date to event date (not current date)
+                event_date = event.date_begin.date() if event.date_begin else fields.Date.today()
+                best_membership.write({
+                    'state': 'active',
+                    'activation_date': event_date
+                })
+                best_membership.message_post(
+                    body=_('Membership activated upon first attendance for event: %s') % event.name
+                )
+            elif policy == 'immediate':
+                best_membership.write({
+                    'state': 'active',
+                    'activation_date': fields.Date.today()
+                })
+                best_membership.message_post(
+                    body=_('Membership auto-activated during registration for event: %s') % event.name
+                )
         
         # Auto-create the registration with membership details
         # Note: state will be set by the model's create() method based on availability

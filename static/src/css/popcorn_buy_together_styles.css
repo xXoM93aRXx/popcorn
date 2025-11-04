@@ -1,0 +1,137 @@
+/* Popcorn Buy Together Styles */
+
+/* Buy Together Section */
+.popcorn-buy-together-section {
+    background: linear-gradient(135deg, #fff5f5 0%, #ffe6e6 100%);
+    border: 2px solid #ffcccc;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+}
+
+.popcorn-buy-together-description {
+    color: #155724;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0 0 1rem 0;
+    background-color: #d4edda;
+    padding: 1rem;
+    border-radius: 6px;
+    border-left: 4px solid #28a745;
+}
+
+.popcorn-code-container {
+    background: var(--popcorn-white);
+    border: 2px solid #28a745;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+.popcorn-code-box {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+}
+
+.popcorn-code-text {
+    flex: 1;
+    min-width: 200px;
+    font-family: 'Courier New', monospace;
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: var(--popcorn-primary);
+    background-color: var(--popcorn-light);
+    padding: 1rem;
+    border-radius: 6px;
+    border: 2px solid var(--popcorn-border);
+    text-align: center;
+    letter-spacing: 0.1rem;
+}
+
+.popcorn-code-instructions {
+    color: #856404;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin: 1rem 0 0 0;
+    padding: 0.75rem;
+    background-color: #fff3cd;
+    border-radius: 4px;
+    border-left: 4px solid #ffc107;
+}
+
+.popcorn-buy-together-code-display {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .popcorn-buy-together-section {
+        padding: 1rem;
+    }
+    
+    .popcorn-code-box {
+        flex-direction: column;
+    }
+    
+    .popcorn-code-text {
+        width: 100%;
+        min-width: auto;
+        font-size: 1rem;
+    }
+    
+    .popcorn-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Loading Spinner */
+.popcorn-btn .fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Message Banners */
+.popcorn-buy-together-message {
+    padding: 1rem;
+    border-radius: 6px;
+    margin: 1rem 0;
+    animation: slideDown 0.3s ease-out;
+}
+
+.popcorn-buy-together-message.success {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.popcorn-buy-together-message.error {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.popcorn-buy-together-message.info {
+    background-color: #d1ecf1;
+    border: 1px solid #bee5eb;
+    color: #0c5460;
+}
+

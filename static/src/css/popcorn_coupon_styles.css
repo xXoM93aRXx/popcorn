@@ -129,6 +129,45 @@
     color: #0c5460;
 }
 
+/* Toast Notification Container */
+.popcorn-toast-container {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 500px;
+    z-index: 10000;
+    pointer-events: none;
+}
+
+.popcorn-toast-notification {
+    pointer-events: auto;
+    margin-bottom: 10px;
+}
+
+.popcorn-toast-notification .popcorn-banner-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0;
+}
+
+.popcorn-toast-notification .popcorn-banner-close {
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    font-size: 1.2rem;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.popcorn-toast-notification .popcorn-banner-close:hover {
+    opacity: 1;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .popcorn-coupon-input-group {
@@ -142,6 +181,12 @@
     .popcorn-coupon-input-group .popcorn-btn {
         width: 100%;
         justify-content: center;
+    }
+    
+    .popcorn-toast-container {
+        width: 95%;
+        max-width: 95%;
+        top: 10px;
     }
 }
 

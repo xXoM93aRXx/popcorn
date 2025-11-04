@@ -322,6 +322,11 @@ class PopcornMembershipController(http.Controller):
             # Validate form data
             if not post.get('name') or not post.get('phone'):
                 return request.redirect('/memberships/%s/checkout?error=missing_fields' % plan.id)
+            # Require friend's phone if buy-together is enabled
+            if plan.buy_together_enabled:
+                friend_phone_raw = (post.get('friend_phone') or '').strip()
+                if not friend_phone_raw:
+                    return request.redirect('/memberships/%s/checkout?error=friend_phone_required' % plan.id)
             
             if not post.get('payment_method_id') and remaining_amount > 0:
                 return request.redirect('/memberships/%s/checkout?error=missing_payment_method' % plan.id)
@@ -370,24 +375,62 @@ class PopcornMembershipController(http.Controller):
                         return request.redirect('/my/cards/upgrade/success?membership_id=%s&payment_pending=true' % membership.id)
                 else:
                     # Create new membership
-                    membership = self._create_membership_from_plan(plan, partner, customer_signature=customer_signature)
+                    membership = self._create_membership_from_plan(
+                        plan, 
+                        partner, 
+                        customer_signature=customer_signature,
+                        applied_discount=applied_discount
+                    )
                     
-                    # Respect the plan's activation policy instead of forcing state
-                    if remaining_amount <= 0:
-                        # Fully paid with Popcorn Money - follow plan's activation policy
-                        if plan.activation_policy == 'immediate':
-                            membership.write({'state': 'active', 'activation_date': fields.Date.today()})
-                            _logger.info("Membership activated immediately (plan policy)")
-                        elif plan.activation_policy == 'first_attendance':
-                            membership.write({'state': 'pending'})  # Will be activated on first event registration
-                            _logger.info("Membership set to pending (will activate on first event registration)")
-                        elif plan.activation_policy == 'manual':
-                            membership.write({'state': 'pending'})  # Requires manual activation
-                            _logger.info("Membership set to pending (requires manual activation)")
+                    # Pair activation by phone for buy-together enabled plans
+                    if plan.buy_together_enabled:
+                        # Always start as pending_buy_together
+                        membership.write({'state': 'pending_buy_together'})
+                        friend_phone = (post.get('friend_phone') or '').strip()
+                        # Normalize whitespace (exact match)
+                        normalized_phone = friend_phone.replace(' ', '')
+                        if normalized_phone:
+                            # Find other pending membership of same plan with exact phone match
+                            other = request.env['popcorn.membership'].sudo().search([
+                                ('id', '!=', membership.id),
+                                ('membership_plan_id', '=', plan.id),
+                                ('state', '=', 'pending_buy_together'),
+                                ('partner_id.phone', '!=', False),
+                                ('partner_id.phone', '=', normalized_phone)
+                            ], limit=1, order='create_date asc')
+                            if other and other.partner_id and other.partner_id.id != partner.id:
+                                today = fields.Date.today()
+                                # Link and activate both
+                                membership.write({
+                                    'buy_together_partner_id': other.partner_id.id,
+                                    'state': 'active',
+                                    'activation_date': today,
+                                })
+                                other.write({
+                                    'buy_together_partner_id': partner.id,
+                                    'state': 'active',
+                                    'activation_date': today,
+                                })
+                                membership.message_post(body=_('Activated together with %s') % (other.partner_id.name or ''))
+                                other.message_post(body=_('Activated together with %s') % (partner.name or ''))
+                        # If not found or no phone provided, remain pending_buy_together
                     else:
-                        # Partial payment - mark as pending payment
-                        membership.write({'state': 'pending_payment'})
-                        _logger.info("Membership set to pending_payment (partial payment)")
+                        # Respect the plan's activation policy instead of forcing state
+                        if remaining_amount <= 0:
+                            # Fully paid with Popcorn Money - follow plan's activation policy
+                            if plan.activation_policy == 'immediate':
+                                membership.write({'state': 'active', 'activation_date': fields.Date.today()})
+                                _logger.info("Membership activated immediately (plan policy)")
+                            elif plan.activation_policy == 'first_attendance':
+                                membership.write({'state': 'pending'})  # Will be activated on first event registration
+                                _logger.info("Membership set to pending (will activate on first event registration)")
+                            elif plan.activation_policy == 'manual':
+                                membership.write({'state': 'pending'})  # Requires manual activation
+                                _logger.info("Membership set to pending (requires manual activation)")
+                        else:
+                            # Partial payment - mark as pending payment
+                            membership.write({'state': 'pending_payment'})
+                            _logger.info("Membership set to pending_payment (partial payment)")
                     
                     _logger.info(f"Membership created: {membership.id} with state: {membership.state}, activation_date: {membership.activation_date}")
                     
@@ -517,6 +560,8 @@ class PopcornMembershipController(http.Controller):
                     'use_popcorn_money': use_popcorn_money,
                     'popcorn_money_to_use': popcorn_money_to_use,
                     'remaining_amount': remaining_amount,
+                    'applied_discount_id': applied_discount.id if applied_discount else None,
+                    'customer_signature': customer_signature,
                 }
                 
                 # Redirect to WeChat OAuth2 flow
@@ -750,8 +795,24 @@ class PopcornMembershipController(http.Controller):
                     # Redirect to upgrade success page
                     return request.redirect('/my/cards/upgrade/success?membership_id=%s' % membership.id)
                 else:
+                    # Get applied discount if any
+                    applied_discount = None
+                    applied_discount_id = pending_membership.get('applied_discount_id')
+                    if applied_discount_id:
+                        try:
+                            applied_discount = request.env['popcorn.discount'].browse(int(applied_discount_id))
+                            if not applied_discount.exists() or not applied_discount.is_valid:
+                                applied_discount = None
+                        except (ValueError, TypeError):
+                            applied_discount = None
+                    
                     # Create regular membership
-                    membership = self._create_membership_from_plan(plan, partner, customer_signature=pending_membership.get('customer_signature'))
+                    membership = self._create_membership_from_plan(
+                        plan, 
+                        partner, 
+                        customer_signature=pending_membership.get('customer_signature'),
+                        applied_discount=applied_discount
+                    )
                     _logger.info(f"Regular membership created with ID: {membership.id}")
                     
                     # Log the purchase
@@ -829,7 +890,23 @@ class PopcornMembershipController(http.Controller):
                     membership.message_post(body=payment_message)
                     redirect_url = '/my/cards/upgrade/success?membership_id=%s' % membership.id
                 else:
-                    membership = self._create_membership_from_plan(plan, partner, customer_signature=pending_membership.get('customer_signature') if 'pending_membership' in locals() else None)
+                    # Get applied discount if any
+                    applied_discount = None
+                    applied_discount_id = pending_membership.get('applied_discount_id')
+                    if applied_discount_id:
+                        try:
+                            applied_discount = request.env['popcorn.discount'].browse(int(applied_discount_id))
+                            if not applied_discount.exists() or not applied_discount.is_valid:
+                                applied_discount = None
+                        except (ValueError, TypeError):
+                            applied_discount = None
+                    
+                    membership = self._create_membership_from_plan(
+                        plan, 
+                        partner, 
+                        customer_signature=pending_membership.get('customer_signature') if 'pending_membership' in locals() else None,
+                        applied_discount=applied_discount
+                    )
                     
                     # Respect the plan's activation policy
                     membership_vals = {
@@ -908,7 +985,23 @@ class PopcornMembershipController(http.Controller):
                     membership.message_post(body=payment_message)
                     redirect_url = '/my/cards/upgrade/success?membership_id=%s' % membership.id
                 else:
-                    membership = self._create_membership_from_plan(plan, partner, customer_signature=pending_membership.get('customer_signature') if 'pending_membership' in locals() else None)
+                    # Get applied discount if any
+                    applied_discount = None
+                    applied_discount_id = pending_membership.get('applied_discount_id')
+                    if applied_discount_id:
+                        try:
+                            applied_discount = request.env['popcorn.discount'].browse(int(applied_discount_id))
+                            if not applied_discount.exists() or not applied_discount.is_valid:
+                                applied_discount = None
+                        except (ValueError, TypeError):
+                            applied_discount = None
+                    
+                    membership = self._create_membership_from_plan(
+                        plan, 
+                        partner, 
+                        customer_signature=pending_membership.get('customer_signature') if 'pending_membership' in locals() else None,
+                        applied_discount=applied_discount
+                    )
                     
                     # Respect the plan's activation policy
                     membership_vals = {
@@ -1132,7 +1225,24 @@ class PopcornMembershipController(http.Controller):
                 _logger.info(f"Upgrade membership created with ID: {membership.id}")
             else:
                 _logger.info("Creating regular membership")
-                membership = self._create_membership_from_plan(plan, partner, customer_signature=pending_membership.get('customer_signature') if 'pending_membership' in locals() else None)
+                
+                # Get applied discount if any
+                applied_discount = None
+                applied_discount_id = pending_membership.get('applied_discount_id')
+                if applied_discount_id:
+                    try:
+                        applied_discount = request.env['popcorn.discount'].browse(int(applied_discount_id))
+                        if not applied_discount.exists() or not applied_discount.is_valid:
+                            applied_discount = None
+                    except (ValueError, TypeError):
+                        applied_discount = None
+                
+                membership = self._create_membership_from_plan(
+                    plan, 
+                    partner, 
+                    customer_signature=pending_membership.get('customer_signature') if 'pending_membership' in locals() else None,
+                    applied_discount=applied_discount
+                )
                 _logger.info(f"Membership created with ID: {membership.id}, State: {membership.state}")
                 
                 membership_vals = {
@@ -1283,7 +1393,24 @@ class PopcornMembershipController(http.Controller):
                 _logger.info(f"Upgrade membership created with ID: {membership.id}")
             else:
                 _logger.info("Creating regular membership")
-                membership = self._create_membership_from_plan(plan, partner, customer_signature=wechat_pending_membership.get('customer_signature'))
+                
+                # Get applied discount if any
+                applied_discount = None
+                applied_discount_id = wechat_pending_membership.get('applied_discount_id')
+                if applied_discount_id:
+                    try:
+                        applied_discount = request.env['popcorn.discount'].browse(int(applied_discount_id))
+                        if not applied_discount.exists() or not applied_discount.is_valid:
+                            applied_discount = None
+                    except (ValueError, TypeError):
+                        applied_discount = None
+                
+                membership = self._create_membership_from_plan(
+                    plan, 
+                    partner, 
+                    customer_signature=wechat_pending_membership.get('customer_signature'),
+                    applied_discount=applied_discount
+                )
                 _logger.info(f"Membership created with ID: {membership.id}, State: {membership.state}")
                 
                 # Respect the plan's activation policy
@@ -1418,6 +1545,7 @@ class PopcornMembershipController(http.Controller):
         
         # Get best discount for this plan and customer (including extra days)
         if applied_discount:
+            _logger.info(f"Using applied discount: {applied_discount.name} (Code: {applied_discount.code}, ID: {applied_discount.id})")
             # Use the applied discount
             best_price = applied_discount.get_discounted_price(plan, purchase_price, partner)
             best_discount = applied_discount
@@ -1447,7 +1575,7 @@ class PopcornMembershipController(http.Controller):
         if payment_reference:
             membership_vals['payment_reference'] = payment_reference
         
-        # Set activation date based on plan policy
+        # Set activation date based on plan policy (default behavior)
         if plan.activation_policy == 'immediate':
             membership_vals['activation_date'] = fields.Date.today()
             membership_vals['state'] = 'active'
@@ -1457,6 +1585,9 @@ class PopcornMembershipController(http.Controller):
         elif plan.activation_policy == 'manual':
             # Don't set activation_date - requires manual activation
             membership_vals['state'] = 'pending'
+
+        # Buy-Together deferred activation handling - determine state before creating record
+        prev_usage_count = None
         
         # Create the membership
         membership = request.env['popcorn.membership'].create(membership_vals)
@@ -1476,7 +1607,16 @@ class PopcornMembershipController(http.Controller):
         
         # Increment discount usage if a discount was applied
         if best_discount:
-            best_discount.action_increment_usage()
+            try:
+                _logger.info(f"Incrementing usage for discount: {best_discount.code} (ID: {best_discount.id})")
+                _logger.info(f"Usage count before: {best_discount.usage_count}, limit: {best_discount.usage_limit}")
+                best_discount.action_increment_usage()
+                _logger.info(f"Usage count after: {best_discount.usage_count}")
+            except Exception as e:
+                _logger.error(f"Failed to increment discount usage: {e}", exc_info=True)
+                # Don't fail the membership creation if discount increment fails
+
+        # Buy-together by discount removed
         
         # Create contract with signature if provided
         if customer_signature:

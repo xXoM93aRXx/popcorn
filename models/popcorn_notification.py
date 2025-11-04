@@ -68,6 +68,59 @@ class PopcornNotification(models.Model):
     show_once_per_user = fields.Boolean('Show Once Per User', default=False,
                                        help='Show notification only once per user (stored in browser)')
     
+    # --- BEGIN: WeChat Notification Fields ---
+    send_wechat_notification = fields.Boolean(
+        string='Send WeChat Notification',
+        default=False,
+        help='Enable to send this notification via WeChat Official Account'
+    )
+    wechat_notification_message = fields.Html(
+        string='WeChat Notification Message',
+        translate=True,
+        help='Optional message body to send via WeChat (overrides default message if provided)'
+    )
+    wechat_template_id = fields.Char(
+        string='WeChat Template ID',
+        help='Template message ID from WeChat Official Account platform'
+    )
+    wechat_first_field = fields.Char(
+        string='First Field',
+        help='Field to use for "first" placeholder. Use {field_name} syntax, e.g., {name}, {event_name}'
+    )
+    wechat_keyword1_field = fields.Char(
+        string='Keyword1 Field',
+        help='Field to use for "keyword1" placeholder. Use {field_name} syntax'
+    )
+    wechat_keyword2_field = fields.Char(
+        string='Keyword2 Field',
+        help='Field to use for "keyword2" placeholder. Use {field_name} syntax'
+    )
+    wechat_keyword3_field = fields.Char(
+        string='Keyword3 Field',
+        help='Field to use for "keyword3" placeholder. Use {field_name} syntax'
+    )
+    wechat_keyword4_field = fields.Char(
+        string='Keyword4 Field',
+        help='Field to use for "keyword4" placeholder. Use {field_name} syntax'
+    )
+    wechat_remark_field = fields.Char(
+        string='Remark Field',
+        help='Field to use for "remark" placeholder. Use {field_name} syntax'
+    )
+    last_wechat_cron_run = fields.Datetime(
+        string='Last Cron Run',
+        help='Timestamp of the last cron evaluation for this notification'
+    )
+    wechat_sent_partner_ids = fields.Many2many(
+        'res.partner',
+        'popcorn_notification_wechat_sent_rel',
+        'notification_id',
+        'partner_id',
+        string='WeChat Sent To',
+        help='Partners who have already received this WeChat notification'
+    )
+    # --- END: WeChat Notification Fields ---
+
     def _evaluate_notification_for_partner(self, partner):
         """Evaluate if a partner should see this notification based on all rules"""
         self.ensure_one()
@@ -170,6 +223,199 @@ class PopcornNotification(models.Model):
             'sequence': self.sequence,
         }
 
+    def _evaluate_notification_for_discount(self, discount):
+        """Evaluate if a discount record matches all active rules for this notification."""
+        self.ensure_one()
+        if not self.active:
+            _logger.info(f"[WeChatCron] Notification {self.id}: inactive (discount {discount.id}).")
+            return False
+        if not self.notification_rule_ids.filtered('active'):
+            _logger.info(f"[WeChatCron] Notification {self.id}: no active rules (discount {discount.id}), auto-pass.")
+            return True
+        for rule in self.notification_rule_ids.filtered('active'):
+            rule_result, rule_msg = rule._evaluate_rule_for_record_verbose(discount)
+            _logger.info(f"[WeChatCron] Notification ID={self.id} Discount ID={discount.id} Rule ID={rule.id}: {rule_msg}")
+            if not rule_result:
+                return False
+        return True
+
+    @api.model
+    def cron_send_wechat_notifications(self, limit_partners=200):
+        """Cron entrypoint: send expiring-discount notifications directly to affected partners."""
+        notifications = self.sudo().search([
+            ('active', '=', True),
+            ('send_wechat_notification', '=', True),
+            ('wechat_template_id', '!=', False),
+        ])
+        if not notifications:
+            _logger.info("[WeChatCron] No eligible notifications found (active & enabled & template set)")
+            return True
+        Discount = self.env['popcorn.discount'].sudo()
+        for notification in notifications:
+            processed = 0
+            discounts = Discount.search([
+                ('partner_id', '!=', False),
+            ])
+            _logger.info(
+                "[WeChatCron] Notification id=%s name=%s: checking discounts=%s",
+                notification.id, notification.name, len(discounts)
+            )
+            partners_done = set()
+            for disc in discounts:
+                partner = disc.partner_id
+                if not partner:
+                    _logger.info(f"[WeChatCron] SKIP: Notification {notification.id}, discount {disc.id} has no partner.")
+                    continue
+                if not partner.wechat_openid:
+                    _logger.info(f"[WeChatCron] SKIP: Notification {notification.id}, partner {partner.id} (discount {disc.id}) has no WeChat OpenID.")
+                    continue
+                if notification.show_once_per_user and partner in notification.wechat_sent_partner_ids:
+                    _logger.info(f"[WeChatCron] SKIP: Notification {notification.id}, partner {partner.id} (discount {disc.id}) already notified (show_once_per_user).")
+                    continue
+                if partner.id in partners_done:
+                    _logger.info(f"[WeChatCron] SKIP: Notification {notification.id}, partner {partner.id} (discount {disc.id}) already processed in this run.")
+                    continue
+                if not notification._evaluate_notification_for_discount(disc):
+                    _logger.info(f"[WeChatCron] SKIP: Notification {notification.id}, discount {disc.id}, partner {partner.id}: _evaluate_notification_for_discount returned False.")
+                    continue
+                sent = notification.send_wechat_template_message(partner)
+                if sent:
+                    processed += 1
+                    partners_done.add(partner.id)
+                    if notification.show_once_per_user:
+                        notification.wechat_sent_partner_ids = [(4, partner.id)]
+                    _logger.info("[WeChatCron] Sent WeChat notification (discount %s) to partner %s (processed %s)", disc.id, partner.id, processed)
+                    if processed >= limit_partners:
+                        break
+            notification.last_wechat_cron_run = fields.Datetime.now()
+            _logger.info("[WeChatCron] Finished notification id=%s name=%s processed=%s", notification.id, notification.name, processed)
+        return True
+
+    def send_wechat_template_message(self, partner):
+        """Send WeChat template message to partner"""
+        self.ensure_one()
+        if not hasattr(self, 'send_wechat_notification') or not self.send_wechat_notification:
+            return False
+        if not partner.wechat_openid:
+            _logger.info(f"Partner {partner.id} does not have WeChat OpenID")
+            return False
+        if not self.wechat_template_id:
+            _logger.info(f"Notification {self.id} does not have WeChat Template ID configured")
+            return False
+        try:
+            access_token = self._get_wechat_access_token()
+            if not access_token:
+                _logger.error("Could not obtain WeChat access token")
+                return False
+            template_data = self._prepare_wechat_template_data(partner)
+            success = self._send_wechat_message(
+                access_token,
+                partner.wechat_openid,
+                self.wechat_template_id,
+                template_data
+            )
+            if success:
+                _logger.info(f"WeChat template message sent to partner {partner.id}")
+            return success
+        except Exception as e:
+            _logger.error(f"Error sending WeChat template message: {str(e)}", exc_info=True)
+            return False
+    # Supporting methods _get_wechat_access_token, _prepare_wechat_template_data, _send_wechat_message go here
+    def _get_wechat_access_token(self):
+        wechat_config = self.env['wechat.config'].sudo().search([('active', '=', True)], limit=1)
+        if not wechat_config or not wechat_config.app_id or not wechat_config.app_secret:
+            _logger.error("WeChat configuration not found or incomplete")
+            return None
+        cache_key = f'wechat_access_token_{wechat_config.app_id}'
+        cached_token = self.env['ir.config_parameter'].sudo().get_param(f'popcorn.wechat.{cache_key}')
+        cached_token_time = self.env['ir.config_parameter'].sudo().get_param(f'popcorn.wechat.{cache_key}_time')
+        from datetime import datetime, timedelta
+        if cached_token and cached_token_time:
+            try:
+                token_time = datetime.fromisoformat(cached_token_time)
+                if (datetime.now() - token_time) < timedelta(hours=1.9):
+                    return cached_token
+            except:
+                pass
+        import requests
+        url = f'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={wechat_config.app_id}&secret={wechat_config.app_secret}'
+        try:
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            if 'access_token' in data:
+                access_token = data['access_token']
+                self.env['ir.config_parameter'].sudo().set_param(f'popcorn.wechat.{cache_key}', access_token)
+                self.env['ir.config_parameter'].sudo().set_param(f'popcorn.wechat.{cache_key}_time', datetime.now().isoformat())
+                _logger.info("WeChat access token retrieved successfully")
+                return access_token
+            else:
+                error_msg = data.get('errmsg', 'Unknown error')
+                _logger.error(f"WeChat token error: {error_msg}")
+                return None
+        except Exception as e:
+            _logger.error(f"WeChat token request failed: {str(e)}")
+            return None
+    def _prepare_wechat_template_data(self, partner):
+        template_data = {}
+        def get_field_value(field_config):
+            if not field_config:
+                return ''
+            if field_config.startswith('{') and field_config.endswith('}'):
+                field_name = field_config.strip('{}')
+                return self._get_dynamic_content(partner, f'{{{field_name}}}')
+            else:
+                return field_config
+        if hasattr(self, 'wechat_first_field') and self.wechat_first_field:
+            first_value = get_field_value(self.wechat_first_field)
+            if first_value:
+                template_data['first'] = {'value': first_value[:50], 'color': '#173177'}
+        else:
+            title = self._get_dynamic_content(partner, self.title)
+            if title:
+                template_data['first'] = {'value': title[:50], 'color': '#173177'}
+        keyword_fields = [
+            ('keyword1', self.wechat_keyword1_field),
+            ('keyword2', self.wechat_keyword2_field),
+            ('keyword3', self.wechat_keyword3_field),
+            ('keyword4', self.wechat_keyword4_field)
+        ]
+        for keyword_name, field_config in keyword_fields:
+            if field_config:
+                keyword_value = get_field_value(field_config)
+                if keyword_value:
+                    template_data[keyword_name] = {'value': keyword_value[:20], 'color': '#173177'}
+        if hasattr(self, 'wechat_remark_field') and self.wechat_remark_field:
+            remark_value = get_field_value(self.wechat_remark_field)
+            if remark_value:
+                template_data['remark'] = {'value': remark_value[:100], 'color': '#173177'}
+        return template_data
+    def _send_wechat_message(self, access_token, openid, template_id, data):
+        import requests
+        url = f'https://api.weixin.qq.com/cgi-bin/message/template/send?access_token={access_token}'
+        payload = {
+            'touser': openid,
+            'template_id': template_id,
+            'data': data
+        }
+        if self.show_action_button and self.action_button_url:
+            payload['url'] = self.action_button_url
+        try:
+            _logger.info("[WeChatSend] POST %s payload=%s", url, payload)
+            response = requests.post(url, json=payload, timeout=10)
+            response.raise_for_status()
+            result = response.json()
+            _logger.info("[WeChatSend] response=%s", result)
+            if result.get('errcode') == 0:
+                return True
+            else:
+                error_msg = result.get('errmsg', 'Unknown error')
+                _logger.error("[WeChatSend] failed errcode=%s errmsg=%s", result.get('errcode'), error_msg)
+                return False
+        except Exception as e:
+            _logger.error("[WeChatSend] HTTP error: %s", str(e))
+            return False
+
 
 class PopcornNotificationRule(models.Model):
     _name = 'popcorn.notification.rule'
@@ -183,7 +429,7 @@ class PopcornNotificationRule(models.Model):
     
     model_id = fields.Many2one('ir.model', string='Model', required=True, ondelete='cascade',
                                domain=[('model', 'in', ['res.partner', 'popcorn.membership', 
-                                                        'event.event', 'event.registration'])])
+                                                        'event.event', 'event.registration', 'popcorn.discount'])])
     field_id = fields.Many2one('ir.model.fields', string='Field', required=True, ondelete='cascade')
     operator = fields.Selection([
         ('=', 'Equal to'),
@@ -342,4 +588,72 @@ class PopcornNotificationRule(models.Model):
                 return False
         except Exception:
             return False
+
+    def _coerce_record_to_model(self, record, target_model_name):
+        """Return a record of target_model_name related to the given record, or None.
+        Handles common relationships needed by notifications (e.g., discount -> partner).
+        """
+        try:
+            # Exact match
+            if getattr(record, '_name', None) == target_model_name:
+                return record
+            # Discount -> Partner
+            if target_model_name == 'res.partner' and hasattr(record, 'partner_id') and record.partner_id:
+                return record.partner_id
+            # Registration -> Partner
+            if target_model_name == 'res.partner' and hasattr(record, 'partner_id') and record.partner_id:
+                return record.partner_id
+            # Membership -> Partner
+            if target_model_name == 'res.partner' and hasattr(record, 'partner_id') and record.partner_id:
+                return record.partner_id
+        except Exception:
+            return None
+        return None
+
+    def _evaluate_rule_for_record(self, record):
+        """Evaluate a rule for an arbitrary record (of any model)."""
+        if not self.active or not self.model_id or not self.field_id:
+            return False
+        try:
+            model_name = self.model_id.model
+            # Attempt to coerce to required model
+            coerced = self._coerce_record_to_model(record, model_name)
+            if not coerced:
+                return False
+            field_name = self.field_id.name
+            if hasattr(coerced, field_name):
+                field_value = getattr(coerced, field_name, False)
+            else:
+                field_value = False
+            comparison_value = self._convert_value_to_type(field_value, self.value)
+            return self._evaluate_condition(field_value, self.operator, comparison_value)
+        except Exception:
+            return False
+
+    def _evaluate_rule_for_record_verbose(self, record):
+        """Like _evaluate_rule_for_record, but returns (bool, debug_string) for tracing."""
+        if not self.active or not self.model_id or not self.field_id:
+            return False, f"Rule {self.id} inactive or missing model/field."
+        try:
+            model_name = self.model_id.model
+            # Attempt to coerce to required model
+            coerced = self._coerce_record_to_model(record, model_name)
+            if not coerced:
+                return False, f"Model mismatch and no related record found: rule model={model_name}, record={getattr(record, '_name', None)}."
+            field_name = self.field_id.name
+            operator = self.operator
+            val_required = self.value
+            if hasattr(coerced, field_name):
+                field_value = getattr(coerced, field_name, False)
+            else:
+                field_value = None
+            comparison_value = self._convert_value_to_type(field_value, val_required)
+            comparison_passed = self._evaluate_condition(field_value, operator, comparison_value)
+            msg = (
+                f"model={model_name}, field={field_name}, op={operator}, "
+                f"record_value={field_value!r}, compare_to={comparison_value!r}, passed={comparison_passed}"
+            )
+            return comparison_passed, msg
+        except Exception as e:
+            return False, f"EXC: {str(e)} in rule eval."
 

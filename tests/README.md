@@ -10,6 +10,7 @@ This directory contains tests for the Popcorn Club module.
 - **test_event_timezone.py** - Test for event timezone conversion in notifications
 - **test_frontend_race.py** - Test for frontend registration race condition fix (over-booking prevention)
 - **test_first_timer_discount.py** - Test for first-timer discount bug fix (independent coupon and membership systems)
+- **test_buy_together.py** - Comprehensive test for buy-together discount code generation and usage flow
 
 ## Running Tests
 
@@ -25,6 +26,7 @@ python tests/test_waitlist_promotion.py
 python tests/test_event_timezone.py  # Tests timezone conversion fix
 python tests/test_frontend_race.py   # Tests race condition fix (over-booking prevention)
 python tests/test_first_timer_discount.py  # Tests first-timer discount bug fix
+python tests/test_buy_together.py  # Tests buy-together discount feature
 ```
 
 **Note:** For XML-RPC tests, you need to update the configuration at the top of each file:
@@ -132,4 +134,42 @@ python tests/test_first_timer_discount.py
 - Tests discount calculation with correct pricing
 - Verifies no validation errors occur
 - Confirms systems are independent
+
+### test_buy_together.py
+
+This test verifies the complete buy-together discount flow where two people can purchase the same membership together with a shared discount code.
+
+**What it tests:**
+1. Code generation works correctly
+2. Person B can use the code first (should succeed)
+3. Person A can use the code second (should succeed)  
+4. Person A cannot use the code before Person B (should fail)
+5. Neither person can use the code more than once
+6. Edge cases and error conditions
+
+**Test scenarios covered:**
+- ✅ Happy path: Person B uses, then Person A uses
+- ❌ Person A tries to use before Person B → should fail
+- ❌ Person A tries to use code twice → should fail
+- ❌ Person B tries to use code twice → should fail
+- ❌ Empty friend name → should fail
+- ❌ Buy-together disabled → should fail
+- ❌ Discount not configured → should fail
+
+**Usage:**
+```bash
+python tests/test_buy_together.py
+```
+
+**Expected output:**
+- Creates test membership plan with buy-together enabled
+- Creates Person A and Person B
+- Person A generates code successfully
+- Person B uses code first → gets discount
+- Person A uses code second → gets discount
+- Both users cannot use code more than once
+- Verifies all validation rules work correctly
+- Confirms discount becomes invalid after 2 uses
+
+**See detailed scenarios:** `tests/BUY_TOGETHER_TEST_SCENARIOS.md`
 
