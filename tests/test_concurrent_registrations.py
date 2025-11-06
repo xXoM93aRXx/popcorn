@@ -21,7 +21,7 @@ ODOO_URL = 'http://localhost:8069'
 DB_NAME = 'popcorn'  # Change to your database name
 USERNAME = 'admin@odoo.com'  # Change as needed
 PASSWORD = 'admin123'  # Change as needed
-EVENT_ID = 7  # Change to your test event ID
+EVENT_ID = 1  # Will be auto-detected or created
 
 # Test parameters
 NUM_CONCURRENT_REQUESTS = 10  # Number of simultaneous registration attempts
