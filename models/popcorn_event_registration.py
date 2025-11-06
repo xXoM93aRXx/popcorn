@@ -641,13 +641,27 @@ class PopcornEventRegistration(models.Model):
         # Note: Automatic expiration is now handled by cron job for reliability
     
     def _add_to_waitlist(self):
-        """Add registration to waitlist and assign position"""
+        """Add registration to waitlist and assign position with database-level locking"""
         self.ensure_one()
         
         if not self.event_id.seats_limited:
             return  # No waitlist if seats are unlimited
         
-        # Get current waitlist count
+        # Use database-level locking to prevent race conditions when assigning positions
+        # Lock the event record to prevent concurrent position assignments
+        self.env.flush_all()
+        
+        # Lock the event record using FOR UPDATE pattern
+        # This ensures only one transaction can assign waitlist positions at a time
+        self.env.cr.execute(
+            "SELECT id FROM event_event WHERE id = %s FOR UPDATE",
+            [self.event_id.id]
+        )
+        
+        # Refresh event to get latest data while holding lock
+        self.event_id.invalidate_recordset()
+        
+        # Get current waitlist count while holding lock
         current_waitlist = self.env['event.registration'].search([
             ('event_id', '=', self.event_id.id),
             ('is_on_waitlist', '=', True)
@@ -706,37 +720,24 @@ class PopcornEventRegistration(models.Model):
         if is_import:
             vals['is_imported'] = True
         
-        # Create the record first
-        # For limited-seat events, create with state='draft' initially, then decide based on availability
+        # For limited-seat events, lock the event BEFORE creating registration to prevent deadlocks
         event = None
+        should_lock = False
         if 'event_id' in vals:
             event = self.env['event.event'].browse(vals['event_id'])
             if event.exists() and event.seats_limited and not is_import:
-                # Initially create as draft to prevent over-booking
-                # We'll decide on state based on availability after creation
-                if vals.get('state') == 'open':
-                    vals['state'] = 'draft'
-        
-        registration = super().create(vals)
-        
-        # Post-create validation and auto-selection
-        if registration.partner_id and registration.event_id:
-            registration._post_create_validation()
-        
-        # Check seat availability for all new registrations (not imports)
-        if not is_import and registration.event_id:
-            event = registration.event_id
-            _logger.info(f"=== New Registration Created: ID {registration.id} for event {event.name} (ID: {event.id}) ===")
-            _logger.info(f"Partner: {registration.partner_id.name} (ID: {registration.partner_id.id})")
-            _logger.info(f"Has membership: {bool(registration.membership_id)}")
-            
-            if event.seats_limited:
-                # Force fresh data from database - CRITICAL for preventing race conditions
-                # Flush all pending changes to ensure search() sees them
+                should_lock = True
+                # Lock the event FIRST before creating registration to prevent deadlocks
+                # This ensures transactions process sequentially, not waiting on each other
                 self.env.flush_all()
+                self.env.cr.execute(
+                    "SELECT id FROM event_event WHERE id = %s FOR UPDATE",
+                    [event.id]
+                )
+                # Refresh event to get latest data while holding lock
+                event.invalidate_recordset(['seats_max'])
                 
-                # Query database directly for current availability
-                # This includes ALL confirmed registrations including other concurrent requests
+                # Check availability BEFORE creating registration
                 confirmed_registrations = self.env['event.registration'].search([
                     ('event_id', '=', event.id),
                     ('state', 'in', ['open', 'confirmed', 'done']),
@@ -744,26 +745,59 @@ class PopcornEventRegistration(models.Model):
                 ])
                 available_seats = max(0, event.seats_max - len(confirmed_registrations))
                 
-                _logger.info(f"Event has limited seats: {len(confirmed_registrations)} / {event.seats_max} seats taken")
-                _logger.info(f"Available seats: {available_seats}")
-                
+                # Set initial state based on availability while holding lock
                 if available_seats <= 0:
-                    # No seats available - add to waitlist
-                    _logger.info(f"No seats available - adding to waitlist")
-                    registration._add_to_waitlist()
+                    # No seats available - create as draft and add to waitlist
+                    vals['state'] = 'draft'
                 else:
-                    # Seats available - confirm registration
-                    _logger.info(f"Seats available - confirming registration")
-                    registration.write({'state': 'open'})
-                    if registration.membership_id and registration.consumption_state == 'pending':
-                        _logger.info(f"Consuming membership quota")
-                        registration._consume_membership_quota()
-            else:
-                # Unlimited seats - just consume quota if membership exists
-                _logger.info(f"Event has unlimited seats")
+                    # Seats available - create as open
+                    if vals.get('state') != 'open':
+                        vals['state'] = 'open'
+        
+        # Create the record (lock is still held if should_lock is True)
+        registration = super().create(vals)
+        
+        # Flush the registration creation so other transactions see it when they get the lock
+        if should_lock:
+            self.env.flush_all()
+        
+        # Post-create validation and auto-selection
+        if registration.partner_id and registration.event_id:
+            registration._post_create_validation()
+        
+        # Handle waitlist and quota consumption for limited-seat events
+        if not is_import and registration.event_id and should_lock:
+            event = registration.event_id
+            _logger.info(f"=== New Registration Created: ID {registration.id} for event {event.name} (ID: {event.id}) ===")
+            _logger.info(f"Partner: {registration.partner_id.name} (ID: {registration.partner_id.id})")
+            _logger.info(f"Has membership: {bool(registration.membership_id)}")
+            
+            # Re-check availability (we already checked, but verify while holding lock)
+            confirmed_registrations = self.env['event.registration'].search([
+                ('event_id', '=', event.id),
+                ('state', 'in', ['open', 'confirmed', 'done']),
+                ('is_on_waitlist', '=', False)
+            ])
+            available_seats = max(0, event.seats_max - len(confirmed_registrations))
+            
+            _logger.info(f"Event has limited seats: {len(confirmed_registrations)} / {event.seats_max} seats taken")
+            _logger.info(f"Available seats: {available_seats}")
+            
+            if available_seats <= 0 and registration.state == 'draft':
+                # No seats available - add to waitlist
+                _logger.info(f"No seats available - adding to waitlist")
+                registration._add_to_waitlist()
+            elif registration.state == 'open':
+                # Seats available - consume quota if membership exists
                 if registration.membership_id and registration.consumption_state == 'pending':
                     _logger.info(f"Consuming membership quota")
                     registration._consume_membership_quota()
+        elif not is_import and registration.event_id:
+            # Unlimited seats - just consume quota if membership exists
+            _logger.info(f"Event has unlimited seats")
+            if registration.membership_id and registration.consumption_state == 'pending':
+                _logger.info(f"Consuming membership quota")
+                registration._consume_membership_quota()
         
         # Note: Club registrations do NOT affect first-timer status
         # Only memberships affect is_first_timer (for membership pricing eligibility)
@@ -771,6 +805,27 @@ class PopcornEventRegistration(models.Model):
         
         # Clear UI caches to ensure fresh data
         registration.env['ir.ui.view'].clear_caches()
+        
+        # After creating registration, schedule overbooking correction to run after commit
+        # This ensures we can see all committed registrations from concurrent transactions
+        if not is_import and registration.event_id and registration.event_id.seats_limited:
+            event_id = registration.event_id.id
+            # Schedule correction to run after transaction commits
+            # This allows us to see all committed registrations from concurrent transactions
+            def correct_after_commit():
+                try:
+                    # Use a new cursor to see committed changes
+                    with self.env.registry.cursor() as new_cr:
+                        new_env = self.env(cr=new_cr)
+                        event = new_env['event.event'].browse(event_id)
+                        if event.exists():
+                            event._correct_overbooking_single()
+                            new_cr.commit()
+                except Exception as e:
+                    _logger.error(f"Error correcting overbooking for event {event_id} after commit: {e}")
+            
+            # Schedule to run after current transaction commits
+            self.env.cr.postcommit.add(correct_after_commit)
         
         return registration
     

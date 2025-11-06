@@ -463,16 +463,19 @@
                                     </div>
                                     
                                     <!-- Terms and Conditions -->
-                                    <div class="popcorn-form-section">
-                                        <div class="popcorn-form-group">
-                                            <div class="popcorn-checkbox-group">
-                                                <input type="checkbox" id="terms_accepted" name="terms_accepted" class="popcorn-checkbox" required="required"/>
-                                                <label for="terms_accepted" class="popcorn-checkbox-label">
-                                                    I agree to the <a href="/terms" target="_blank">Terms and Conditions</a> *
-                                                </label>
+                                    <!-- Only show checkbox for first-time customers -->
+                                    <t t-if="request.env.user.partner_id.is_first_timer">
+                                        <div class="popcorn-form-section">
+                                            <div class="popcorn-form-group">
+                                                <div class="popcorn-checkbox-group">
+                                                    <input type="checkbox" id="terms_accepted" name="terms_accepted" class="popcorn-checkbox" required="required"/>
+                                                    <label for="terms_accepted" class="popcorn-checkbox-label">
+                                                        I agree to the <a href="/terms" target="_blank">Terms and Conditions</a> *
+                                                    </label>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </t>
                                     
                                     <!-- Submit Button -->
                                     <div class="popcorn-form-section">

@@ -908,7 +908,8 @@ class PopcornEventController(http.Controller):
             if not kwargs.get('payment_method_id') and remaining_amount > 0:
                 return request.redirect(f'/popcorn/event/{event.id}/checkout?error=missing_payment_method')
             
-            if not kwargs.get('terms_accepted'):
+            # Only validate terms_accepted for first-time customers
+            if partner.is_first_timer and not kwargs.get('terms_accepted'):
                 return request.redirect(f'/popcorn/event/{event.id}/checkout?error=terms_not_accepted')
             
             # Get payment method/provider ID

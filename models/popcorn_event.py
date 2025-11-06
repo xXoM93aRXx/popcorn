@@ -676,7 +676,7 @@ class EventEvent(models.Model):
         _logger.info("Event %s: Successfully promoted %s registrations from waitlist" % (self.id, len(promoted_registrations)))
     
     def _promote_waitlist_safe(self):
-        """Simple safe waitlist promotion method"""
+        """Simple safe waitlist promotion method with database-level locking"""
         self.ensure_one()
         
         _logger.info("=== WAITLIST PROMOTION DEBUG ===")
@@ -687,9 +687,20 @@ class EventEvent(models.Model):
                 _logger.info("Event %s: No promotion needed (seats not limited)" % self.id)
                 return
             
+            # Use database-level locking to prevent concurrent promotions (similar to Odoo stock module)
+            # Lock the event record to prevent race conditions
+            self.env.flush_all()
+            
+            # Lock the event record using FOR UPDATE pattern
+            # This ensures only one transaction can promote from waitlist at a time
+            self.env.cr.execute(
+                "SELECT id FROM event_event WHERE id = %s FOR UPDATE",
+                [self.id]
+            )
+            
             # Get fresh data to avoid stale recordset issues
             event = self.env['event.event'].browse(self.id)
-            event.invalidate_recordset()
+            event.invalidate_recordset(['seats_max'])
             
             confirmed_count = len(event.registration_ids.filtered(
                 lambda r: r.state in ['open', 'confirmed', 'done'] and not r.is_on_waitlist
@@ -713,6 +724,7 @@ class EventEvent(models.Model):
                 _logger.info("Event %s: No promotions to perform" % event.id)
                 return
             
+            # Perform all promotions while still holding the lock
             for i in range(promotions_count):
                 reg = waitlist_regs[i]
                 _logger.info("Event %s: Promoting registration %s - Partner: %s (position: %s)" % (event.id, reg.id, reg.partner_id.name, reg.waitlist_position))
@@ -752,6 +764,174 @@ class EventEvent(models.Model):
         
         # Use the safe promotion method for consistency
         self._promote_waitlist_safe()
+    
+    @api.model
+    def _correct_overbooking(self):
+        """Correct overbooking by moving excess registrations to waitlist
+        Similar to Odoo's stock module _merge_quants() function.
+        This should be called periodically to fix any race condition issues.
+        """
+        _logger.info("=== Starting overbooking correction ===")
+        
+        # Find all events with limited seats that have overbooking
+        events = self.env['event.event'].search([
+            ('seats_limited', '=', True),
+            ('seats_max', '>', 0)
+        ])
+        
+        corrected_count = 0
+        for event in events:
+            # Get confirmed registrations (not on waitlist)
+            confirmed_registrations = event.registration_ids.filtered(
+                lambda r: r.state in ['open', 'confirmed', 'done'] and not r.is_on_waitlist
+            )
+            
+            if len(confirmed_registrations) > event.seats_max:
+                overbooked_count = len(confirmed_registrations) - event.seats_max
+                _logger.warning(
+                    f"Event {event.id} ({event.name}): Overbooking detected! "
+                    f"{len(confirmed_registrations)} confirmed, max: {event.seats_max}, "
+                    f"excess: {overbooked_count}"
+                )
+                
+                # Lock the event to prevent concurrent corrections
+                self.env.flush_all()
+                try:
+                    self.env.cr.execute(
+                        "SELECT id FROM event_event WHERE id = %s FOR UPDATE NOWAIT",
+                        [event.id]
+                    )
+                except Exception:
+                    # Event is locked by another transaction, skip it
+                    _logger.info(f"Event {event.id} is locked, skipping correction")
+                    continue
+                
+                # Refresh event to get latest data
+                event.invalidate_recordset(['seats_max'])
+                
+                # Re-check after acquiring lock
+                confirmed_registrations = event.registration_ids.filtered(
+                    lambda r: r.state in ['open', 'confirmed', 'done'] and not r.is_on_waitlist
+                )
+                
+                if len(confirmed_registrations) > event.seats_max:
+                    overbooked_count = len(confirmed_registrations) - event.seats_max
+                    
+                    # Sort by creation date (oldest first) to keep the first registrations
+                    # Move the most recent excess registrations to waitlist
+                    sorted_registrations = confirmed_registrations.sorted('create_date', reverse=True)
+                    excess_registrations = sorted_registrations[:overbooked_count]
+                    
+                    _logger.info(
+                        f"Moving {len(excess_registrations)} registrations to waitlist for event {event.id}"
+                    )
+                    
+                    # Move excess registrations to waitlist
+                    for reg in excess_registrations:
+                        # Restore membership quota if it was consumed
+                        if reg.membership_id and reg.consumption_state == 'consumed':
+                            reg._restore_membership_quota()
+                        
+                        # Mark as draft and add to waitlist
+                        reg.write({
+                            'state': 'draft',
+                            'is_on_waitlist': True,
+                            'consumption_state': 'pending'
+                        })
+                        
+                        reg.message_post(
+                            body=_('Moved to waitlist due to overbooking correction')
+                        )
+                    
+                    # Update waitlist positions
+                    event._update_waitlist_positions()
+                    
+                    corrected_count += 1
+                    _logger.info(
+                        f"Corrected overbooking for event {event.id}: "
+                        f"Moved {len(excess_registrations)} registrations to waitlist"
+                    )
+        
+        _logger.info(f"=== Overbooking correction complete: {corrected_count} events corrected ===")
+        return corrected_count
+    
+    def _update_waitlist_positions(self):
+        """Update waitlist positions for all waitlist registrations"""
+        self.ensure_one()
+        
+        waitlist_registrations = self.registration_ids.filtered(
+            lambda r: r.is_on_waitlist and r.state == 'draft'
+        ).sorted('create_date')
+        
+        # Renumber positions starting from 1
+        for i, reg in enumerate(waitlist_registrations, 1):
+            reg.write({'waitlist_position': i})
+    
+    def _correct_overbooking_single(self):
+        """Correct overbooking for a single event (called after registration creation)"""
+        self.ensure_one()
+        
+        if not self.seats_limited or self.seats_max <= 0:
+            return
+        
+        # Get confirmed registrations (not on waitlist)
+        confirmed_registrations = self.registration_ids.filtered(
+            lambda r: r.state in ['open', 'confirmed', 'done'] and not r.is_on_waitlist
+        )
+        
+        if len(confirmed_registrations) > self.seats_max:
+            overbooked_count = len(confirmed_registrations) - self.seats_max
+            
+            # Lock the event to prevent concurrent corrections
+            self.env.flush_all()
+            try:
+                self.env.cr.execute(
+                    "SELECT id FROM event_event WHERE id = %s FOR UPDATE NOWAIT",
+                    [self.id]
+                )
+            except Exception:
+                # Event is locked by another transaction, skip it
+                return
+            
+            # Refresh event to get latest data
+            self.invalidate_recordset(['seats_max'])
+            
+            # Re-check after acquiring lock
+            confirmed_registrations = self.registration_ids.filtered(
+                lambda r: r.state in ['open', 'confirmed', 'done'] and not r.is_on_waitlist
+            )
+            
+            if len(confirmed_registrations) > self.seats_max:
+                overbooked_count = len(confirmed_registrations) - self.seats_max
+                
+                # Sort by creation date (most recent first) - move newest excess to waitlist
+                sorted_registrations = confirmed_registrations.sorted('create_date', reverse=True)
+                excess_registrations = sorted_registrations[:overbooked_count]
+                
+                _logger.warning(
+                    f"Event {self.id} ({self.name}): Correcting overbooking - "
+                    f"Moving {len(excess_registrations)} registrations to waitlist"
+                )
+                
+                # Move excess registrations to waitlist
+                for reg in excess_registrations:
+                    # Restore membership quota if it was consumed
+                    if reg.membership_id and reg.consumption_state == 'consumed':
+                        reg._restore_membership_quota()
+                    
+                    # Mark as draft and add to waitlist
+                    reg.write({
+                        'state': 'draft',
+                        'is_on_waitlist': True,
+                        'consumption_state': 'pending'
+                    })
+                    
+                    reg.message_post(
+                        body=_('Moved to waitlist due to overbooking correction')
+                    )
+                
+                # Update waitlist positions
+                self._update_waitlist_positions()
     
     @api.model
     def _search_get_detail(self, website, order, options):
