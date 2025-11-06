@@ -738,6 +738,44 @@
     font-size: 0.7rem;
 }
 
+/* Book Status Box - Blue Theme */
+.popcorn-book-status {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0, 123, 255, 0.3);
+    text-align: center;
+    min-width: 80px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popcorn-book-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.popcorn-book-content i {
+    font-size: 1rem;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.popcorn-book-content span {
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    font-size: 0.7rem;
+}
+
 /* Responsive adjustments for inline layout */
 @media (max-width: 768px) {
     .popcorn-event-details-row {
@@ -825,6 +863,28 @@
     .popcorn-join-waitlist-content span {
         font-size: 0.7rem;
     }
+    
+    .popcorn-book-status {
+        padding: 8px 12px;
+        min-width: auto;
+        width: 100%;
+        border-radius: 4px;
+        height: 100%;
+        min-height: 40px;
+    }
+    
+    .popcorn-book-content {
+        font-size: 0.75rem;
+        gap: 4px;
+    }
+    
+    .popcorn-book-content i {
+        font-size: 1rem;
+    }
+    
+    .popcorn-book-content span {
+        font-size: 0.7rem;
+    }
 }
 
 @media (max-width: 576px) {
@@ -903,6 +963,26 @@
     }
     
     .popcorn-join-waitlist-content span {
+        font-size: 0.65rem;
+    }
+    
+    .popcorn-book-status {
+        padding: 6px 10px;
+        min-width: auto;
+        width: 100%;
+        min-height: 35px;
+    }
+    
+    .popcorn-book-content {
+        font-size: 0.7rem;
+        gap: 3px;
+    }
+    
+    .popcorn-book-content i {
+        font-size: 0.9rem;
+    }
+    
+    .popcorn-book-content span {
         font-size: 0.65rem;
     }
 }

@@ -320,6 +320,14 @@
                                                         <span>Join Waitlist</span>
                                                     </div>
                                                 </div>
+                                                
+                                                <!-- Book Status -->
+                                                <div t-if="not event.is_participating and event.user_waitlist_position == 0 and event.event_registrations_open and not event.event_registrations_sold_out" class="popcorn-book-status">
+                                                    <div class="popcorn-book-content">
+                                                        <i class="fa fa-ticket"></i>
+                                                        <span>Book Seat</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -527,6 +535,14 @@
                                                     <div class="popcorn-join-waitlist-content">
                                                         <i class="fa fa-clock-o"></i>
                                                         <span>Join Waitlist</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Book Status -->
+                                                <div t-if="not event.is_participating and event.user_waitlist_position == 0 and event.event_registrations_open and not event.event_registrations_sold_out" class="popcorn-book-status">
+                                                    <div class="popcorn-book-content">
+                                                        <i class="fa fa-ticket"></i>
+                                                        <span>Book Seat</span>
                                                     </div>
                                                 </div>
                                             </div>
