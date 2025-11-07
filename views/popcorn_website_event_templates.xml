@@ -313,8 +313,16 @@
                                                     </div>
                                                 </div>
                                                 
+                                                <!-- Conflicting Registration Status -->
+                                                <div t-if="event.has_conflicting_registration and not event.is_participating" class="popcorn-conflicting-status">
+                                                    <div class="popcorn-conflicting-content">
+                                                        <i class="fa fa-calendar-times-o"></i>
+                                                        <span>Conflict</span>
+                                                    </div>
+                                                </div>
+                                                
                                                 <!-- Join Waitlist Status -->
-                                                <div t-if="event.event_registrations_sold_out and not event.is_participating" class="popcorn-join-waitlist-status">
+                                                <div t-if="event.event_registrations_sold_out and not event.is_participating and not event.has_conflicting_registration" class="popcorn-join-waitlist-status">
                                                     <div class="popcorn-join-waitlist-content" style="background-color: #ff8c00; color: white; padding: 4px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
                                                         <i class="fa fa-clock-o"></i>
                                                         <span>Join Waitlist</span>
@@ -322,7 +330,7 @@
                                                 </div>
                                                 
                                                 <!-- Book Status -->
-                                                <div t-if="not event.is_participating and event.user_waitlist_position == 0 and event.event_registrations_open and not event.event_registrations_sold_out" class="popcorn-book-status">
+                                                <div t-if="not event.is_participating and event.user_waitlist_position == 0 and event.event_registrations_open and not event.event_registrations_sold_out and not event.has_conflicting_registration" class="popcorn-book-status">
                                                     <div class="popcorn-book-content">
                                                         <i class="fa fa-ticket"></i>
                                                         <span>Book Seat</span>
@@ -530,8 +538,16 @@
                                                     </div>
                                                 </div>
                                                 
+                                                <!-- Conflicting Registration Status -->
+                                                <div t-if="event.has_conflicting_registration and not event.is_participating" class="popcorn-conflicting-status">
+                                                    <div class="popcorn-conflicting-content">
+                                                        <i class="fa fa-calendar-times-o"></i>
+                                                        <span>Conflict</span>
+                                                    </div>
+                                                </div>
+                                                
                                                 <!-- Join Waitlist Status -->
-                                                <div t-if="event.event_registrations_sold_out and not event.is_participating and event.user_waitlist_position == 0" class="popcorn-join-waitlist-status">
+                                                <div t-if="event.event_registrations_sold_out and not event.is_participating and event.user_waitlist_position == 0 and not event.has_conflicting_registration" class="popcorn-join-waitlist-status">
                                                     <div class="popcorn-join-waitlist-content">
                                                         <i class="fa fa-clock-o"></i>
                                                         <span>Join Waitlist</span>
@@ -539,7 +555,7 @@
                                                 </div>
                                                 
                                                 <!-- Book Status -->
-                                                <div t-if="not event.is_participating and event.user_waitlist_position == 0 and event.event_registrations_open and not event.event_registrations_sold_out" class="popcorn-book-status">
+                                                <div t-if="not event.is_participating and event.user_waitlist_position == 0 and event.event_registrations_open and not event.event_registrations_sold_out and not event.has_conflicting_registration" class="popcorn-book-status">
                                                     <div class="popcorn-book-content">
                                                         <i class="fa fa-ticket"></i>
                                                         <span>Book Seat</span>

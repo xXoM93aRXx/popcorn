@@ -738,6 +738,44 @@
     font-size: 0.7rem;
 }
 
+/* Conflicting Registration Status Box - Orange/Red Warning Theme */
+.popcorn-conflicting-status {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
+    text-align: center;
+    min-width: 80px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popcorn-conflicting-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.popcorn-conflicting-content i {
+    font-size: 1rem;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.popcorn-conflicting-content span {
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    font-size: 0.7rem;
+}
+
 /* Book Status Box - Blue Theme */
 .popcorn-book-status {
     background: linear-gradient(135deg, #007bff, #0056b3);
@@ -864,6 +902,28 @@
         font-size: 0.7rem;
     }
     
+    .popcorn-conflicting-status {
+        padding: 8px 12px;
+        min-width: auto;
+        width: 100%;
+        border-radius: 4px;
+        height: 100%;
+        min-height: 40px;
+    }
+    
+    .popcorn-conflicting-content {
+        font-size: 0.75rem;
+        gap: 4px;
+    }
+    
+    .popcorn-conflicting-content i {
+        font-size: 1rem;
+    }
+    
+    .popcorn-conflicting-content span {
+        font-size: 0.7rem;
+    }
+    
     .popcorn-book-status {
         padding: 8px 12px;
         min-width: auto;
@@ -963,6 +1023,26 @@
     }
     
     .popcorn-join-waitlist-content span {
+        font-size: 0.65rem;
+    }
+    
+    .popcorn-conflicting-status {
+        padding: 6px 10px;
+        min-width: auto;
+        width: 100%;
+        min-height: 35px;
+    }
+    
+    .popcorn-conflicting-content {
+        font-size: 0.7rem;
+        gap: 3px;
+    }
+    
+    .popcorn-conflicting-content i {
+        font-size: 0.9rem;
+    }
+    
+    .popcorn-conflicting-content span {
         font-size: 0.65rem;
     }
     

@@ -1011,19 +1011,29 @@ class EventEvent(models.Model):
     @api.depends('registration_ids', 'registration_ids.partner_id', 'registration_ids.state', 'registration_ids.is_on_waitlist')
     def _compute_has_conflicting_registration(self):
         """Check if current user has conflicting registrations for overlapping events"""
+        # Try to get user from request first, fallback to env.user
+        try:
+            from odoo.http import request
+            current_user = request.env.user if hasattr(request, 'env') else self.env.user
+        except:
+            current_user = self.env.user
+        
+        public_user_id = self.env.ref('base.public_user', raise_if_not_found=False)
+        public_user_id = public_user_id.id if public_user_id else False
+        
         for event in self:
             event.has_conflicting_registration = False
             event.conflicting_event = False
             
             # Only check for logged-in users
-            if request and request.env.user and request.env.user.id != request.env.ref('base.public_user').id:
-                current_user_partner = request.env.user.partner_id
+            if current_user and current_user.id != public_user_id:
+                current_user_partner = current_user.partner_id
                 
                 # Check if current user has any registrations for events that overlap with this event
                 if event.date_begin and event.date_end:
                     # Find all events where the user has ACTIVE registrations OR WAITLIST registrations that overlap with this event's time
                     # First, find all active registrations for this user (including waitlist)
-                    active_registrations = request.env['event.registration'].search([
+                    active_registrations = self.env['event.registration'].search([
                         ('partner_id', '=', current_user_partner.id),
                         '|',
                         ('state', 'in', ['open', 'done']),  # Active registrations
@@ -1034,7 +1044,7 @@ class EventEvent(models.Model):
                     active_event_ids = active_registrations.mapped('event_id.id')
                     
                     # Now find events that overlap in time with the current event
-                    overlapping_events = request.env['event.event'].search([
+                    overlapping_events = self.env['event.event'].search([
                         ('id', '!=', event.id),  # Exclude current event
                         ('id', 'in', active_event_ids),  # Only events where user has active registrations
                         ('website_published', '=', True),

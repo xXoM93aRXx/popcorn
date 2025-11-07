@@ -1,5 +1,134 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <record id="view_product_template_form_popcorn_host" model="ir.ui.view">
+        <field name="name">product.template.form.popcorn.host</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='sales']//group[@name='ecom_description']" position="after">
+                <group string="Host" name="popcorn_host">
+                    <field name="popcorn_host_id" options="{'no_open': True}"/>
+                    <field name="popcorn_host_latest_event_ids" readonly="1" widget="many2many_tags"/>
+                </group>
+                <group string="Membership Discount" name="popcorn_membership_discount">
+                    <field name="membership_discount" 
+                           help="Discount percentage to automatically apply for customers with active memberships. Applied after pricelist pricing."/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <template id="popcorn_product_host_section" inherit_id="website_sale.product">
+        <xpath expr="//div[@id='product_full_description']" position="after">
+            <section t-if="product.popcorn_host_id" class="popcorn-product-host-section mt-5">
+                <div class="container">
+                    <div class="row align-items-start g-4">
+                        <div class="col-md-4">
+                            <div class="popcorn-product-host-card p-3 border rounded h-100">
+                                <div class="text-center mb-3">
+                                    <img t-if="product.popcorn_host_image" t-att-src="image_data_uri(product.popcorn_host_image)" t-att-alt="product.popcorn_host_name" class="img-fluid rounded"/>
+                                    <div t-else="" class="bg-light border rounded" style="height: 220px;"/>
+                                </div>
+                                <h3 class="h4 text-center" t-esc="product.popcorn_host_name"/>
+                                <p t-if="product.popcorn_host_function" class="text-center text-muted" t-esc="product.popcorn_host_function"/>
+                                <div t-if="product.popcorn_host_bio" class="mt-3">
+                                    <strong>About the Host</strong>
+                                    <p class="mb-0" t-esc="product.popcorn_host_bio"/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div t-if="product.popcorn_host_latest_event_ids" class="popcorn-product-host-events h-100">
+                                <h4 class="h5">Latest Clubs by this Host</h4>
+                                <div class="row g-3">
+                                    <t t-foreach="product.popcorn_host_latest_event_ids" t-as="event" t-key="event.id">
+                                        <div class="col-md-6 col-lg-4 d-flex">
+                                            <a t-attf-href="/event/#{ slug(event) }/#{(not event.menu_id) and (event.event_registrations_open or event.event_registrations_sold_out) and 'register'}" class="popcorn-event-card flex-fill text-decoration-none">
+                                                <article class="popcorn-event-article h-100 d-flex flex-column">
+                                                    <header class="popcorn-event-header">
+                                                        <div class="popcorn-event-image-container">
+                                                            <div t-if="event.badge_image" class="popcorn-event-image">
+                                                                <img t-att-src="'/web/image/event.event/' + str(event.id) + '/badge_image'" class="w-100 h-100" style="object-fit: cover;" t-att-alt="event.name"/>
+                                                            </div>
+                                                            <div t-else="" class="popcorn-event-image" style="background-image: url('/website_event/static/src/img/event_cover_4.jpg');"></div>
+                                                            <meta itemprop="startDate" t-att-content="event.date_begin.isoformat()"/>
+                                                            <div class="popcorn-event-date-overlay o_wevent_event_date o_not_editable bottom-left">
+                                                                <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'LLL'}" class="popcorn-event-month"/>
+                                                                <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'dd'}" class="popcorn-event-day oe_hide_on_date_edit"/>
+                                                                <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'EEE'}" class="popcorn-event-weekday"/>
+                                                            </div>
+                                                        </div>
+                                                    </header>
+                                                    <main class="popcorn-event-body col-12 py-3">
+                                                        <h5 class="popcorn-event-title mb-2">
+                                                            <span t-field="event.name"/>
+                                                        </h5>
+                                                        <p t-if="event.subtitle" class="text-muted small mb-3" t-field="event.subtitle"/>
+                                                        <div class="popcorn-event-datetime mb-2">
+                                                            <i class="fa fa-clock-o me-2" style="color: #6c757d;"></i>
+                                                            <small class="text-muted">
+                                                                <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'EEE M/d'}"/>
+                                                                <span> </span>
+                                                                <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
+                                                                <span t-if="event.date_begin != event.date_end">-</span>
+                                                                <span t-if="event.date_begin != event.date_end" t-out="event.date_end" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
+                                                            </small>
+                                                        </div>
+                                                        <div t-if="event.event_city" class="popcorn-event-location">
+                                                            <i class="fa fa-map-marker popcorn-event-location-icon" title="Location"/>
+                                                            <small class="popcorn-event-location-text o_not_editable" itemprop="location" t-out="event.event_city"/>
+                                                        </div>
+                                                    </main>
+                                                </article>
+                                            </a>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </xpath>
+    </template>
+
+    <template id="popcorn_cart_product_price" inherit_id="website_sale.cart_product_price">
+        <xpath expr="." position="replace">
+            <t t-set="membership_pricing" t-value="line.get_popcorn_membership_cart_pricing() if line else {}"/>
+            <t t-if="membership_pricing">
+                <span class="d-block text-end">
+                    <del class="text-muted me-1"
+                         style="white-space: nowrap;"
+                         t-out="membership_pricing['base_price']"
+                         t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+                    <span style="white-space: nowrap;"
+                          t-out="product_price"
+                          t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+                    <small class="text-success d-block small mt-1">
+                        Membership discount <t t-esc="'%.2f' % membership_pricing['percent']"/>%
+                    </small>
+                </span>
+            </t>
+            <t t-else="">
+                <span
+                    t-out="product_price"
+                    style="white-space: nowrap;"
+                    t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"
+                />
+            </t>
+        </xpath>
+    </template>
+
+    <template id="popcorn_products_item_membership_label" inherit_id="website_sale.products_item">
+        <xpath expr="//div[contains(@class, 'product_price')]" position="inside">
+            <small t-if="template_price_vals.get('popcorn_membership_discount_percent')"
+                   class="text-success d-block small">
+                Membership price - 
+                <t t-esc="'%.2f' % template_price_vals['popcorn_membership_discount_percent']"/>%
+            </small>
+        </xpath>
+    </template>
+
     <!-- Override the checkout button on cart page to use WeChat direct payment -->
     <template id="popcorn_cart_checkout_button" inherit_id="website_sale.navigation_buttons" name="Popcorn Cart Checkout Button">
         <!-- Replace the checkout button on cart page only -->

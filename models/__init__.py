@@ -15,6 +15,9 @@ from . import popcorn_notification
 from . import popcorn_activity_sport
 from . import popcorn_activity_sport_category
 from . import res_config_settings
+from . import product_template
+from . import sale_order_line
+from . import website_sale_product_template
 
 
 

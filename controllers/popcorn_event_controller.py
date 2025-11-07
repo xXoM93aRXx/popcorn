@@ -198,6 +198,15 @@ class PopcornEventController(http.Controller):
                 searches.get('day_of_week')
             ])
             
+            # Force computation of computed fields for events (like has_conflicting_registration)
+            # by reading them explicitly
+            if events:
+                # Read the computed fields to ensure they're computed
+                events.mapped('has_conflicting_registration')
+                events.mapped('conflicting_event')
+                events.mapped('user_waitlist_position')
+                events.mapped('is_participating')
+            
             values = {
                 'current_date': current_date,
                 'current_country': current_country,
@@ -639,6 +648,36 @@ class PopcornEventController(http.Controller):
             
             error_param = url_quote(error_message)
             return werkzeug.utils.redirect('/memberships?error=' + error_param)
+        
+        # Check for conflicting registrations
+        if event.date_begin and event.date_end:
+            # Find all events where the user has ACTIVE registrations OR WAITLIST registrations that overlap with this event's time
+            active_registrations = request.env['event.registration'].search([
+                ('partner_id', '=', partner.id),
+                ('event_id', '!=', event.id),  # Exclude current event
+                '|',
+                ('state', 'in', ['open', 'done']),  # Active registrations
+                ('is_on_waitlist', '=', True)  # Or waitlist registrations
+            ])
+            
+            # Get the event IDs from these active registrations
+            active_event_ids = active_registrations.mapped('event_id.id')
+            
+            # Find events that overlap in time with the current event
+            overlapping_events = request.env['event.event'].search([
+                ('id', 'in', active_event_ids),  # Only events where user has active registrations
+                ('website_published', '=', True),
+                ('date_begin', '<', event.date_end),  # Other event starts before this one ends
+                ('date_end', '>', event.date_begin),  # Other event ends after this one starts
+            ])
+            
+            if overlapping_events:
+                conflicting_event = overlapping_events[0]
+                error_message = _('You already have a booking for another club at the same time: %s') % conflicting_event.name
+                if conflicting_event.event_chinese_name:
+                    error_message += f' ({conflicting_event.event_chinese_name})'
+                error_param = url_quote(error_message)
+                return redirect(f'/popcorn/event/{event.id}/register?error=' + error_param)
         
         # Determine event club type for consumption
         event_club_type = self._get_event_club_type(event)
