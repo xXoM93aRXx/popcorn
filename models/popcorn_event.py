@@ -581,7 +581,8 @@ class EventEvent(models.Model):
                 reg.write({
                     'is_on_waitlist': False,
                     'waitlist_position': 0,
-                    'state': 'open'
+                    'state': 'open',
+                    'pending_wechat_notification': True,
                 })
                 
                 # Consume membership quota
@@ -652,7 +653,8 @@ class EventEvent(models.Model):
             reg.write({
                 'is_on_waitlist': False,
                 'waitlist_position': 0,
-                'state': 'open'
+                'state': 'open',
+                'pending_wechat_notification': True,
             })
             
             # Consume membership quota
@@ -732,7 +734,8 @@ class EventEvent(models.Model):
                 reg.write({
                     'is_on_waitlist': False,
                     'waitlist_position': 0,
-                    'state': 'open'
+                    'state': 'open',
+                    'pending_wechat_notification': True,
                 })
                 
                 if reg.membership_id and reg.consumption_state == 'pending':
@@ -836,7 +839,8 @@ class EventEvent(models.Model):
                         reg.write({
                             'state': 'draft',
                             'is_on_waitlist': True,
-                            'consumption_state': 'pending'
+                            'consumption_state': 'pending',
+                            'pending_wechat_notification': False,
                         })
                         
                         reg.message_post(
@@ -847,10 +851,15 @@ class EventEvent(models.Model):
                     event._update_waitlist_positions()
                     
                     corrected_count += 1
+                    needs_notification_check = True
                     _logger.info(
                         f"Corrected overbooking for event {event.id}: "
                         f"Moved {len(excess_registrations)} registrations to waitlist"
                     )
+            
+            # Send notifications for promoted registrations (regardless of whether there was overbooking)
+            # This ensures notifications are sent even when no correction was needed
+            event._send_notifications_for_promoted_registrations()
         
         _logger.info(f"=== Overbooking correction complete: {corrected_count} events corrected ===")
         return corrected_count
@@ -923,7 +932,8 @@ class EventEvent(models.Model):
                     reg.write({
                         'state': 'draft',
                         'is_on_waitlist': True,
-                        'consumption_state': 'pending'
+                        'consumption_state': 'pending',
+                        'pending_wechat_notification': False,
                     })
                     
                     reg.message_post(
@@ -932,6 +942,83 @@ class EventEvent(models.Model):
                 
                 # Update waitlist positions
                 self._update_waitlist_positions()
+        
+        # Send notifications for promoted registrations (regardless of whether there was overbooking)
+        # This ensures notifications are sent even when no correction was needed
+        self._send_notifications_for_promoted_registrations()
+    
+    def _send_notifications_for_promoted_registrations(self):
+        """
+        Send notifications (including WeChat) for registrations that were promoted 
+        from waitlist and survived overbooking correction.
+        Uses the notification configured in system settings.
+        """
+        self.ensure_one()
+        
+        # Find registrations with pending notification that are still confirmed
+        promoted_registrations = self.registration_ids.filtered(
+            lambda r: r.pending_wechat_notification and
+                      r.state in ['open', 'confirmed', 'done'] and
+                      not r.is_on_waitlist
+        )
+        
+        if not promoted_registrations:
+            return
+        
+        # Get the notification from system settings
+        promotion_notification_id = int(
+            self.env['ir.config_parameter'].sudo().get_param(
+                'popcorn.waitlist_promotion_notification_id', 
+                '0'
+            )
+        )
+        
+        if not promotion_notification_id:
+            _logger.debug('No waitlist promotion notification configured in settings')
+            return
+        
+        promotion_notification = self.env['popcorn.notification'].browse(
+            promotion_notification_id
+        )
+        
+        if not promotion_notification.exists() or not promotion_notification.active:
+            _logger.warning(
+                f'Waitlist promotion notification {promotion_notification_id} not found or inactive'
+            )
+            return
+        
+        # Send notifications for each promoted registration
+        for reg in promoted_registrations:
+            partner = reg.partner_id
+            if not partner:
+                continue
+            
+            try:
+                # Evaluate rules first
+                if not promotion_notification._evaluate_notification_for_partner(partner):
+                    _logger.debug(
+                        f'Promotion notification rules did not match for partner {partner.id}'
+                    )
+                    continue
+                
+                # Rules passed! Get notification data and send
+                # This will automatically send WeChat if configured
+                # Pass the specific registration so event-specific placeholders work correctly
+                notification_data = promotion_notification.get_notification_data_for_partner(partner, registration=reg)
+                
+                if notification_data:
+                    # Notification was sent (WeChat sending happens automatically)
+                    reg.write({'pending_wechat_notification': False})
+                    _logger.info(
+                        f'Promotion notification "{promotion_notification.name}" sent to partner {partner.id} '
+                        f'for registration {reg.id} on event {self.id}'
+                    )
+            except Exception as e:
+                _logger.error(
+                    f'Error sending promotion notification for partner {partner.id}: {str(e)}',
+                    exc_info=True
+                )
+                # Keep flag set so it can be retried
     
     @api.model
     def _search_get_detail(self, website, order, options):
@@ -1129,6 +1216,45 @@ class EventEvent(models.Model):
                 _logger.warning('Could not find "Ended" stage for events')
         
         return len(events_to_end)
+
+    @api.model
+    def _cron_popcorn_correct_overbooking_new_events(self):
+        """Cron job to correct overbooking on newly published events."""
+
+        stage_new = self.env.ref('event.event_stage_new', raise_if_not_found=False)
+        domain = [
+            ('seats_limited', '=', True),
+            ('seats_max', '>', 0),
+            ('is_published', '=', True),
+        ]
+
+        if stage_new:
+            domain.append(('stage_id', '=', stage_new.id))
+        else:
+            domain.append(('stage_id.pipe_end', '=', False))
+
+        events = self.search(domain)
+
+        if not events:
+            return 0
+
+        processed = 0
+
+        for event in events:
+            try:
+                event._correct_overbooking_single()
+                processed += 1
+            except Exception as error:
+                _logger.error(
+                    "Error while correcting overbooking for event %s: %s",
+                    event.id,
+                    error,
+                )
+
+        _logger.info(
+            "Cron overbooking correction processed %s newly published events", processed
+        )
+        return processed
     
     def _process_event_referrals(self):
         """Process referrals for this event when it's marked as ended"""

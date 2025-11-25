@@ -193,6 +193,8 @@ odoo.define('popcorn.notifications', [], function () {
             popup.setAttribute('aria-modal', 'true');
             popup.setAttribute('aria-labelledby', 'popcorn-popup-title');
             
+            const isTermsAcceptance = notification.show_action_button && notification.action_button_url === '/popcorn/notifications/accept_terms';
+
             // Build popup HTML
             let popupHTML = `
                 <div class="popcorn-popup-header">
@@ -205,14 +207,26 @@ odoo.define('popcorn.notifications', [], function () {
             `;
 
             if (notification.show_action_button && notification.action_button_url) {
-                popupHTML += `
-                    <div class="popcorn-popup-footer">
-                        <a href="${notification.action_button_url}" class="popcorn-popup-action-btn">
-                            ${notification.action_button_text || 'Learn More'}
-                        </a>
-                        <button class="popcorn-popup-dismiss-btn">Close</button>
-                    </div>
-                `;
+                if (isTermsAcceptance) {
+                    popupHTML += `
+                        <div class="popcorn-popup-footer">
+                            <button class="popcorn-popup-action-btn popcorn-popup-agree-btn">
+                                ${notification.action_button_text || 'I Agree'}
+                            </button>
+                            <button class="popcorn-popup-dismiss-btn">Close</button>
+                        </div>
+                        <div class="popcorn-popup-error" role="alert" aria-live="assertive"></div>
+                    `;
+                } else {
+                    popupHTML += `
+                        <div class="popcorn-popup-footer">
+                            <a href="${notification.action_button_url}" class="popcorn-popup-action-btn">
+                                ${notification.action_button_text || 'Learn More'}
+                            </a>
+                            <button class="popcorn-popup-dismiss-btn">Close</button>
+                        </div>
+                    `;
+                }
             } else {
                 popupHTML += `
                     <div class="popcorn-popup-footer">
@@ -236,11 +250,65 @@ odoo.define('popcorn.notifications', [], function () {
             const dismissBtn = popup.querySelector('.popcorn-popup-dismiss-btn');
             
             closeBtn.addEventListener('click', () => this.dismissPopup(popup, overlay));
-            dismissBtn.addEventListener('click', () => this.dismissPopup(popup, overlay));
+            if (dismissBtn) {
+                dismissBtn.addEventListener('click', () => this.dismissPopup(popup, overlay));
+            }
             overlay.addEventListener('click', () => this.dismissPopup(popup, overlay));
 
             // Prevent overlay click from closing when clicking inside popup
             popup.addEventListener('click', (e) => e.stopPropagation());
+
+            const agreeBtn = popup.querySelector('.popcorn-popup-agree-btn');
+            if (agreeBtn) {
+                const errorContainer = popup.querySelector('.popcorn-popup-error');
+                agreeBtn.addEventListener('click', async (ev) => {
+                    ev.preventDefault();
+                    if (agreeBtn.disabled) {
+                        return;
+                    }
+                    const originalText = agreeBtn.textContent;
+                    agreeBtn.disabled = true;
+                    agreeBtn.classList.add('popcorn-popup-action-btn--loading');
+                    agreeBtn.textContent = 'Processing...';
+                    if (errorContainer) {
+                        errorContainer.textContent = '';
+                    }
+                    try {
+                        const response = await fetch('/popcorn/notifications/accept_terms', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                jsonrpc: '2.0',
+                                method: 'call',
+                                params: {},
+                            }),
+                        });
+                        const data = await response.json();
+                        const result = data && data.result ? data.result : {};
+                        if (result.success) {
+                            this.markAsShownForUser(notification.id);
+                            this.dismissPopup(popup, overlay);
+                        } else {
+                            agreeBtn.disabled = false;
+                            agreeBtn.classList.remove('popcorn-popup-action-btn--loading');
+                            agreeBtn.textContent = originalText;
+                            if (errorContainer) {
+                                errorContainer.textContent = result.error || 'Failed to save your agreement. Please try again.';
+                            }
+                        }
+                    } catch (error) {
+                        agreeBtn.disabled = false;
+                        agreeBtn.classList.remove('popcorn-popup-action-btn--loading');
+                        agreeBtn.textContent = originalText;
+                        if (errorContainer) {
+                            errorContainer.textContent = 'An unexpected error occurred. Please try again.';
+                        }
+                        console.error('Error confirming terms agreement:', error);
+                    }
+                });
+            }
         }
 
         dismissPopup(popup, overlay) {

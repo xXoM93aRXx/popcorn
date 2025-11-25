@@ -37,6 +37,13 @@ class PopcornEventRegistration(models.Model):
     is_on_waitlist = fields.Boolean(string='On Waitlist', default=False)
     waitlist_position = fields.Integer(string='Waitlist Position', default=0)
     
+    # Waitlist promotion tracking
+    pending_wechat_notification = fields.Boolean(
+        string='Pending WeChat Notification',
+        default=False,
+        help='Indicates if WeChat notification should be sent for this promotion'
+    )
+    
     # Computed field to check if cancellation is allowed
     can_cancel = fields.Boolean(string='Can Cancel', compute='_compute_can_cancel', store=False)
     
@@ -68,8 +75,13 @@ class PopcornEventRegistration(models.Model):
     # Computed fields for notifications
     hours_until_event = fields.Float(string='Hours Until Event', compute='_compute_hours_until_event', store=False)
     event_name = fields.Char(string='Event Name', related='event_id.name', readonly=True)
+    event_chinese_name = fields.Char(string='Event Chinese Name', related='event_id.event_chinese_name', readonly=True)
     event_venue_name = fields.Char(string='Venue Name', related='event_id.address_id.name', readonly=True)
     event_time_formatted = fields.Char(string='Event Time', compute='_compute_event_time_formatted', store=False)
+    event_time_wechat = fields.Char(string='Event Time (WeChat)', compute='_compute_event_time_wechat', store=False, 
+                                    help='Event time in 24-hour format (HH:mm) for WeChat template messages')
+    event_datetime_wechat = fields.Char(string='Event Date and Time (WeChat)', compute='_compute_event_datetime_wechat', store=False,
+                                        help='Event date and time formatted for WeChat (YYYY-MM-DD HH:mm format)')
     
     def _compute_hours_until_event(self):
         """Compute hours until event starts"""
@@ -120,6 +132,79 @@ class PopcornEventRegistration(models.Model):
                     registration.event_time_formatted = ''
             else:
                 registration.event_time_formatted = ''
+    
+    def _compute_event_time_wechat(self):
+        """Format event time in 24-hour format (HH:mm) for WeChat template messages"""
+        for registration in self:
+            if registration.event_id and registration.event_id.date_begin:
+                try:
+                    from odoo import fields
+                    import pytz
+                    from datetime import datetime
+                    
+                    # Get the datetime field value (always stored in UTC in Odoo)
+                    date_begin = registration.event_id.date_begin
+                    
+                    # Get timezone - prefer context, then user's tz, then partner's tz
+                    tz = (self._context.get('tz') or 
+                          (self.env.user.tz if self.env and self.env.user else None) or
+                          (registration.partner_id.tz if registration.partner_id else None) or
+                          'UTC')
+                    
+                    # If timezone-naive, localize to UTC (Odoo stores as naive UTC)
+                    if isinstance(date_begin, datetime):
+                        if date_begin.tzinfo is None:
+                            # Odoo stores datetimes as naive in UTC
+                            date_begin = pytz.UTC.localize(date_begin)
+                        
+                        # Convert to target timezone
+                        target_tz = pytz.timezone(tz)
+                        local_time = date_begin.astimezone(target_tz)
+                        
+                        # Format as "HH:MM" (24-hour format) for WeChat
+                        registration.event_time_wechat = local_time.strftime('%H:%M')
+                    else:
+                        registration.event_time_wechat = ''
+                except Exception as e:
+                    _logger.error(f"Error formatting event_time_wechat for registration {registration.id}: {e}", exc_info=True)
+                    registration.event_time_wechat = ''
+            else:
+                registration.event_time_wechat = ''
+    
+    def _compute_event_datetime_wechat(self):
+        """Format event date and time for WeChat template messages (YYYY-MM-DD HH:mm format)"""
+        for registration in self:
+            if registration.event_id and registration.event_id.date_begin:
+                try:
+                    import pytz
+                    from datetime import datetime
+                    
+                    date_begin = registration.event_id.date_begin
+                    
+                    # Get timezone - prefer context, then user's tz, then partner's tz
+                    tz = (self._context.get('tz') or 
+                          (self.env.user.tz if self.env and self.env.user else None) or
+                          (registration.partner_id.tz if registration.partner_id else None) or
+                          'UTC')
+                    
+                    # If timezone-naive, localize to UTC (Odoo stores as naive UTC)
+                    if isinstance(date_begin, datetime):
+                        if date_begin.tzinfo is None:
+                            date_begin = pytz.UTC.localize(date_begin)
+                        
+                        # Convert to target timezone
+                        target_tz = pytz.timezone(tz)
+                        local_time = date_begin.astimezone(target_tz)
+                        
+                        # Format as "YYYY-MM-DD HH:mm" (WeChat compatible format)
+                        registration.event_datetime_wechat = local_time.strftime('%Y-%m-%d %H:%M')
+                    else:
+                        registration.event_datetime_wechat = ''
+                except Exception as e:
+                    _logger.error(f"Error formatting event_datetime_wechat for registration {registration.id}: {e}", exc_info=True)
+                    registration.event_datetime_wechat = ''
+            else:
+                registration.event_datetime_wechat = ''
     
     @api.depends('event_id.tag_ids')
     def _compute_club_type(self):
@@ -459,7 +544,8 @@ class PopcornEventRegistration(models.Model):
                     next_waitlist_reg.write({
                         'is_on_waitlist': False,
                         'waitlist_position': 0,
-                        'state': 'open'
+                        'state': 'open',
+                        'pending_wechat_notification': True,
                     })
                     
                     # Consume membership quota for the promoted registration
@@ -566,7 +652,8 @@ class PopcornEventRegistration(models.Model):
             next_waitlist_reg.with_context(promoting_waitlist=True).write({
                 'is_on_waitlist': False,
                 'waitlist_position': 0,
-                'state': 'open'
+                'state': 'open',
+                'pending_wechat_notification': True,
             })
             
             # Consume membership quota for the promoted registration
@@ -961,7 +1048,8 @@ class PopcornEventRegistration(models.Model):
                             next_waitlist_reg.write({
                                 'is_on_waitlist': False,
                                 'waitlist_position': 0,
-                                'state': 'open'
+                                'state': 'open',
+                                'pending_wechat_notification': True,
                             })
                             
                             # Consume membership quota for the promoted registration
@@ -1040,34 +1128,48 @@ class PopcornEventRegistration(models.Model):
             
         transaction = self.payment_transaction_id
         
-        # Only process WeChat payments that are completed
-        if transaction.provider_code != 'wechat' or transaction.state != 'done':
+        # Only process WeChat and Alipay payments that are completed
+        if transaction.provider_code not in ['wechat', 'alipay'] or transaction.state != 'done':
             _logger.info(f"Skipping automatic refund for registration {self.id}: provider={transaction.provider_code}, state={transaction.state}")
             return
             
         # Check if already refunded
-        if transaction.wechat_transaction_id and 'REF-' in str(transaction.wechat_transaction_id):
-            _logger.info(f"Registration {self.id} already refunded: {transaction.wechat_transaction_id}")
+        # For WeChat: check wechat_transaction_id for REF- prefix
+        # For Alipay: check if there are any refund child transactions
+        already_refunded = False
+        if transaction.provider_code == 'wechat':
+            if transaction.wechat_transaction_id and 'REF-' in str(transaction.wechat_transaction_id):
+                already_refunded = True
+        elif transaction.provider_code == 'alipay':
+            # Check if there are any refund child transactions
+            refund_txs = transaction.child_transaction_ids.filtered(lambda tx: tx.state == 'done')
+            if refund_txs:
+                already_refunded = True
+        
+        if already_refunded:
+            _logger.info(f"Registration {self.id} already refunded: provider={transaction.provider_code}")
             return
             
-        _logger.info(f"Processing automatic refund for registration {self.id}, transaction amount: {transaction.amount}")
+        _logger.info(f"Processing automatic refund for registration {self.id}, provider={transaction.provider_code}, transaction amount: {transaction.amount}")
         
         try:
             # Call the refund method (will refund the transaction amount automatically)
             transaction.action_refund()
             
-            # Post success message
+            # Post success message with provider name
+            provider_name = 'WeChat Pay' if transaction.provider_code == 'wechat' else 'Alipay'
             self.message_post(
-                body=_('Automatic refund processed: ¥%s refunded to WeChat Pay. Transaction: %s') % (
+                body=_('Automatic refund processed: ¥%s refunded to %s. Transaction: %s') % (
                     transaction.amount,
+                    provider_name,
                     transaction.reference
                 )
             )
             
-            _logger.info(f"Automatic refund successful for registration {self.id}, amount: {transaction.amount}")
+            _logger.info(f"Automatic refund successful for registration {self.id}, provider={transaction.provider_code}, amount: {transaction.amount}")
             
         except Exception as e:
-            _logger.error(f"WeChat Pay refund failed for registration {self.id}: {str(e)}")
+            _logger.error(f"Refund failed for registration {self.id}, provider={transaction.provider_code}: {str(e)}")
             raise UserError(_('Failed to process automatic refund: %s') % str(e))
 
     def unlink(self):

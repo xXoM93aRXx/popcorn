@@ -18,6 +18,14 @@ class ResConfigSettings(models.TransientModel):
         related='company_id.currency_id',
         readonly=True
     )
+    
+    waitlist_promotion_notification_id = fields.Many2one(
+        'popcorn.notification',
+        string='Waitlist Promotion Notification',
+        domain=[('active', '=', True), ('send_wechat_notification', '=', True)],
+        config_parameter='popcorn.waitlist_promotion_notification_id',
+        help='Notification to send when a user is promoted from waitlist to confirmed registration. Configure WeChat template and field mappings in the notification record.'
+    )
 
 
 

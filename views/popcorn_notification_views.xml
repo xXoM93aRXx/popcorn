@@ -91,23 +91,6 @@
                                 <field name="message" widget="html" 
                                        placeholder="Use {field_name} for dynamic content from partner"/>
                             </group>
-                            <group string="WeChat Notification">
-                                <field name="send_wechat_notification"/>
-                                <field name="wechat_notification_message" widget="html" invisible="not send_wechat_notification"
-                                       placeholder="Optional: Custom WeChat message (overrides default)"/>
-                                <field name="wechat_template_id" invisible="not send_wechat_notification"
-                                       placeholder="e.g., wRoqnZ8RiLyekbZFk8qU0B4nMMwm5nLKumXZ5rSCYb4"
-                                       help="Template ID from WeChat Official Account platform"/>
-                                <field name="last_wechat_cron_run" readonly="1" invisible="1"/>
-                                <group string="Template Field Mapping" invisible="not send_wechat_notification" col="2">
-                                    <field name="wechat_first_field" placeholder="{title}"/>
-                                    <field name="wechat_keyword1_field" placeholder="{name}"/>
-                                    <field name="wechat_keyword2_field" placeholder="{event_name}"/>
-                                    <field name="wechat_keyword3_field" placeholder="{event_start_time}"/>
-                                    <field name="wechat_keyword4_field" placeholder="{event_location}"/>
-                                    <field name="wechat_remark_field" placeholder="{remarks}"/>
-                                </group>
-                            </group>
                         </group>
                         
                         <group>

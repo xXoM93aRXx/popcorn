@@ -853,6 +853,7 @@ class PopcornEventController(http.Controller):
         values = {
             'event': event,
             'partner': partner,
+            'phone_verification_required': not partner.phone,
         }
         
         return request.render('popcorn.event_checkout_page', values)
@@ -897,12 +898,48 @@ class PopcornEventController(http.Controller):
             if not kwargs.get('name') or not kwargs.get('phone'):
                 return request.redirect(f'/popcorn/event/{event.id}/checkout?error=missing_fields')
             
-            # Update partner information
-            partner_vals = {
-                'name': kwargs.get('name'),
-                'phone': kwargs.get('phone'),
-            }
-            partner.write(partner_vals)
+            # Update partner name (always allowed)
+            partner.write({'name': kwargs.get('name')})
+
+            Users = request.env['res.users'].sudo()
+            sanitized_input_phone = Users._sanitize_phone(kwargs.get('phone'))
+            sanitized_partner_phone = Users._sanitize_phone(partner.phone)
+            if not sanitized_input_phone:
+                return request.redirect(f'/popcorn/event/{event.id}/checkout?error=invalid_phone_format')
+            phone_needs_verification = not sanitized_partner_phone or sanitized_partner_phone != sanitized_input_phone
+
+            if phone_needs_verification:
+                verification_code = (kwargs.get('phone_verification_code') or '').strip()
+                if not verification_code:
+                    return request.redirect(f'/popcorn/event/{event.id}/checkout?error=phone_verification_required')
+
+                # Ensure the code corresponds to the latest requested phone
+                candidate_phone = request.session.get('phone_verification_candidate')
+                if not candidate_phone or candidate_phone != sanitized_input_phone:
+                    _logger.warning(
+                        'Phone verification mismatch for event checkout: input=%s, candidate=%s, partner_id=%s',
+                        sanitized_input_phone,
+                        candidate_phone,
+                        partner.id,
+                    )
+                    return request.redirect(f'/popcorn/event/{event.id}/checkout?error=phone_verification_mismatch')
+
+                user = request.env.user.sudo()
+                is_valid, _error = user.verify_phone_code(verification_code)
+                if not is_valid:
+                    # Clear the session candidate so the customer must request a new OTP
+                    request.session.pop('phone_verification_candidate', None)
+                    return request.redirect(f'/popcorn/event/{event.id}/checkout?error=invalid_verification_code')
+
+                # Verification succeeded; store sanitized phone on partner
+                partner.write({
+                    'phone': sanitized_input_phone,
+                    'mobile': sanitized_input_phone,
+                })
+                request.session.pop('phone_verification_candidate', None)
+            else:
+                # Phone already on file and matches the submitted value
+                partner.write({'phone': sanitized_input_phone, 'mobile': sanitized_input_phone})
             
             # Get applied discount ID from coupon code (if any)
             applied_discount_id = kwargs.get('applied_discount_id')
@@ -1153,27 +1190,19 @@ class PopcornEventController(http.Controller):
                     'partner_id': partner.id,
                     'reference': f'EVENT-{event.id}-{partner.id}-{timestamp}',
                     'state': 'draft',
-                })
-                
-                _logger.info(f"WeChat event payment transaction created with ID: {payment_transaction.id}")
-                
-                # Store transaction ID and event purchase data in session for callback (NO registration created yet)
-                request.session['payment_transaction_id'] = payment_transaction.id
-                # event_purchase_details is already stored in session above
-                
-                # Store the event purchase data in session for WeChat success callback
-                request.session['wechat_pending_event_purchase'] = {
+                    # Store popcorn transaction data directly on transaction
+                    'popcorn_transaction_type': 'event',
                     'event_id': event.id,
-                    'partner_id': partner.id,
-                    'event_price': event.event_price,
-                    'payment_provider_id': payment_provider.id,
-                    'payment_provider_name': payment_provider.name,
                     'use_popcorn_money': use_popcorn_money,
                     'popcorn_money_to_use': popcorn_money_to_use,
                     'remaining_amount': remaining_amount,
-                    'applied_discount_id': applied_discount.id if applied_discount else None,
-                }
+                    'applied_discount_id': applied_discount.id if applied_discount else False,
+                })
                 
+                _logger.info(f"WeChat event payment transaction created with ID: {payment_transaction.id}, "
+                           f"event: {event.name}")
+                
+                # All data is now stored on transaction - no session needed
                 # Redirect to WeChat OAuth2 flow
                 wechat_oauth_url = f'/payment/wechat/oauth2/authorize?transaction_id={payment_transaction.reference}'
                 _logger.info(f"Redirecting to WeChat OAuth2 for event purchase: {wechat_oauth_url}")
@@ -1201,18 +1230,6 @@ class PopcornEventController(http.Controller):
                 import time
                 timestamp = int(time.time())
                 
-                # Prepare pending purchase data to store in transaction (for webhook processing)
-                import json
-                pending_purchase_json = json.dumps({
-                    'type': 'event',
-                    'event_id': event.id,
-                    'partner_id': partner.id,
-                    'event_price': event.event_price,
-                    'popcorn_money_to_use': popcorn_money_to_use,
-                    'remaining_amount': remaining_amount,
-                    'use_popcorn_money': use_popcorn_money,
-                })
-                
                 payment_transaction = request.env['payment.transaction'].sudo().create({
                     'provider_id': payment_provider.id,
                     'payment_method_id': payment_method.id,
@@ -1221,7 +1238,13 @@ class PopcornEventController(http.Controller):
                     'partner_id': partner.id,
                     'reference': f'EVENT-{event.id}-{partner.id}-{timestamp}',
                     'state': 'draft',
-                    'pending_purchase_data': pending_purchase_json,  # Store for webhook processing
+                    # Store popcorn transaction data directly on transaction
+                    'popcorn_transaction_type': 'event',
+                    'event_id': event.id,
+                    'use_popcorn_money': use_popcorn_money,
+                    'popcorn_money_to_use': popcorn_money_to_use,
+                    'remaining_amount': remaining_amount,
+                    'applied_discount_id': applied_discount.id if applied_discount else False,
                 })
                 
                 _logger.info(f"Alipay event payment transaction created with ID: {payment_transaction.id}")
@@ -1231,18 +1254,27 @@ class PopcornEventController(http.Controller):
                 request.session['payment_transaction_id'] = payment_transaction.id
                 # event_purchase_details is already stored in session above
                 
-                # Get Alipay payment URL
-                alipay_payment_url = payment_transaction._get_payment_link()
+                # Get Alipay payment URL using the same method as other payment providers
+                # This ensures consistency and proper redirect handling
+                try:
+                    payment_link = payment_transaction._get_specific_rendering_values(None)
+                    if payment_link and 'action_url' in payment_link:
+                        alipay_payment_url = payment_link['action_url']
+                        _logger.info(f"Redirecting to Alipay payment for event purchase: {alipay_payment_url[:100]}...")
+                        return redirect(alipay_payment_url, code=302)
+                    else:
+                        # Fallback to direct payment link method
+                        alipay_payment_url = payment_transaction._get_payment_link()
+                        if alipay_payment_url:
+                            _logger.info(f"Redirecting to Alipay payment for event purchase (fallback): {alipay_payment_url[:100]}...")
+                            return redirect(alipay_payment_url, code=302)
+                except Exception as e:
+                    _logger.error(f"Failed to get Alipay payment URL for event: {str(e)}", exc_info=True)
                 
-                if not alipay_payment_url:
-                    _logger.error("Failed to get Alipay payment URL")
-                    request.session.pop('event_purchase_details', None)
-                    return request.redirect(f'/popcorn/event/{event.id}/checkout?error=gateway_unavailable')
-                
-                # Redirect to Alipay payment page
-                _logger.info(f"Redirecting to Alipay payment for event purchase: {alipay_payment_url[:100]}...")
-                from werkzeug.utils import redirect
-                return redirect(alipay_payment_url, code=302)
+                # If we get here, payment URL generation failed
+                _logger.error("Failed to get Alipay payment URL for event - no action_url or payment_link available")
+                request.session.pop('event_purchase_details', None)
+                return request.redirect(f'/popcorn/event/{event.id}/checkout?error=gateway_unavailable')
             else:
                 # For all other online payments (Stripe/PayPal/etc), create payment transaction and redirect to gateway
                 _logger.info(f"Creating payment transaction for event purchase, provider: {payment_provider.name}")
@@ -1274,9 +1306,17 @@ class PopcornEventController(http.Controller):
                     'partner_id': partner.id,
                     'reference': f'EVENT-{event.id}-{partner.id}-{timestamp}',
                     'state': 'draft',
+                    # Store popcorn transaction data directly on transaction
+                    'popcorn_transaction_type': 'event',
+                    'event_id': event.id,
+                    'use_popcorn_money': use_popcorn_money,
+                    'popcorn_money_to_use': popcorn_money_to_use,
+                    'remaining_amount': remaining_amount,
+                    'applied_discount_id': applied_discount.id if applied_discount else False,
                 })
                 
-                _logger.info(f"Event payment transaction created with ID: {payment_transaction.id}")
+                _logger.info(f"Event payment transaction created with ID: {payment_transaction.id}, "
+                           f"event: {event.name}")
                 
                 # Store transaction ID and event purchase data in session for callback (NO registration created yet)
                 request.session['payment_transaction_id'] = payment_transaction.id
@@ -1335,18 +1375,7 @@ class PopcornEventController(http.Controller):
             _logger.info(f"WeChat pending event purchase in session: {bool(request.session.get('wechat_pending_event_purchase'))}")
             _logger.info(f"Regular event purchase details in session: {bool(request.session.get('event_purchase_details'))}")
             
-            # Get pending event purchase data from session (try both keys)
-            pending_event_purchase = request.session.get('wechat_pending_event_purchase')
-            if not pending_event_purchase:
-                _logger.warning("No WeChat pending event purchase found, trying regular event purchase details")
-                pending_event_purchase = request.session.get('event_purchase_details')
-                
-            if not pending_event_purchase:
-                _logger.error("No pending event purchase found in session (neither WeChat nor regular)")
-                _logger.error(f"Session contents: {dict(request.session)}")
-                return request.redirect(f'/popcorn/event/{event.id}/checkout?error=session_expired')
-            
-            # Get the transaction
+            # Get the transaction (no longer need session data - all data is on transaction)
             transaction = None
             _logger.info(f"Looking for transaction with ID/reference: {transaction_id_param}")
             
@@ -1382,81 +1411,42 @@ class PopcornEventController(http.Controller):
             
             _logger.info(f"Found transaction: {transaction.id}, State: {transaction.state}, Provider: {transaction.provider_id.name if transaction.provider_id else 'None'}")
             
-            # Mark transaction as done (WeChat payment was successful)
-            transaction.write({'state': 'done'})
+            # IMPORTANT: Do NOT mark transaction as done here - let backend polling handle it
+            # The frontend should only check status and display confirmation screen
             
-            # Create event registration now
-            _logger.info(f"Creating event registration with data: {pending_event_purchase}")
-            partner = request.env['res.partner'].sudo().browse(pending_event_purchase['partner_id'])
+            # Check if registration already exists (backend polling may have created it)
+            existing_registration = request.env['event.registration'].sudo().search([
+                ('payment_transaction_id', '=', transaction.id)
+            ], limit=1)
             
-            # Deduct popcorn money if used
-            if pending_event_purchase.get('use_popcorn_money') and pending_event_purchase.get('popcorn_money_to_use', 0) > 0:
-                partner.deduct_popcorn_money(pending_event_purchase['popcorn_money_to_use'], f'Event registration: {event.name}')
+            if existing_registration:
+                _logger.info(f"Event registration {existing_registration.id} already exists for transaction {transaction.reference}, "
+                           f"showing success page (created by backend polling)")
+                # Show success page with existing registration
+                values = {
+                    'event': event,
+                    'partner': request.env.user.partner_id,
+                    'registration': existing_registration,
+                    'purchase_price': event.event_price,
+                    'transaction': transaction,
+                }
+                return request.render('popcorn.event_direct_purchase_success_page', values)
             
-            # Apply discount if used (CRITICAL: Must mark discount as used to prevent reuse)
-            applied_discount_id = pending_event_purchase.get('applied_discount_id')
-            applied_discount = None
-            if applied_discount_id:
-                applied_discount = request.env['popcorn.discount'].sudo().browse(applied_discount_id)
-                if applied_discount.exists():
-                    _logger.info(f"Applying discount: {applied_discount.code}")
-                    _logger.info(f"Discount usage count before: {applied_discount.usage_count}")
-                    applied_discount.action_increment_usage()
-                    _logger.info(f"Discount usage count after: {applied_discount.usage_count}")
-                    
-                    # Calculate discounted price
-                    discounted_price = applied_discount.get_discounted_price(event.event_price)
-                    
-                    # Create usage record
-                    request.env['popcorn.discount.usage'].sudo().create({
-                        'discount_id': applied_discount.id,
-                        'partner_id': partner.id,
-                        'original_price': event.event_price,
-                        'discounted_price': discounted_price,
-                        'currency_id': event.currency_id.id if event.currency_id else request.env.company.currency_id.id,
-                        'event_id': event.id,
-                        'extra_days': applied_discount.get_extra_days(None, partner)
-                    })
-                    _logger.info(f"Discount usage record created for WeChat payment")
+            # Registration doesn't exist yet - backend polling is still processing
+            # Show "processing" confirmation screen that will poll for registration status
+            _logger.info(f"Payment successful for transaction {transaction.reference}, but registration not yet created. "
+                        f"Showing processing screen - backend polling will create registration.")
             
-            _logger.info(f"Partner exists: {partner.exists()}")
-            _logger.info(f"Partner name: {partner.name if partner.exists() else 'N/A'}")
-            
-            if not partner.exists():
-                _logger.error(f"Invalid partner - Partner ID: {pending_event_purchase.get('partner_id')}")
-                return request.redirect(f'/popcorn/event/{event.id}/checkout?error=invalid_data')
-            
-            # Create the event registration (using only standard fields)
-            _logger.info("Creating event registration")
-            registration_vals = {
-                'event_id': event.id,
-                'partner_id': partner.id,
-                'name': partner.name,
-                'email': partner.email,
-                'phone': partner.phone,
-                'state': 'open',
-                'payment_amount': pending_event_purchase.get('event_price', 0),
-                'payment_transaction_id': transaction.id,  # Link to payment transaction
+            values = {
+                'event': event,
+                'partner': request.env.user.partner_id,
+                'registration': None,  # Will be created by backend polling
+                'purchase_price': event.event_price,
+                'transaction': transaction,
+                'transaction_id': transaction.reference,  # Pass to template for client-side polling
+                'processing': True,  # Flag to enable client-side polling in template
             }
-            
-            registration = request.env['event.registration'].sudo().create(registration_vals)
-            _logger.info(f"Event registration created with ID: {registration.id}, State: {registration.state}, Payment Transaction: {transaction.id}")
-            
-            registration.message_post(
-                body=_('Direct purchase registration for event: %s. Price: %s. Payment successful via %s. Transaction: %s. Event registration created and activated.') % (event.name, pending_event_purchase['event_price'], transaction.provider_id.name, transaction.reference)
-            )
-            _logger.info(f"Event registration message posted")
-            
-            # Clear session data
-            request.session.pop('payment_transaction_id', None)
-            request.session.pop('event_purchase_details', None)
-            request.session.pop('wechat_pending_event_purchase', None)
-            
-            _logger.info(f"Event payment successful. Registration created with ID: {registration.id}")
-            _logger.info(f"Final registration details - ID: {registration.id}, State: {registration.state}, Partner: {registration.partner_id.name}")
-            
-            # Continue to show success page with the created registration
-            # (don't redirect, just continue with the existing registration)
+            return request.render('popcorn.event_direct_purchase_success_page', values)
         
         # Regular success page handling
         if registration_id:

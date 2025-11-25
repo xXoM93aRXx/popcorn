@@ -1,10 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data noupdate="1">
+        <record id="res_partner_category_terms_agreed" model="res.partner.category">
+            <field name="name">Terms of Agreement Accepted</field>
+            <field name="color">2</field>
+        </record>
         
         <!-- Note: These notifications use dynamic content from membership and event registration fields.
              The notification system will fetch the user's active membership/upcoming event and display
              the actual values. All rules must be satisfied (AND logic) for notification to show. -->
+        
+        <!-- ==================== TERMS AGREEMENT NOTIFICATION ==================== -->
+        <record id="notification_terms_agreement" model="popcorn.notification">
+            <field name="name">Terms Agreement Consent</field>
+            <field name="sequence">5</field>
+            <field name="notification_type">popup</field>
+            <field name="title">Terms Of Agreement</field>
+            <field name="message"><![CDATA[
+                <p>Welcome back, {name}.</p>
+                <p>Please review our <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Agreement</a> and confirm you agree to continue using Popcorn Club services.</p>
+            ]]></field>
+            <field name="popup_size">medium</field>
+            <field name="show_action_button" eval="True"/>
+            <field name="action_button_text">I Agree</field>
+            <field name="action_button_url">/popcorn/notifications/accept_terms</field>
+            <field name="show_once_per_session" eval="False"/>
+            <field name="show_once_per_user" eval="False"/>
+            <field name="auto_dismiss" eval="False"/>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <record id="notification_rule_terms_non_first_timer" model="popcorn.notification.rule">
+            <field name="name">Terms - Returning Customer</field>
+            <field name="notification_id" ref="notification_terms_agreement"/>
+            <field name="sequence">1</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="field_id" ref="popcorn.field_res_partner__is_first_timer"/>
+            <field name="operator">=</field>
+            <field name="value">false</field>
+            <field name="active" eval="True"/>
+        </record>
         
         <!-- ==================== GOLD CARD NOTIFICATIONS ==================== -->
         
@@ -572,6 +607,62 @@
             <field name="field_id" ref="event.field_event_registration__state"/>
             <field name="operator">!=</field>
             <field name="value">cancel</field>
+            <field name="active" eval="True"/>
+        </record>
+        
+        <!-- ==================== WAITLIST PROMOTION NOTIFICATION ==================== -->
+        <record id="notification_waitlist_promotion" model="popcorn.notification">
+            <field name="name">Waitlist Promotion - Confirmed</field>
+            <field name="sequence">40</field>
+            <field name="notification_type">banner</field>
+            <field name="title">Great News! You're Confirmed!</field>
+            <field name="message"><![CDATA[
+                <p>Hey {name},</p>
+                <p>Good news! A spot opened up and you've been promoted from the waitlist for <strong>{event_name}</strong>.</p>
+                <p>See you at <strong>{event_time_formatted}</strong> at <strong>{event_venue_name}</strong>!</p>
+            ]]></field>
+            <field name="banner_position">top</field>
+            <field name="banner_style">success</field>
+            <field name="auto_dismiss" eval="True"/>
+            <field name="dismiss_duration">10</field>
+            <field name="show_action_button" eval="False"/>
+            <field name="show_once_per_session" eval="True"/>
+            <field name="show_once_per_user" eval="False"/>
+            <field name="send_wechat_notification" eval="True"/>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- Rules for promotion notification -->
+        <record id="notification_rule_promotion_pending" model="popcorn.notification.rule">
+            <field name="name">Promotion - Pending Notification</field>
+            <field name="notification_id" ref="notification_waitlist_promotion"/>
+            <field name="sequence">1</field>
+            <field name="model_id" ref="event.model_event_registration"/>
+            <field name="field_id" ref="popcorn.field_event_registration__pending_wechat_notification"/>
+            <field name="operator">=</field>
+            <field name="value">true</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <record id="notification_rule_promotion_not_waitlist" model="popcorn.notification.rule">
+            <field name="name">Promotion - Not on Waitlist</field>
+            <field name="notification_id" ref="notification_waitlist_promotion"/>
+            <field name="sequence">2</field>
+            <field name="model_id" ref="event.model_event_registration"/>
+            <field name="field_id" ref="popcorn.field_event_registration__is_on_waitlist"/>
+            <field name="operator">=</field>
+            <field name="value">false</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <record id="notification_rule_promotion_state" model="popcorn.notification.rule">
+            <field name="name">Promotion - Confirmed State</field>
+            <field name="notification_id" ref="notification_waitlist_promotion"/>
+            <field name="sequence">3</field>
+            <field name="model_id" ref="event.model_event_registration"/>
+            <field name="field_id" ref="event.field_event_registration__state"/>
+            <field name="operator">=</field>
+            <field name="value">open</field>
             <field name="active" eval="True"/>
         </record>
         

@@ -42,10 +42,13 @@
                             
                             <!-- Show membership-based registration if user has access -->
                             <t t-if="has_membership_access">
-                                <form t-attf-action="/popcorn/event/#{event.id}/registration/confirm" method="POST">
+                                <form t-attf-action="/popcorn/event/#{event.id}/registration/confirm" method="POST" id="event-registration-form">
                                     <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                                    <button type="submit" class="popcorn-event-btn popcorn-event-btn-primary">
-                                        <i class="fa fa-check"></i> <span t-translation="on">Register for Club</span>
+                                    <button type="submit" id="register-club-btn" class="popcorn-event-btn popcorn-event-btn-primary">
+                                        <i class="fa fa-check"></i> <span class="btn-text" t-translation="on">Register for Club</span>
+                                        <span class="btn-loading" style="display: none;">
+                                            <i class="fa fa-spinner fa-spin"></i> <span t-translation="on">Registering...</span>
+                                        </span>
                                     </button>
                                 </form>
                                 
@@ -323,6 +326,10 @@
                                             <i class="fa fa-exclamation-triangle popcorn-error-icon"></i>
                                             <span class="popcorn-error-text">
                                                 <t t-if="request.params.get('error') == 'missing_fields'">Please fill in all required fields (Name and Phone Number).</t>
+                                                <t t-elif="request.params.get('error') == 'invalid_phone_format'">Please enter a valid phone number using digits only.</t>
+                                                <t t-elif="request.params.get('error') == 'phone_verification_required'">Please verify your phone number before completing checkout.</t>
+                                                <t t-elif="request.params.get('error') == 'phone_verification_mismatch'">Please request a new verification code for the phone number you entered.</t>
+                                                <t t-elif="request.params.get('error') == 'invalid_verification_code'">The verification code is invalid or has expired. Please request a new one.</t>
                                                 <t t-elif="request.params.get('error') == 'missing_payment_method'">Please select a payment method.</t>
                                                 <t t-elif="request.params.get('error') == 'terms_not_accepted'">Please accept the terms and conditions.</t>
                                                 <t t-elif="request.params.get('error') == 'invalid_payment_method'">Invalid payment method selected.</t>
@@ -364,6 +371,21 @@
                                             <input type="tel" id="phone" name="phone" class="popcorn-form-input" 
                                                    t-att-value="request.env.user.partner_id.phone or ''" required="required"/>
                                         </div>
+                                        <t t-if="phone_verification_required">
+                                            <div class="popcorn-form-group">
+                                                <label for="phone_verification_code" class="popcorn-form-label">Verification Code</label>
+                                                <div class="popcorn-verification-group">
+                                                    <input type="text" id="phone_verification_code" name="phone_verification_code" class="popcorn-form-input" placeholder="Enter SMS code" />
+                                                    <button type="button" id="event_send_phone_otp" class="popcorn-btn popcorn-btn-secondary popcorn-phone-otp-btn"
+                                                            data-phone-input="#phone"
+                                                            data-message-target="#event_phone_otp_message"
+                                                            data-code-target="#phone_verification_code">
+                                                        <i class="fa fa-paper-plane"></i> Send Code
+                                                    </button>
+                                                </div>
+                                                <small id="event_phone_otp_message" class="text-muted"></small>
+                                            </div>
+                                        </t>
                                     </div>
                                     
                                     <!-- Popcorn Money Section -->

@@ -67,59 +67,6 @@ class PopcornNotification(models.Model):
                                           help='Show notification only once per user session')
     show_once_per_user = fields.Boolean('Show Once Per User', default=False,
                                        help='Show notification only once per user (stored in browser)')
-    
-    # --- BEGIN: WeChat Notification Fields ---
-    send_wechat_notification = fields.Boolean(
-        string='Send WeChat Notification',
-        default=False,
-        help='Enable to send this notification via WeChat Official Account'
-    )
-    wechat_notification_message = fields.Html(
-        string='WeChat Notification Message',
-        translate=True,
-        help='Optional message body to send via WeChat (overrides default message if provided)'
-    )
-    wechat_template_id = fields.Char(
-        string='WeChat Template ID',
-        help='Template message ID from WeChat Official Account platform'
-    )
-    wechat_first_field = fields.Char(
-        string='First Field',
-        help='Field to use for "first" placeholder. Use {field_name} syntax, e.g., {name}, {event_name}'
-    )
-    wechat_keyword1_field = fields.Char(
-        string='Keyword1 Field',
-        help='Field to use for "keyword1" placeholder. Use {field_name} syntax'
-    )
-    wechat_keyword2_field = fields.Char(
-        string='Keyword2 Field',
-        help='Field to use for "keyword2" placeholder. Use {field_name} syntax'
-    )
-    wechat_keyword3_field = fields.Char(
-        string='Keyword3 Field',
-        help='Field to use for "keyword3" placeholder. Use {field_name} syntax'
-    )
-    wechat_keyword4_field = fields.Char(
-        string='Keyword4 Field',
-        help='Field to use for "keyword4" placeholder. Use {field_name} syntax'
-    )
-    wechat_remark_field = fields.Char(
-        string='Remark Field',
-        help='Field to use for "remark" placeholder. Use {field_name} syntax'
-    )
-    last_wechat_cron_run = fields.Datetime(
-        string='Last Cron Run',
-        help='Timestamp of the last cron evaluation for this notification'
-    )
-    wechat_sent_partner_ids = fields.Many2many(
-        'res.partner',
-        'popcorn_notification_wechat_sent_rel',
-        'notification_id',
-        'partner_id',
-        string='WeChat Sent To',
-        help='Partners who have already received this WeChat notification'
-    )
-    # --- END: WeChat Notification Fields ---
 
     def _evaluate_notification_for_partner(self, partner):
         """Evaluate if a partner should see this notification based on all rules"""
@@ -138,8 +85,354 @@ class PopcornNotification(models.Model):
                 return False
         return True
     
-    def _get_dynamic_content(self, partner, content):
-        """Replace dynamic placeholders in content with actual partner, membership, and event registration data"""
+    def _bulk_filter_partners_for_notification(self):
+        """
+        Bulk filter partners that match this notification's rules using Odoo ORM.
+        This is much more efficient than evaluating each partner individually.
+        
+        Returns: recordset of res.partner records that match all rules
+        """
+        self.ensure_one()
+        
+        _logger.debug(f'[Bulk Filter] Starting bulk filter for notification "{self.name}" (ID: {self.id})')
+        
+        if not self.active:
+            _logger.debug(f'[Bulk Filter] Notification {self.id} is not active, returning empty')
+            return self.env['res.partner'].browse()
+        
+        active_rules = self.notification_rule_ids.filtered('active')
+        _logger.debug(f'[Bulk Filter] Found {len(active_rules)} active rule(s)')
+        
+        if not active_rules:
+            # No rules - but we still shouldn't search all partners
+            # Return empty - notifications should have rules
+            _logger.warning('[Bulk Filter] No active rules, returning empty (notifications should have rules)')
+            return self.env['res.partner'].browse()
+        
+        # Group rules by model to build efficient domain queries
+        rules_by_model = {}
+        for rule in active_rules:
+            model_name = rule.model_id.model if rule.model_id else None
+            if model_name not in rules_by_model:
+                rules_by_model[model_name] = []
+            rules_by_model[model_name].append(rule)
+        
+        _logger.debug(f'[Bulk Filter] Rules grouped by model: {list(rules_by_model.keys())}')
+        
+        # Determine primary model to start from (most selective)
+        # Priority: membership > discount > event.registration > res.partner
+        # We MUST start from a related model, never from all partners
+        primary_model = None
+        if 'popcorn.membership' in rules_by_model:
+            primary_model = 'popcorn.membership'
+        elif 'popcorn.discount' in rules_by_model:
+            primary_model = 'popcorn.discount'
+        elif 'event.registration' in rules_by_model:
+            primary_model = 'event.registration'
+        elif 'res.partner' in rules_by_model:
+            # Only use partner as primary if it's the ONLY model
+            if len(rules_by_model) == 1:
+                primary_model = 'res.partner'
+            else:
+                # If there are other models, use them instead
+                primary_model = None
+        
+        _logger.debug(f'[Bulk Filter] Primary model: {primary_model}')
+        
+        # If no related model found, we can't optimize - return empty
+        if not primary_model or primary_model == 'res.partner':
+            _logger.warning(
+                f'[Bulk Filter] No related model rules found (membership/discount/event). '
+                f'Cannot optimize - returning empty. Rules are only on: {list(rules_by_model.keys())}'
+            )
+            return self.env['res.partner'].browse()
+        
+        # Partner domain for partner-level filters (only for additional partner rules)
+        partner_domain = []
+        matching_partner_ids = set()
+        initial_partners = None
+        
+        # Process rules by model - start with primary model if it's a related model
+        for model_name, rules in sorted(rules_by_model.items(), 
+                                       key=lambda x: (x[0] != primary_model, x[0])):
+            if model_name == 'res.partner':
+                # Direct partner field rules - add to domain
+                for rule in rules:
+                    field_name = rule.field_id.name if rule.field_id else None
+                    if not field_name:
+                        continue
+                    
+                    # Convert value to appropriate type
+                    value = rule.value
+                    if rule.operator in ['=', '!=']:
+                        # Try to convert boolean
+                        if value.lower() == 'true':
+                            value = True
+                        elif value.lower() == 'false':
+                            value = False
+                        # Try to convert integer
+                        elif value.isdigit():
+                            value = int(value)
+                    
+                    # Build domain condition
+                    if rule.operator == '=':
+                        partner_domain.append((field_name, '=', value))
+                    elif rule.operator == '!=':
+                        partner_domain.append((field_name, '!=', value))
+                    elif rule.operator == '<=':
+                        partner_domain.append((field_name, '<=', int(value) if value.isdigit() else value))
+                    elif rule.operator == '>=':
+                        partner_domain.append((field_name, '>=', int(value) if value.isdigit() else value))
+            
+            elif model_name == 'popcorn.membership':
+                # Membership rules - START FROM ACTIVE MEMBERSHIPS (optimization)
+                membership_domain = []
+                has_computed_field = False
+                
+                # ALWAYS start with active/frozen memberships filter (most selective)
+                membership_domain.append(('state', 'in', ['active', 'frozen']))
+                
+                for rule in rules:
+                    field_name = rule.field_id.name if rule.field_id else None
+                    if not field_name:
+                        continue
+                    
+                    # Skip state field if already added
+                    if field_name == 'state':
+                        continue
+                    
+                    # Check if field is computed (not stored)
+                    field_info = self.env['popcorn.membership']._fields.get(field_name)
+                    if field_info and not field_info.store:
+                        # Computed field - will filter in Python later
+                        has_computed_field = True
+                        continue
+                    
+                    # Stored field - add to domain
+                    value = rule.value
+                    if value.lower() == 'true':
+                        value = True
+                    elif value.lower() == 'false':
+                        value = False
+                    elif value.isdigit():
+                        value = int(value)
+                    
+                    if rule.operator == '=':
+                        membership_domain.append((field_name, '=', value))
+                    elif rule.operator == '<=':
+                        membership_domain.append((field_name, '<=', int(value) if value.isdigit() else value))
+                    elif rule.operator == '>=':
+                        membership_domain.append((field_name, '>=', int(value) if value.isdigit() else value))
+                    elif rule.operator == '!=':
+                        membership_domain.append((field_name, '!=', value))
+                
+                # Find matching memberships (starting from active ones)
+                _logger.debug(f'[Bulk Filter] Searching memberships with domain: {membership_domain}')
+                memberships = self.env['popcorn.membership'].search(membership_domain)
+                _logger.debug(f'[Bulk Filter] Found {len(memberships)} matching membership(s)')
+                
+                if has_computed_field:
+                    # Filter by computed fields in Python
+                    for membership in memberships:
+                        # Evaluate computed field rules
+                        all_rules_pass = True
+                        for rule in rules:
+                            field_name = rule.field_id.name
+                            field_info = self.env['popcorn.membership']._fields.get(field_name)
+                            if field_info and not field_info.store:
+                                # Computed field - evaluate
+                                field_value = getattr(membership, field_name, None)
+                                # Convert value for comparison
+                                comparison_value = rule._convert_value_to_type(field_value, rule.value)
+                                if not rule._evaluate_condition(field_value, rule.operator, comparison_value):
+                                    all_rules_pass = False
+                                    break
+                        
+                        if all_rules_pass and membership.partner_id.id:
+                            matching_partner_ids.add(membership.partner_id.id)
+                else:
+                    # All fields are stored - use membership partner IDs directly
+                    membership_partner_ids = memberships.mapped('partner_id.id')
+                    if initial_partners is None:
+                        initial_partners = set(membership_partner_ids)
+                    else:
+                        initial_partners &= set(membership_partner_ids)
+            
+            elif model_name == 'event.registration':
+                # Registration rules - START FROM UPCOMING EVENTS (optimization)
+                registration_domain = []
+                
+                # ALWAYS start with upcoming events filter (most selective)
+                registration_domain.append(('event_start_time', '>', fields.Datetime.now()))
+                registration_domain.append(('state', 'in', ['open', 'done']))
+                
+                for rule in rules:
+                    field_name = rule.field_id.name if rule.field_id else None
+                    if not field_name:
+                        continue
+                    
+                    # Skip fields already added
+                    if field_name in ['event_start_time', 'state']:
+                        continue
+                    
+                    value = rule.value
+                    if value.lower() == 'true':
+                        value = True
+                    elif value.lower() == 'false':
+                        value = False
+                    elif value.isdigit():
+                        value = int(value)
+                    
+                    if rule.operator == '=':
+                        registration_domain.append((field_name, '=', value))
+                    elif rule.operator == '!=':
+                        registration_domain.append((field_name, '!=', value))
+                
+                # Find matching registrations (starting from upcoming ones)
+                _logger.debug(f'[Bulk Filter] Searching registrations with domain: {registration_domain}')
+                registrations = self.env['event.registration'].search(registration_domain)
+                _logger.debug(f'[Bulk Filter] Found {len(registrations)} matching registration(s)')
+                registration_partner_ids = registrations.mapped('partner_id.id')
+                
+                if initial_partners is None:
+                    initial_partners = set(registration_partner_ids)
+                else:
+                    initial_partners &= set(registration_partner_ids)
+            
+            elif model_name == 'popcorn.discount':
+                # Discount/coupon rules - START FROM ACTIVE DISCOUNTS (optimization)
+                discount_domain = []
+                
+                # ALWAYS start with active discounts filter (most selective)
+                discount_domain.append(('active', '=', True))
+                
+                for rule in rules:
+                    field_name = rule.field_id.name if rule.field_id else None
+                    if not field_name:
+                        continue
+                    
+                    # Skip active field if already added
+                    if field_name == 'active':
+                        continue
+                    
+                    value = rule.value
+                    if value.lower() == 'true':
+                        value = True
+                    elif value.lower() == 'false':
+                        value = False
+                    elif value.isdigit():
+                        value = int(value)
+                    
+                    if rule.operator == '=':
+                        discount_domain.append((field_name, '=', value))
+                    elif rule.operator == '!=':
+                        discount_domain.append((field_name, '!=', value))
+                    elif rule.operator == '<=':
+                        discount_domain.append((field_name, '<=', int(value) if value.isdigit() else value))
+                    elif rule.operator == '>=':
+                        discount_domain.append((field_name, '>=', int(value) if value.isdigit() else value))
+                
+                # Find matching discounts (starting from active ones)
+                _logger.debug(f'[Bulk Filter] Searching discounts with domain: {discount_domain}')
+                discounts = self.env['popcorn.discount'].search(discount_domain)
+                _logger.debug(f'[Bulk Filter] Found {len(discounts)} matching discount(s)')
+                
+                # For discounts, we need to find partners who can use them
+                # This depends on discount configuration (customer_type, partner_id, etc.)
+                # For now, get partners from memberships that used these discounts
+                discount_partner_ids = set()
+                if discounts:
+                    # Find memberships that used these discounts
+                    memberships_with_discounts = self.env['popcorn.membership'].search([
+                        ('applied_discount_id', 'in', discounts.ids),
+                        ('state', 'in', ['active', 'frozen'])
+                    ])
+                    discount_partner_ids = set(memberships_with_discounts.mapped('partner_id.id'))
+                
+                if initial_partners is None:
+                    initial_partners = discount_partner_ids
+                else:
+                    initial_partners &= discount_partner_ids
+        
+        # Combine results from different models (AND logic - all must match)
+        final_partner_ids = None
+        
+        if matching_partner_ids:
+            # Had computed fields - start with those IDs
+            final_partner_ids = matching_partner_ids
+            if initial_partners is not None:
+                final_partner_ids &= initial_partners
+        elif initial_partners is not None:
+            # Only stored fields from related models
+            final_partner_ids = initial_partners
+        
+        # Apply partner domain filters if any (AND with existing results)
+        # Only apply to already-filtered partners, never search all partners
+        if partner_domain and final_partner_ids:
+            # Apply partner filters only to the partners we already found from related models
+            partners = self.env['res.partner'].browse(list(final_partner_ids))
+            # Filter in Python for partner-level rules (safer than searching all partners)
+            filtered_partner_ids = set()
+            for partner in partners:
+                # Check if partner matches all partner domain rules
+                matches = True
+                for domain_item in partner_domain:
+                    field_name = domain_item[0]
+                    operator = domain_item[1]
+                    value = domain_item[2]
+                    
+                    field_value = getattr(partner, field_name, None)
+                    if operator == '=' and field_value != value:
+                        matches = False
+                        break
+                    elif operator == '!=' and field_value == value:
+                        matches = False
+                        break
+                    elif operator == '<=' and (field_value is None or field_value > value):
+                        matches = False
+                        break
+                    elif operator == '>=' and (field_value is None or field_value < value):
+                        matches = False
+                        break
+                
+                if matches:
+                    filtered_partner_ids.add(partner.id)
+            
+            final_partner_ids = filtered_partner_ids
+            _logger.debug(f'[Bulk Filter] After partner domain filters: {len(final_partner_ids)} partner(s)')
+        
+        # If no related model rules matched, return empty (should not happen)
+        if final_partner_ids is None:
+            _logger.warning(
+                f'[Bulk Filter] No partners found from related models. '
+                f'This should not happen if rules are correct.'
+            )
+            return self.env['res.partner'].browse()
+        
+        # FINAL STEP: Filter by WeChat OpenID (always required for WeChat notifications)
+        if final_partner_ids:
+            partners_with_wechat = self.env['res.partner'].search([
+                ('id', 'in', list(final_partner_ids)),
+                ('wechat_openid', '!=', False),
+                ('wechat_openid', '!=', ''),
+            ])
+            final_partner_ids = set(partners_with_wechat.ids)
+            _logger.debug(f'[Bulk Filter] After WeChat OpenID filter: {len(final_partner_ids)} partner(s)')
+        
+        # Return as recordset
+        result = self.env['res.partner'].browse(list(final_partner_ids)) if final_partner_ids else self.env['res.partner'].browse()
+        _logger.info(f'[Bulk Filter] Notification "{self.name}": Returning {len(result)} matching partner(s) (from {len(final_partner_ids) if final_partner_ids else 0} IDs)')
+        return result
+    
+    def _get_dynamic_content(self, partner, content, registration=None):
+        """
+        Replace dynamic placeholders in content with actual partner, membership, and event registration data
+        
+        :param partner: res.partner record
+        :param content: String content with {placeholder} placeholders
+        :param registration: Optional event.registration record to use for event-specific fields
+        :return: Content with placeholders replaced
+        """
         if not content:
             return content
             
@@ -152,12 +445,15 @@ class PopcornNotification(models.Model):
             ('state', 'in', ['active', 'frozen'])
         ], limit=1)
         
-        # Get upcoming event registration for this partner
-        upcoming_registration = self.env['event.registration'].search([
-            ('partner_id', '=', partner.id),
-            ('state', 'in', ['open', 'done']),
-            ('event_start_time', '>', fields.Datetime.now())
-        ], order='event_start_time asc', limit=1)
+        # Use provided registration, or search for upcoming event registration
+        event_registration = registration
+        if not event_registration:
+            # Fall back to searching for upcoming registration (backward compatibility)
+            event_registration = self.env['event.registration'].search([
+                ('partner_id', '=', partner.id),
+                ('state', 'in', ['open', 'done']),
+                ('event_start_time', '>', fields.Datetime.now())
+            ], order='event_start_time asc', limit=1)
         
         # Pass partner's timezone in context so computed fields use correct timezone
         eval_context = self.env.context.copy() if self.env.context else {}
@@ -174,10 +470,10 @@ class PopcornNotification(models.Model):
             # Then try from active membership
             elif active_membership and hasattr(active_membership, placeholder):
                 value = getattr(active_membership, placeholder, '')
-            # Then try from upcoming event registration
-            elif upcoming_registration and hasattr(upcoming_registration, placeholder):
+            # Then try from event registration (either provided or found)
+            elif event_registration and hasattr(event_registration, placeholder):
                 # Evaluate with correct timezone context
-                value = getattr(upcoming_registration.with_context(eval_context), placeholder, '')
+                value = getattr(event_registration.with_context(eval_context), placeholder, '')
             
             # Handle different field types
             if value:
@@ -193,16 +489,22 @@ class PopcornNotification(models.Model):
         
         return content
     
-    def get_notification_data_for_partner(self, partner):
-        """Get formatted notification data for display"""
+    def get_notification_data_for_partner(self, partner, registration=None):
+        """
+        Get formatted notification data for display
+        
+        :param partner: res.partner record
+        :param registration: Optional event.registration record to use for event-specific placeholders
+        :return: Dict with notification data or None if rules don't match
+        """
         self.ensure_one()
         
         if not self._evaluate_notification_for_partner(partner):
             return None
         
-        # Process dynamic content
-        dynamic_title = self._get_dynamic_content(partner, self.title)
-        dynamic_message = self._get_dynamic_content(partner, self.message)
+        # Process dynamic content (pass registration if provided)
+        dynamic_title = self._get_dynamic_content(partner, self.title, registration=registration)
+        dynamic_message = self._get_dynamic_content(partner, self.message, registration=registration)
         
         return {
             'id': self.id,
@@ -222,199 +524,6 @@ class PopcornNotification(models.Model):
             'show_once_per_user': self.show_once_per_user,
             'sequence': self.sequence,
         }
-
-    def _evaluate_notification_for_discount(self, discount):
-        """Evaluate if a discount record matches all active rules for this notification."""
-        self.ensure_one()
-        if not self.active:
-            _logger.info(f"[WeChatCron] Notification {self.id}: inactive (discount {discount.id}).")
-            return False
-        if not self.notification_rule_ids.filtered('active'):
-            _logger.info(f"[WeChatCron] Notification {self.id}: no active rules (discount {discount.id}), auto-pass.")
-            return True
-        for rule in self.notification_rule_ids.filtered('active'):
-            rule_result, rule_msg = rule._evaluate_rule_for_record_verbose(discount)
-            _logger.info(f"[WeChatCron] Notification ID={self.id} Discount ID={discount.id} Rule ID={rule.id}: {rule_msg}")
-            if not rule_result:
-                return False
-        return True
-
-    @api.model
-    def cron_send_wechat_notifications(self, limit_partners=200):
-        """Cron entrypoint: send expiring-discount notifications directly to affected partners."""
-        notifications = self.sudo().search([
-            ('active', '=', True),
-            ('send_wechat_notification', '=', True),
-            ('wechat_template_id', '!=', False),
-        ])
-        if not notifications:
-            _logger.info("[WeChatCron] No eligible notifications found (active & enabled & template set)")
-            return True
-        Discount = self.env['popcorn.discount'].sudo()
-        for notification in notifications:
-            processed = 0
-            discounts = Discount.search([
-                ('partner_id', '!=', False),
-            ])
-            _logger.info(
-                "[WeChatCron] Notification id=%s name=%s: checking discounts=%s",
-                notification.id, notification.name, len(discounts)
-            )
-            partners_done = set()
-            for disc in discounts:
-                partner = disc.partner_id
-                if not partner:
-                    _logger.info(f"[WeChatCron] SKIP: Notification {notification.id}, discount {disc.id} has no partner.")
-                    continue
-                if not partner.wechat_openid:
-                    _logger.info(f"[WeChatCron] SKIP: Notification {notification.id}, partner {partner.id} (discount {disc.id}) has no WeChat OpenID.")
-                    continue
-                if notification.show_once_per_user and partner in notification.wechat_sent_partner_ids:
-                    _logger.info(f"[WeChatCron] SKIP: Notification {notification.id}, partner {partner.id} (discount {disc.id}) already notified (show_once_per_user).")
-                    continue
-                if partner.id in partners_done:
-                    _logger.info(f"[WeChatCron] SKIP: Notification {notification.id}, partner {partner.id} (discount {disc.id}) already processed in this run.")
-                    continue
-                if not notification._evaluate_notification_for_discount(disc):
-                    _logger.info(f"[WeChatCron] SKIP: Notification {notification.id}, discount {disc.id}, partner {partner.id}: _evaluate_notification_for_discount returned False.")
-                    continue
-                sent = notification.send_wechat_template_message(partner)
-                if sent:
-                    processed += 1
-                    partners_done.add(partner.id)
-                    if notification.show_once_per_user:
-                        notification.wechat_sent_partner_ids = [(4, partner.id)]
-                    _logger.info("[WeChatCron] Sent WeChat notification (discount %s) to partner %s (processed %s)", disc.id, partner.id, processed)
-                    if processed >= limit_partners:
-                        break
-            notification.last_wechat_cron_run = fields.Datetime.now()
-            _logger.info("[WeChatCron] Finished notification id=%s name=%s processed=%s", notification.id, notification.name, processed)
-        return True
-
-    def send_wechat_template_message(self, partner):
-        """Send WeChat template message to partner"""
-        self.ensure_one()
-        if not hasattr(self, 'send_wechat_notification') or not self.send_wechat_notification:
-            return False
-        if not partner.wechat_openid:
-            _logger.info(f"Partner {partner.id} does not have WeChat OpenID")
-            return False
-        if not self.wechat_template_id:
-            _logger.info(f"Notification {self.id} does not have WeChat Template ID configured")
-            return False
-        try:
-            access_token = self._get_wechat_access_token()
-            if not access_token:
-                _logger.error("Could not obtain WeChat access token")
-                return False
-            template_data = self._prepare_wechat_template_data(partner)
-            success = self._send_wechat_message(
-                access_token,
-                partner.wechat_openid,
-                self.wechat_template_id,
-                template_data
-            )
-            if success:
-                _logger.info(f"WeChat template message sent to partner {partner.id}")
-            return success
-        except Exception as e:
-            _logger.error(f"Error sending WeChat template message: {str(e)}", exc_info=True)
-            return False
-    # Supporting methods _get_wechat_access_token, _prepare_wechat_template_data, _send_wechat_message go here
-    def _get_wechat_access_token(self):
-        wechat_config = self.env['wechat.config'].sudo().search([('active', '=', True)], limit=1)
-        if not wechat_config or not wechat_config.app_id or not wechat_config.app_secret:
-            _logger.error("WeChat configuration not found or incomplete")
-            return None
-        cache_key = f'wechat_access_token_{wechat_config.app_id}'
-        cached_token = self.env['ir.config_parameter'].sudo().get_param(f'popcorn.wechat.{cache_key}')
-        cached_token_time = self.env['ir.config_parameter'].sudo().get_param(f'popcorn.wechat.{cache_key}_time')
-        from datetime import datetime, timedelta
-        if cached_token and cached_token_time:
-            try:
-                token_time = datetime.fromisoformat(cached_token_time)
-                if (datetime.now() - token_time) < timedelta(hours=1.9):
-                    return cached_token
-            except:
-                pass
-        import requests
-        url = f'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={wechat_config.app_id}&secret={wechat_config.app_secret}'
-        try:
-            response = requests.get(url, timeout=10)
-            response.raise_for_status()
-            data = response.json()
-            if 'access_token' in data:
-                access_token = data['access_token']
-                self.env['ir.config_parameter'].sudo().set_param(f'popcorn.wechat.{cache_key}', access_token)
-                self.env['ir.config_parameter'].sudo().set_param(f'popcorn.wechat.{cache_key}_time', datetime.now().isoformat())
-                _logger.info("WeChat access token retrieved successfully")
-                return access_token
-            else:
-                error_msg = data.get('errmsg', 'Unknown error')
-                _logger.error(f"WeChat token error: {error_msg}")
-                return None
-        except Exception as e:
-            _logger.error(f"WeChat token request failed: {str(e)}")
-            return None
-    def _prepare_wechat_template_data(self, partner):
-        template_data = {}
-        def get_field_value(field_config):
-            if not field_config:
-                return ''
-            if field_config.startswith('{') and field_config.endswith('}'):
-                field_name = field_config.strip('{}')
-                return self._get_dynamic_content(partner, f'{{{field_name}}}')
-            else:
-                return field_config
-        if hasattr(self, 'wechat_first_field') and self.wechat_first_field:
-            first_value = get_field_value(self.wechat_first_field)
-            if first_value:
-                template_data['first'] = {'value': first_value[:50], 'color': '#173177'}
-        else:
-            title = self._get_dynamic_content(partner, self.title)
-            if title:
-                template_data['first'] = {'value': title[:50], 'color': '#173177'}
-        keyword_fields = [
-            ('keyword1', self.wechat_keyword1_field),
-            ('keyword2', self.wechat_keyword2_field),
-            ('keyword3', self.wechat_keyword3_field),
-            ('keyword4', self.wechat_keyword4_field)
-        ]
-        for keyword_name, field_config in keyword_fields:
-            if field_config:
-                keyword_value = get_field_value(field_config)
-                if keyword_value:
-                    template_data[keyword_name] = {'value': keyword_value[:20], 'color': '#173177'}
-        if hasattr(self, 'wechat_remark_field') and self.wechat_remark_field:
-            remark_value = get_field_value(self.wechat_remark_field)
-            if remark_value:
-                template_data['remark'] = {'value': remark_value[:100], 'color': '#173177'}
-        return template_data
-    def _send_wechat_message(self, access_token, openid, template_id, data):
-        import requests
-        url = f'https://api.weixin.qq.com/cgi-bin/message/template/send?access_token={access_token}'
-        payload = {
-            'touser': openid,
-            'template_id': template_id,
-            'data': data
-        }
-        if self.show_action_button and self.action_button_url:
-            payload['url'] = self.action_button_url
-        try:
-            _logger.info("[WeChatSend] POST %s payload=%s", url, payload)
-            response = requests.post(url, json=payload, timeout=10)
-            response.raise_for_status()
-            result = response.json()
-            _logger.info("[WeChatSend] response=%s", result)
-            if result.get('errcode') == 0:
-                return True
-            else:
-                error_msg = result.get('errmsg', 'Unknown error')
-                _logger.error("[WeChatSend] failed errcode=%s errmsg=%s", result.get('errcode'), error_msg)
-                return False
-        except Exception as e:
-            _logger.error("[WeChatSend] HTTP error: %s", str(e))
-            return False
 
 
 class PopcornNotificationRule(models.Model):

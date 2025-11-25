@@ -18,6 +18,7 @@ from . import res_config_settings
 from . import product_template
 from . import sale_order_line
 from . import website_sale_product_template
+from . import payment_transaction
 
 
 

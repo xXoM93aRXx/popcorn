@@ -5,6 +5,8 @@ from odoo.http import request
 import json
 import logging
 from odoo import fields
+from werkzeug.exceptions import NotFound
+from werkzeug.utils import redirect
 
 _logger = logging.getLogger(__name__)
 
@@ -209,6 +211,9 @@ class PopcornMembershipController(http.Controller):
         # Check if user is a first-timer
         is_first_timer = request.env.user.partner_id.is_first_timer
         
+        partner = request.env.user.partner_id
+        payment_providers = request.env['payment.provider'].sudo().search([('state', '=', 'enabled')])
+        
         # Get discount information for this plan (including extra days)
         # For renewals, force first-timer price
         if is_renewal:
@@ -232,12 +237,15 @@ class PopcornMembershipController(http.Controller):
         
         values = {
             'plan': plan,
+            'payment_providers': payment_providers,
             'is_upgrade': is_upgrade,
-            'upgrade_details': upgrade_details,
             'is_renewal': is_renewal,
+            'upgrade_details': upgrade_details,
             'renewal_details': renewal_details,
             'is_first_timer': is_first_timer,
             'plan_discounts': plan_discounts,
+            'phone_verification_required': not partner.phone,
+            'partner': partner,
         }
         
         return request.render('popcorn.membership_checkout_page', values)
@@ -250,17 +258,32 @@ class PopcornMembershipController(http.Controller):
             return request.redirect('/web/login?redirect=' + request.httprequest.url)
         
         try:
+            # Get partner first (needed for renewal check)
+            partner = request.env.user.partner_id
+            
             # Check if this is an upgrade
             upgrade_details = request.session.get('upgrade_details', {})
             is_upgrade = upgrade_details.get('is_upgrade', False)
             
-            # Check if this is a renewal
-            renewal_details = request.session.get('renewal_details', {})
-            is_renewal = renewal_details.get('is_renewal', False)
+            # Check if this is a renewal (determined by checking actual membership data, not session)
+            # User has an active/frozen membership for this plan that's eligible for renewal discount
+            is_renewal = False
+            active_memberships = request.env['popcorn.membership'].search([
+                ('partner_id', '=', partner.id),
+                ('membership_plan_id', '=', plan.id),
+                ('state', 'in', ['active', 'frozen'])
+            ])
+            _logger.info(f"Checking renewal eligibility for plan {plan.id}, partner {partner.id}, found {len(active_memberships)} active memberships")
+            for membership in active_memberships:
+                if membership.is_eligible_for_renewal_discount():
+                    is_renewal = True
+                    _logger.info(f"Renewal detected: Membership {membership.id} is eligible for renewal discount")
+                    break
+            if not is_renewal:
+                _logger.info(f"Not a renewal: No eligible memberships found for renewal discount")
             
             # Check if user wants to use popcorn money
             use_popcorn_money = post.get('use_popcorn_money') == 'on'
-            partner = request.env.user.partner_id
             
             # Ensure partner exists (important for internal users)
             if not partner or not partner.exists():
@@ -269,13 +292,48 @@ class PopcornMembershipController(http.Controller):
             
             popcorn_money_balance = partner.popcorn_money_balance
             
-            # Update or create partner information
-            partner_vals = {
-                'name': post.get('name'),
-                'phone': post.get('phone'),
-            }
-            
-            partner.write(partner_vals)
+            # Update partner name immediately
+            partner.write({'name': post.get('name')})
+
+            Users = request.env['res.users'].sudo()
+            sanitized_input_phone = Users._sanitize_phone(post.get('phone'))
+            if not sanitized_input_phone:
+                return request.redirect('/memberships/%s/checkout?error=invalid_phone_format' % plan.id)
+
+            sanitized_partner_phone = Users._sanitize_phone(partner.phone)
+            phone_needs_verification = not sanitized_partner_phone or sanitized_partner_phone != sanitized_input_phone
+
+            if phone_needs_verification:
+                verification_code = (post.get('phone_verification_code') or '').strip()
+                if not verification_code:
+                    return request.redirect('/memberships/%s/checkout?error=phone_verification_required' % plan.id)
+
+                candidate_phone = request.session.get('phone_verification_candidate')
+                if not candidate_phone or candidate_phone != sanitized_input_phone:
+                    _logger.warning(
+                        'Phone verification mismatch for membership checkout: input=%s, candidate=%s, partner_id=%s',
+                        sanitized_input_phone,
+                        candidate_phone,
+                        partner.id,
+                    )
+                    return request.redirect('/memberships/%s/checkout?error=phone_verification_mismatch' % plan.id)
+
+                user = request.env.user.sudo()
+                is_valid, error_msg = user.verify_phone_code(verification_code)
+                if not is_valid:
+                    request.session.pop('phone_verification_candidate', None)
+                    return request.redirect('/memberships/%s/checkout?error=invalid_verification_code' % plan.id)
+
+                partner.write({
+                    'phone': sanitized_input_phone,
+                    'mobile': sanitized_input_phone,
+                })
+                request.session.pop('phone_verification_candidate', None)
+            else:
+                partner.write({
+                    'phone': sanitized_input_phone,
+                    'mobile': sanitized_input_phone,
+                })
             
             # Get customer signature if provided
             customer_signature = post.get('customer_signature')
@@ -295,9 +353,11 @@ class PopcornMembershipController(http.Controller):
             # Calculate the amount to charge
             if is_upgrade:
                 amount = upgrade_details.get('upgrade_price', 0)
+                _logger.info(f"Amount calculation: Upgrade - amount = {amount}")
             elif is_renewal:
                 # Renewals always get first-timer price
                 amount = plan.price_first_timer
+                _logger.info(f"Amount calculation: Renewal - normal_price = {plan.price_normal}, first_timer_price = {plan.price_first_timer}, amount = {amount}")
             else:
                 # Use coupon discount if applied, otherwise use automatic best discount
                 if applied_discount:
@@ -318,6 +378,9 @@ class PopcornMembershipController(http.Controller):
             if use_popcorn_money and popcorn_money_balance > 0:
                 popcorn_money_to_use = min(popcorn_money_balance, amount)
                 remaining_amount = amount - popcorn_money_to_use
+                _logger.info(f"Popcorn money calculation: balance = {popcorn_money_balance}, to_use = {popcorn_money_to_use}, remaining = {remaining_amount}")
+            else:
+                _logger.info(f"No popcorn money used, remaining amount = {remaining_amount}")
             
             # Validate form data
             if not post.get('name') or not post.get('phone'):
@@ -540,30 +603,22 @@ class PopcornMembershipController(http.Controller):
                     'partner_id': partner.id,
                     'reference': f'MEMBERSHIP-{plan.id}-{partner.id}-{timestamp}',
                     'state': 'draft',
-                })
-                
-                _logger.info(f"WeChat payment transaction created with ID: {payment_transaction.id}")
-                
-                # Store transaction ID and membership data in session for callback (NO membership created yet)
-                request.session['payment_transaction_id'] = payment_transaction.id
-                # pending_membership is already stored in session above
-                
-                # Store the membership data in session for WeChat success callback
-                request.session['wechat_pending_membership'] = {
-                    'plan_id': plan.id,
-                    'partner_id': partner.id,
-                    'amount': amount,
-                    'payment_provider_id': payment_provider.id,
-                    'payment_provider_name': payment_provider.name,
+                    # Store popcorn transaction data directly on transaction
+                    'popcorn_transaction_type': 'membership',
+                    'membership_plan_id': plan.id,
                     'is_upgrade': is_upgrade,
                     'upgrade_details': upgrade_details if is_upgrade else None,
                     'use_popcorn_money': use_popcorn_money,
                     'popcorn_money_to_use': popcorn_money_to_use,
                     'remaining_amount': remaining_amount,
-                    'applied_discount_id': applied_discount.id if applied_discount else None,
-                    'customer_signature': customer_signature,
-                }
+                    'applied_discount_id': applied_discount.id if applied_discount else False,
+                    'customer_signature': customer_signature,  # Base64 string will be converted to Binary
+                })
                 
+                _logger.info(f"WeChat payment transaction created with ID: {payment_transaction.id}, "
+                           f"plan: {plan.name}, signature provided: {bool(customer_signature)}")
+                
+                # All data is now stored on transaction - no session needed
                 # Redirect to WeChat OAuth2 flow
                 wechat_oauth_url = f'/payment/wechat/oauth2/authorize?transaction_id={payment_transaction.reference}'
                 _logger.info(f"Redirecting to WeChat OAuth2: {wechat_oauth_url}")
@@ -591,20 +646,6 @@ class PopcornMembershipController(http.Controller):
                 import time
                 timestamp = int(time.time())
                 
-                # Prepare pending purchase data to store in transaction (for webhook processing)
-                import json
-                pending_purchase_json = json.dumps({
-                    'type': 'membership',
-                    'plan_id': plan.id,
-                    'partner_id': partner.id,
-                    'amount': amount,
-                    'popcorn_money_to_use': popcorn_money_to_use,
-                    'remaining_amount': remaining_amount,
-                    'is_upgrade': is_upgrade,
-                    'upgrade_details': upgrade_details if is_upgrade else None,
-                    'use_popcorn_money': use_popcorn_money,
-                })
-                
                 payment_transaction = request.env['payment.transaction'].sudo().create({
                     'provider_id': payment_provider.id,
                     'payment_method_id': payment_method.id,
@@ -613,7 +654,16 @@ class PopcornMembershipController(http.Controller):
                     'partner_id': partner.id,
                     'reference': f'MEMBERSHIP-{plan.id}-{partner.id}-{timestamp}',
                     'state': 'draft',
-                    'pending_purchase_data': pending_purchase_json,  # Store for webhook processing
+                    # Store popcorn transaction data directly on transaction
+                    'popcorn_transaction_type': 'membership',
+                    'membership_plan_id': plan.id,
+                    'is_upgrade': is_upgrade,
+                    'upgrade_details': upgrade_details if is_upgrade else None,
+                    'use_popcorn_money': use_popcorn_money,
+                    'popcorn_money_to_use': popcorn_money_to_use,
+                    'remaining_amount': remaining_amount,
+                    'applied_discount_id': applied_discount.id if applied_discount else False,
+                    'customer_signature': customer_signature,
                 })
                 
                 _logger.info(f"Alipay payment transaction created with ID: {payment_transaction.id}")
@@ -623,17 +673,27 @@ class PopcornMembershipController(http.Controller):
                 request.session['payment_transaction_id'] = payment_transaction.id
                 # pending_membership is already stored in session above
                 
-                # Get Alipay payment URL
-                alipay_payment_url = payment_transaction._get_payment_link()
+                # Get Alipay payment URL using the same method as other payment providers
+                # This ensures consistency and proper redirect handling
+                try:
+                    payment_link = payment_transaction._get_specific_rendering_values(None)
+                    if payment_link and 'action_url' in payment_link:
+                        alipay_payment_url = payment_link['action_url']
+                        _logger.info(f"Redirecting to Alipay payment: {alipay_payment_url[:100]}...")
+                        return redirect(alipay_payment_url, code=302)
+                    else:
+                        # Fallback to direct payment link method
+                        alipay_payment_url = payment_transaction._get_payment_link()
+                        if alipay_payment_url:
+                            _logger.info(f"Redirecting to Alipay payment (fallback): {alipay_payment_url[:100]}...")
+                            return redirect(alipay_payment_url, code=302)
+                except Exception as e:
+                    _logger.error(f"Failed to get Alipay payment URL: {str(e)}", exc_info=True)
                 
-                if not alipay_payment_url:
-                    _logger.error("Failed to get Alipay payment URL")
-                    return request.redirect('/memberships/payment/failed?error=gateway_unavailable')
-                
-                # Redirect to Alipay payment page
-                _logger.info(f"Redirecting to Alipay payment: {alipay_payment_url[:100]}...")
-                from werkzeug.utils import redirect
-                return redirect(alipay_payment_url, code=302)
+                # If we get here, payment URL generation failed
+                _logger.error("Failed to get Alipay payment URL - no action_url or payment_link available")
+                request.session.pop('pending_membership', None)
+                return request.redirect('/memberships/payment/failed?error=gateway_unavailable')
             else:
                 # For all other online payments (Stripe/PayPal/etc), create payment transaction and redirect to gateway
                 _logger.info(f"Creating payment transaction for provider: {payment_provider.name}")
@@ -665,9 +725,20 @@ class PopcornMembershipController(http.Controller):
                     'partner_id': partner.id,
                     'reference': f'MEMBERSHIP-{plan.id}-{partner.id}-{timestamp}',
                     'state': 'draft',
+                    # Store popcorn transaction data directly on transaction
+                    'popcorn_transaction_type': 'membership',
+                    'membership_plan_id': plan.id,
+                    'is_upgrade': is_upgrade,
+                    'upgrade_details': upgrade_details if is_upgrade else None,
+                    'use_popcorn_money': use_popcorn_money,
+                    'popcorn_money_to_use': popcorn_money_to_use,
+                    'remaining_amount': remaining_amount,
+                    'applied_discount_id': applied_discount.id if applied_discount else False,
+                    'customer_signature': customer_signature,
                 })
                 
-                _logger.info(f"Payment transaction created with ID: {payment_transaction.id}")
+                _logger.info(f"Payment transaction created with ID: {payment_transaction.id}, "
+                           f"plan: {plan.name}, signature provided: {bool(customer_signature)}")
                 
                 # Store transaction ID and membership data in session for callback (NO membership created yet)
                 request.session['payment_transaction_id'] = payment_transaction.id
@@ -688,7 +759,7 @@ class PopcornMembershipController(http.Controller):
                 return request.redirect('/memberships/payment/failed?error=gateway_unavailable')
             
         except Exception as e:
-            _logger.error(f"Failed to process checkout: {str(e)}")
+            _logger.error(f"Failed to process checkout: {str(e)}", exc_info=True)
             return request.redirect('/memberships/%s/checkout?error=processing_failed' % plan.id)
     
     @http.route(['/memberships/payment/process'], type='http', auth="public", website=True, methods=['GET', 'POST'])
@@ -756,9 +827,20 @@ class PopcornMembershipController(http.Controller):
                 'partner_id': partner.id,
                 'reference': f'MEMBERSHIP-{plan.id}-{partner.id}-{timestamp}',
                 'state': 'draft',
+                # Store popcorn transaction data directly on transaction
+                'popcorn_transaction_type': 'membership',
+                'membership_plan_id': plan.id,
+                'is_upgrade': pending_membership.get('is_upgrade', False),
+                'upgrade_details': pending_membership.get('upgrade_details'),
+                'use_popcorn_money': pending_membership.get('use_popcorn_money', False),
+                'popcorn_money_to_use': pending_membership.get('popcorn_money_to_use', 0),
+                'remaining_amount': amount,
+                'applied_discount_id': pending_membership.get('applied_discount_id') or False,
+                'customer_signature': pending_membership.get('customer_signature'),
             })
             
-            _logger.info(f"Payment transaction created with ID: {payment_transaction.id}")
+            _logger.info(f"Payment transaction created with ID: {payment_transaction.id}, "
+                       f"plan: {plan.name}, signature provided: {bool(pending_membership.get('customer_signature'))}")
             
             # Generate payment link and redirect to actual payment gateway
             payment_link = payment_transaction._get_specific_rendering_values(None)
@@ -843,100 +925,72 @@ class PopcornMembershipController(http.Controller):
             payment_success = post.get('payment_success')
             transaction_id_param = post.get('transaction_id')
             
-            # Check if this is an event purchase redirect (from event checkout)
-            is_event_purchase_redirect = request.session.get('event_purchase_details') or request.session.get('wechat_pending_event_purchase')
-            
             if payment_success == 'true' and transaction_id_param:
                 # This is a WeChat payment success redirect from JavaScript
                 _logger.info(f"WeChat payment success redirect for transaction: {transaction_id_param}")
                 
-                # Handle event purchase redirect FIRST
-                if is_event_purchase_redirect:
-                    _logger.info("Redirecting to event purchase success handler")
+                # Check transaction ID prefix to determine payment type (not session data)
+                # Event: EVENT-{event.id}-{partner.id}-{timestamp}
+                # Membership: MEMBERSHIP-{plan.id}-{partner.id}-{timestamp}
+                if transaction_id_param.startswith('EVENT-'):
+                    _logger.info("Event purchase redirect detected (transaction ID prefix), redirecting to event purchase success handler")
                     return self._handle_event_purchase_redirect(transaction_id_param)
                 
-                # Get pending membership data from session
-                pending_membership = request.session.get('pending_membership')
-                if not pending_membership:
-                    _logger.error("No pending membership found in session for WeChat callback")
-                    return request.redirect('/memberships/payment/failed?error=session_expired')
+                # Get the transaction (try by ID first, then by reference)
+                transaction = None
+                try:
+                    transaction = request.env['payment.transaction'].sudo().browse(int(transaction_id_param))
+                    if not transaction.exists():
+                        transaction = None
+                except (ValueError, TypeError):
+                    pass
                 
-                # Get the transaction
-                transaction = request.env['payment.transaction'].sudo().browse(int(transaction_id_param))
-                if not transaction.exists():
+                if not transaction or not transaction.exists():
+                    transaction = request.env['payment.transaction'].sudo().search([
+                        ('reference', '=', transaction_id_param),
+                        ('provider_code', '=', 'wechat')
+                    ], limit=1)
+                
+                if not transaction or not transaction.exists():
                     _logger.error(f"Transaction {transaction_id_param} not found")
                     return request.redirect('/memberships/payment/failed?error=transaction_not_found')
                 
-                # Mark transaction as done (WeChat payment was successful)
-                transaction.write({'state': 'done'})
+                # Check if membership already exists for this transaction (backend polling may have created it)
+                existing_membership = request.env['popcorn.membership'].sudo().search([
+                    ('payment_transaction_id', '=', transaction.id)
+                ], limit=1)
                 
-                # Create membership now
-                plan = request.env['popcorn.membership.plan'].browse(pending_membership['plan_id'])
-                partner = request.env['res.partner'].browse(pending_membership['partner_id'])
+                if existing_membership:
+                    _logger.info(f"Membership {existing_membership.id} already exists for transaction {transaction.reference}, "
+                               f"skipping creation (likely created by backend polling)")
+                    redirect_url = '/memberships/success?membership_id=%s' % existing_membership.id
+                    return request.redirect(redirect_url)
                 
-                # Deduct popcorn money if used
-                if pending_membership.get('use_popcorn_money') and pending_membership.get('popcorn_money_to_use', 0) > 0:
-                    partner.deduct_popcorn_money(pending_membership['popcorn_money_to_use'], f'Membership purchase: {plan.display_name}')
+                # Mark transaction as done if not already done (backend polling may have done this)
+                # This will trigger backend auto-creation of membership via write() override
+                if transaction.state != 'done':
+                    # Write will trigger our override which creates membership synchronously
+                    transaction.write({'state': 'done'})
                 
-                if pending_membership['is_upgrade']:
-                    membership = self._create_upgrade_membership(plan, partner, pending_membership['upgrade_details'])
-                    membership.write({
-                        'payment_transaction_id': transaction.id,
-                        'payment_reference': transaction.reference
-                    })
-                    payment_message = _('Payment successful via %s. Transaction: %s. Membership upgraded and activated.') % (transaction.provider_id.name, transaction.reference)
-                    if pending_membership.get('use_popcorn_money') and pending_membership.get('popcorn_money_to_use', 0) > 0:
-                        payment_message += _('. Popcorn money used: %s%s. Remaining: %s%s') % (plan.currency_id.symbol, pending_membership['popcorn_money_to_use'], plan.currency_id.symbol, pending_membership.get('remaining_amount', 0))
-                    membership.message_post(body=payment_message)
-                    redirect_url = '/my/cards/upgrade/success?membership_id=%s' % membership.id
-                else:
-                    # Get applied discount if any
-                    applied_discount = None
-                    applied_discount_id = pending_membership.get('applied_discount_id')
-                    if applied_discount_id:
-                        try:
-                            applied_discount = request.env['popcorn.discount'].browse(int(applied_discount_id))
-                            if not applied_discount.exists() or not applied_discount.is_valid:
-                                applied_discount = None
-                        except (ValueError, TypeError):
-                            applied_discount = None
-                    
-                    membership = self._create_membership_from_plan(
-                        plan, 
-                        partner, 
-                        customer_signature=pending_membership.get('customer_signature') if 'pending_membership' in locals() else None,
-                        applied_discount=applied_discount
-                    )
-                    
-                    # Respect the plan's activation policy
-                    membership_vals = {
-                        'payment_transaction_id': transaction.id,
-                        'payment_reference': transaction.reference,
-                    }
-                    
-                    if plan.activation_policy == 'immediate':
-                        membership_vals['state'] = 'active'
-                        membership_vals['activation_date'] = fields.Date.today()
-                    elif plan.activation_policy == 'first_attendance':
-                        membership_vals['state'] = 'pending'  # Will be activated on first event registration
-                    elif plan.activation_policy == 'manual':
-                        membership_vals['state'] = 'pending'  # Requires manual activation
-                    
-                    membership.write(membership_vals)
-                    payment_message = _('Payment successful via %s. Transaction: %s. Membership created and activated.') % (transaction.provider_id.name, transaction.reference)
-                    if pending_membership.get('use_popcorn_money') and pending_membership.get('popcorn_money_to_use', 0) > 0:
-                        payment_message += _('. Popcorn money used: %s%s. Remaining: %s%s') % (plan.currency_id.symbol, pending_membership['popcorn_money_to_use'], plan.currency_id.symbol, pending_membership.get('remaining_amount', 0))
-                    membership.message_post(body=payment_message)
-                    redirect_url = '/memberships/success?membership_id=%s' % membership.id
+                # Refresh transaction to see if membership was created by backend
+                transaction.invalidate_recordset(['popcorn_processed'])
                 
-                # Clear session data
-                request.session.pop('payment_transaction_id', None)
-                request.session.pop('pending_membership', None)
-                request.session.pop('upgrade_details', None)
-                request.session.pop('renewal_details', None)
+                # Check if membership was created by backend (write() override creates it synchronously)
+                existing_membership = request.env['popcorn.membership'].sudo().search([
+                    ('payment_transaction_id', '=', transaction.id)
+                ], limit=1)
                 
-                _logger.info(f"WeChat payment successful. Membership created with ID: {membership.id}")
-                return request.redirect(redirect_url)
+                if existing_membership:
+                    _logger.info(f"Membership {existing_membership.id} created by backend for transaction {transaction.reference}")
+                    redirect_url = '/memberships/success?membership_id=%s' % existing_membership.id
+                    return request.redirect(redirect_url)
+                
+                # If still no membership after backend processing, log warning and redirect
+                _logger.warning(f"No membership found after marking transaction {transaction.reference} as done. "
+                              f"Backend should have created it. Redirecting to membership page...")
+                
+                # Redirect to membership page - backend will create membership soon
+                return request.redirect('/memberships?warning=processing')
             
             # Original callback logic for other payment gateways
             # Get transaction ID and pending membership data from session
@@ -1124,13 +1178,15 @@ class PopcornMembershipController(http.Controller):
         if request.env.user.id == request.env.ref('base.public_user').id:
             return request.redirect('/web/login?redirect=' + request.httprequest.url)
         
-        # Check if this is an event purchase redirect (from WeChat JavaScript)
+        # Check if this is an event purchase redirect (determined by transaction ID prefix, not session data)
         payment_success = post.get('payment_success')
         transaction_id_param = post.get('transaction_id')
-        is_event_purchase_redirect = request.session.get('event_purchase_details') or request.session.get('wechat_pending_event_purchase')
         
-        if payment_success == 'true' and transaction_id_param and is_event_purchase_redirect:
-            _logger.info(f"Event purchase redirect detected in membership success route, redirecting to event handler")
+        # Check transaction ID prefix to determine payment type
+        # Event: EVENT-{event.id}-{partner.id}-{timestamp}
+        # Membership: MEMBERSHIP-{plan.id}-{partner.id}-{timestamp}
+        if payment_success == 'true' and transaction_id_param and transaction_id_param.startswith('EVENT-'):
+            _logger.info(f"Event purchase redirect detected in membership success route (transaction ID: {transaction_id_param}), redirecting to event handler")
             return self._handle_event_purchase_redirect(transaction_id_param)
         
         membership_id = post.get('membership_id')
@@ -1140,22 +1196,8 @@ class PopcornMembershipController(http.Controller):
         if payment_success == 'true' and transaction_id_param:
             _logger.info(f"=== WeChat payment success redirect ===")
             _logger.info(f"Transaction ID: {transaction_id_param}")
-            _logger.info(f"Session keys: {list(request.session.keys())}")
-            _logger.info(f"WeChat pending membership in session: {bool(request.session.get('wechat_pending_membership'))}")
-            _logger.info(f"Regular pending membership in session: {bool(request.session.get('pending_membership'))}")
             
-            # Get pending membership data from session (try both keys)
-            pending_membership = request.session.get('wechat_pending_membership')
-            if not pending_membership:
-                _logger.warning("No WeChat pending membership found, trying regular pending membership")
-                pending_membership = request.session.get('pending_membership')
-                
-            if not pending_membership:
-                _logger.error("No pending membership found in session (neither WeChat nor regular)")
-                _logger.error(f"Session contents: {dict(request.session)}")
-                return request.redirect('/memberships/payment/failed?error=session_expired')
-            
-            # Get the transaction
+            # Get the transaction (all data is stored on transaction, not session)
             transaction = None
             _logger.info(f"Looking for transaction with ID/reference: {transaction_id_param}")
             
@@ -1173,111 +1215,57 @@ class PopcornMembershipController(http.Controller):
             if not transaction or not transaction.exists():
                 _logger.info(f"Trying to find by reference: {transaction_id_param}")
                 transaction = request.env['payment.transaction'].sudo().search([
-                    ('reference', '=', transaction_id_param),
-                    ('provider_code', '=', 'wechat')
+                    ('reference', '=', transaction_id_param)
                 ], limit=1)
                 _logger.info(f"Found by reference: {transaction.exists() if transaction else False}")
             
             if not transaction or not transaction.exists():
-                _logger.error(f"WeChat transaction {transaction_id_param} not found")
-                # Let's also search without provider_code filter
-                all_transactions = request.env['payment.transaction'].sudo().search([
-                    ('reference', '=', transaction_id_param)
-                ])
-                _logger.error(f"Found {len(all_transactions)} transactions with reference {transaction_id_param}")
-                for t in all_transactions:
-                    _logger.error(f"  Transaction ID: {t.id}, Provider: {t.provider_id.name if t.provider_id else 'None'}, Code: {t.provider_code}")
+                _logger.error(f"Transaction {transaction_id_param} not found")
                 return request.redirect('/memberships/payment/failed?error=transaction_not_found')
             
             _logger.info(f"Found transaction: {transaction.id}, State: {transaction.state}, Provider: {transaction.provider_id.name if transaction.provider_id else 'None'}")
             
-            # Mark transaction as done (WeChat payment was successful)
-            transaction.write({'state': 'done'})
+            # IMPORTANT: Do NOT create membership here - backend polling/webhook handles it
+            # The frontend should only check status and display confirmation screen
             
-            # Create membership now
-            _logger.info(f"Creating membership with data: {pending_membership}")
-            plan = request.env['popcorn.membership.plan'].browse(pending_membership['plan_id'])
-            partner = request.env['res.partner'].browse(pending_membership['partner_id'])
+            # Check if membership already exists (backend polling may have created it)
+            existing_membership = request.env['popcorn.membership'].sudo().search([
+                ('payment_transaction_id', '=', transaction.id)
+            ], limit=1)
             
-            # Deduct popcorn money if used
-            if pending_membership.get('use_popcorn_money') and pending_membership.get('popcorn_money_to_use', 0) > 0:
-                partner.deduct_popcorn_money(pending_membership['popcorn_money_to_use'], f'Membership purchase: {plan.display_name}')
-            
-            _logger.info(f"Plan exists: {plan.exists()}, Partner exists: {partner.exists()}")
-            _logger.info(f"Plan name: {plan.name if plan.exists() else 'N/A'}, Partner name: {partner.name if partner.exists() else 'N/A'}")
-            
-            if not plan.exists() or not partner.exists():
-                _logger.error(f"Invalid plan or partner - Plan ID: {pending_membership.get('plan_id')}, Partner ID: {pending_membership.get('partner_id')}")
-                return request.redirect('/memberships/payment/failed?error=invalid_data')
-            
-            if pending_membership.get('is_upgrade', False):
-                _logger.info("Creating upgrade membership")
-                membership = self._create_upgrade_membership(plan, partner, pending_membership['upgrade_details'])
-                membership.write({
-                    'payment_transaction_id': transaction.id,
-                    'payment_reference': transaction.reference
-                })
-                membership.message_post(
-                    body=_('Payment successful via %s. Transaction: %s. Membership upgraded and activated.') % (transaction.provider_id.name, transaction.reference)
-                )
-                # Clear upgrade details from session
-                request.session.pop('upgrade_details', None)
-                _logger.info(f"Upgrade membership created with ID: {membership.id}")
+            if existing_membership:
+                _logger.info(f"Membership {existing_membership.id} already exists for transaction {transaction.reference}, "
+                           f"showing success page (created by backend polling)")
+                # Show success page with existing membership
+                membership = existing_membership
             else:
-                _logger.info("Creating regular membership")
+                # Membership doesn't exist yet - backend polling is still processing
+                # Mark transaction as 'done' if not already (triggers backend processing)
+                if transaction.state != 'done':
+                    _logger.info(f"Transaction {transaction.reference} not yet 'done', marking as done to trigger backend processing")
+                    transaction.write({'state': 'done'})
+                    # Invalidate to read latest state
+                    transaction.invalidate_recordset(['popcorn_processed', 'state'])
                 
-                # Get applied discount if any
-                applied_discount = None
-                applied_discount_id = pending_membership.get('applied_discount_id')
-                if applied_discount_id:
-                    try:
-                        applied_discount = request.env['popcorn.discount'].browse(int(applied_discount_id))
-                        if not applied_discount.exists() or not applied_discount.is_valid:
-                            applied_discount = None
-                    except (ValueError, TypeError):
-                        applied_discount = None
+                # Re-check for membership after triggering backend processing
+                existing_membership = request.env['popcorn.membership'].sudo().search([
+                    ('payment_transaction_id', '=', transaction.id)
+                ], limit=1)
                 
-                membership = self._create_membership_from_plan(
-                    plan, 
-                    partner, 
-                    customer_signature=pending_membership.get('customer_signature') if 'pending_membership' in locals() else None,
-                    applied_discount=applied_discount
-                )
-                _logger.info(f"Membership created with ID: {membership.id}, State: {membership.state}")
-                
-                membership_vals = {
-                    'payment_transaction_id': transaction.id,
-                    'payment_reference': transaction.reference,
-                }
-                
-                if plan.activation_policy == 'immediate':
-                    membership_vals['state'] = 'active'
-                    membership_vals['activation_date'] = fields.Date.today()
-                elif plan.activation_policy == 'first_attendance':
-                    membership_vals['state'] = 'pending'  # Will be activated on first event registration
-                elif plan.activation_policy == 'manual':
-                    membership_vals['state'] = 'pending'  # Requires manual activation
-                
-                membership.write(membership_vals)
-                _logger.info(f"Membership updated - State: {membership.state}, Activation Date: {membership.activation_date}")
-                
-                membership.message_post(
-                    body=_('Payment successful via %s. Transaction: %s. Membership created and activated.') % (transaction.provider_id.name, transaction.reference)
-                )
-                _logger.info(f"Membership message posted")
-            
-            # Clear session data
-            request.session.pop('payment_transaction_id', None)
-            request.session.pop('pending_membership', None)
-            request.session.pop('wechat_pending_membership', None)
-            request.session.pop('upgrade_details', None)
-            request.session.pop('renewal_details', None)
-            
-            _logger.info(f"WeChat payment successful. Membership created with ID: {membership.id}")
-            _logger.info(f"Final membership details - ID: {membership.id}, State: {membership.state}, Partner: {membership.partner_id.name}")
-            
-            # Continue to show success page with the created membership
-            # (don't redirect, just continue with the existing membership)
+                if existing_membership:
+                    _logger.info(f"Membership {existing_membership.id} created by backend, showing success page")
+                    membership = existing_membership
+                else:
+                    _logger.info(f"Payment successful for transaction {transaction.reference}, but membership not yet created. "
+                               f"Showing processing screen - backend polling will create membership.")
+                    # Show processing page that will poll for membership status
+                    values = {
+                        'membership': None,
+                        'transaction': transaction,
+                        'transaction_id': transaction.reference,
+                        'processing': True,  # Flag to enable client-side polling in template
+                    }
+                    return request.render('popcorn.membership_success_page', values)
         
         # Regular success page handling
         if membership_id:
@@ -1300,29 +1288,12 @@ class PopcornMembershipController(http.Controller):
             transaction_id_param = post.get('transaction_id')
             _logger.info(f"=== WeChat membership success route called ===")
             _logger.info(f"Transaction ID: {transaction_id_param}")
-            _logger.info(f"All POST params: {post}")
-            _logger.info(f"Session keys: {list(request.session.keys())}")
-            _logger.info(f"WeChat pending membership in session: {bool(request.session.get('wechat_pending_membership'))}")
-            _logger.info(f"Regular pending membership in session: {bool(request.session.get('pending_membership'))}")
             
             if not transaction_id_param:
                 _logger.error("WeChat membership success failed - Transaction ID required")
                 return request.redirect('/memberships/payment/failed?error=transaction_id_required')
             
-            # Get WeChat pending membership data from session
-            wechat_pending_membership = request.session.get('wechat_pending_membership')
-            
-            # Fallback to regular pending membership if WeChat one not found
-            if not wechat_pending_membership:
-                _logger.warning("No WeChat pending membership found, trying regular pending membership")
-                wechat_pending_membership = request.session.get('pending_membership')
-                
-            if not wechat_pending_membership:
-                _logger.error("No pending membership found in session (neither WeChat nor regular)")
-                _logger.error(f"Session contents: {dict(request.session)}")
-                return request.redirect('/memberships/payment/failed?error=session_expired')
-            
-            # Get the transaction
+            # Get the transaction (all data is stored on transaction, not session)
             transaction = None
             _logger.info(f"Looking for transaction with ID/reference: {transaction_id_param}")
             
@@ -1340,125 +1311,60 @@ class PopcornMembershipController(http.Controller):
             if not transaction or not transaction.exists():
                 _logger.info(f"Trying to find by reference: {transaction_id_param}")
                 transaction = request.env['payment.transaction'].sudo().search([
-                    ('reference', '=', transaction_id_param),
-                    ('provider_code', '=', 'wechat')
+                    ('reference', '=', transaction_id_param)
                 ], limit=1)
                 _logger.info(f"Found by reference: {transaction.exists() if transaction else False}")
             
             if not transaction or not transaction.exists():
-                _logger.error(f"WeChat transaction {transaction_id_param} not found")
-                # Let's also search without provider_code filter
-                all_transactions = request.env['payment.transaction'].sudo().search([
-                    ('reference', '=', transaction_id_param)
-                ])
-                _logger.error(f"Found {len(all_transactions)} transactions with reference {transaction_id_param}")
-                for t in all_transactions:
-                    _logger.error(f"  Transaction ID: {t.id}, Provider: {t.provider_id.name if t.provider_id else 'None'}, Code: {t.provider_code}")
+                _logger.error(f"Transaction {transaction_id_param} not found")
                 return request.redirect('/memberships/payment/failed?error=transaction_not_found')
             
             _logger.info(f"Found transaction: {transaction.id}, State: {transaction.state}, Provider: {transaction.provider_id.name if transaction.provider_id else 'None'}")
             
-            # Mark transaction as done (WeChat payment was successful)
-            transaction.write({'state': 'done'})
+            # IMPORTANT: Do NOT create membership here - backend polling/webhook handles it
+            # The frontend should only check status and display confirmation screen
             
-            # Create membership now
-            _logger.info(f"Creating membership with data: {wechat_pending_membership}")
-            plan = request.env['popcorn.membership.plan'].browse(wechat_pending_membership['plan_id'])
-            partner = request.env['res.partner'].browse(wechat_pending_membership['partner_id'])
+            # Check if membership already exists (backend polling may have created it)
+            existing_membership = request.env['popcorn.membership'].sudo().search([
+                ('payment_transaction_id', '=', transaction.id)
+            ], limit=1)
             
-            # Deduct popcorn money if used
-            if wechat_pending_membership.get('use_popcorn_money') and wechat_pending_membership.get('popcorn_money_to_use', 0) > 0:
-                partner.deduct_popcorn_money(wechat_pending_membership['popcorn_money_to_use'], f'Membership purchase: {plan.display_name}')
+            if existing_membership:
+                _logger.info(f"Membership {existing_membership.id} already exists for transaction {transaction.reference}, "
+                           f"redirecting to success page (created by backend polling)")
+                # Redirect to membership success page with membership_id
+                redirect_url = '/memberships/success?membership_id=%s' % existing_membership.id
+                _logger.info(f"Redirecting to: {redirect_url}")
+                return request.redirect(redirect_url)
             
-            _logger.info(f"Plan exists: {plan.exists()}, Partner exists: {partner.exists()}")
-            _logger.info(f"Plan name: {plan.name if plan.exists() else 'N/A'}, Partner name: {partner.name if partner.exists() else 'N/A'}")
+            # Membership doesn't exist yet - backend polling is still processing
+            # Mark transaction as 'done' if not already (triggers backend processing)
+            if transaction.state != 'done':
+                _logger.info(f"Transaction {transaction.reference} not yet 'done', marking as done to trigger backend processing")
+                transaction.write({'state': 'done'})
+                # Invalidate to read latest state
+                transaction.invalidate_recordset(['popcorn_processed', 'state'])
             
-            if not plan.exists() or not partner.exists():
-                _logger.error(f"Invalid plan or partner - Plan ID: {wechat_pending_membership.get('plan_id')}, Partner ID: {wechat_pending_membership.get('partner_id')}")
-                return request.redirect('/memberships/payment/failed?error=invalid_data')
+            # Re-check for membership after triggering backend processing
+            existing_membership = request.env['popcorn.membership'].sudo().search([
+                ('payment_transaction_id', '=', transaction.id)
+            ], limit=1)
             
-            if wechat_pending_membership.get('is_upgrade', False):
-                _logger.info("Creating upgrade membership")
-                membership = self._create_upgrade_membership(plan, partner, wechat_pending_membership['upgrade_details'])
-                membership.write({
-                    'payment_transaction_id': transaction.id,
-                    'payment_reference': transaction.reference
-                })
-                payment_message = _('Payment successful via %s. Transaction: %s. Membership upgraded and activated.') % (transaction.provider_id.name, transaction.reference)
-                if wechat_pending_membership.get('use_popcorn_money') and wechat_pending_membership.get('popcorn_money_to_use', 0) > 0:
-                    payment_message += _('. Popcorn money used: %s%s. Remaining: %s%s') % (plan.currency_id.symbol, wechat_pending_membership['popcorn_money_to_use'], plan.currency_id.symbol, wechat_pending_membership.get('remaining_amount', 0))
-                membership.message_post(body=payment_message)
-                # Clear upgrade details from session
-                request.session.pop('upgrade_details', None)
-                _logger.info(f"Upgrade membership created with ID: {membership.id}")
-            else:
-                _logger.info("Creating regular membership")
-                
-                # Get applied discount if any
-                applied_discount = None
-                applied_discount_id = wechat_pending_membership.get('applied_discount_id')
-                if applied_discount_id:
-                    try:
-                        applied_discount = request.env['popcorn.discount'].browse(int(applied_discount_id))
-                        if not applied_discount.exists() or not applied_discount.is_valid:
-                            applied_discount = None
-                    except (ValueError, TypeError):
-                        applied_discount = None
-                
-                membership = self._create_membership_from_plan(
-                    plan, 
-                    partner, 
-                    customer_signature=wechat_pending_membership.get('customer_signature'),
-                    applied_discount=applied_discount
-                )
-                _logger.info(f"Membership created with ID: {membership.id}, State: {membership.state}")
-                
-                # Respect the plan's activation policy
-                membership_vals = {
-                    'payment_transaction_id': transaction.id,
-                    'payment_reference': transaction.reference,
-                }
-                
-                if plan.activation_policy == 'immediate':
-                    membership_vals['state'] = 'active'
-                    membership_vals['activation_date'] = fields.Date.today()
-                elif plan.activation_policy == 'first_attendance':
-                    membership_vals['state'] = 'pending'  # Will be activated on first event registration
-                elif plan.activation_policy == 'manual':
-                    membership_vals['state'] = 'pending'  # Requires manual activation
-                
-                membership.write(membership_vals)
-                _logger.info(f"Membership updated - State: {membership.state}, Activation Date: {membership.activation_date}")
-                
-                membership.message_post(
-                    body=_('Payment successful via %s. Transaction: %s. Membership created and activated.') % (transaction.provider_id.name, transaction.reference)
-                )
-                _logger.info(f"Membership message posted")
+            if existing_membership:
+                _logger.info(f"Membership {existing_membership.id} created by backend, redirecting to success page")
+                redirect_url = '/memberships/success?membership_id=%s' % existing_membership.id
+                _logger.info(f"Redirecting to: {redirect_url}")
+                return request.redirect(redirect_url)
             
-            # Clear session data
-            request.session.pop('payment_transaction_id', None)
-            request.session.pop('pending_membership', None)
-            request.session.pop('wechat_pending_membership', None)
-            request.session.pop('upgrade_details', None)
-            request.session.pop('renewal_details', None)
-            
-            _logger.info(f"WeChat payment successful. Membership created with ID: {membership.id}")
-            _logger.info(f"Final membership details - ID: {membership.id}, State: {membership.state}, Partner: {membership.partner_id.name}")
-            
-            # Redirect to membership success page with membership_id
-            redirect_url = '/memberships/success?membership_id=%s' % membership.id
-            _logger.info(f"Redirecting to: {redirect_url}")
+            # Still no membership - backend is processing, redirect to success page with processing flag
+            _logger.info(f"Payment successful for transaction {transaction.reference}, but membership not yet created. "
+                       f"Redirecting to success page - backend polling will create membership.")
+            redirect_url = '/memberships/success?payment_success=true&transaction_id=%s&processing=true' % transaction.reference
             return request.redirect(redirect_url)
             
         except Exception as e:
             _logger.error(f"Failed to handle WeChat membership success: {str(e)}", exc_info=True)
             _logger.error(f"Exception type: {type(e).__name__}")
-            _logger.error(f"Session data before cleanup: {dict(request.session)}")
-            # Clear session data on error
-            request.session.pop('wechat_pending_membership', None)
-            request.session.pop('pending_membership', None)
-            request.session.pop('upgrade_details', None)
-            request.session.pop('renewal_details', None)
             return request.redirect('/memberships/payment/failed?error=processing_failed')
     
     @http.route(['/memberships/payment/failed'], type='http', auth="public", website=True)

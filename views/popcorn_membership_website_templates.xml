@@ -228,6 +228,32 @@
                                     <t t-elif="is_renewal">Complete Your Membership Renewal</t>
                                     <t t-else="">Complete Your Membership Purchase</t>
                                 </h2>
+
+                                <t t-if="request.params.get('error')">
+                                    <div class="popcorn-error-banner" id="popcorn-membership-error-banner">
+                                        <div class="popcorn-error-content">
+                                            <i class="fa fa-exclamation-triangle popcorn-error-icon"></i>
+                                            <span class="popcorn-error-text">
+                                                <t t-if="request.params.get('error') == 'missing_fields'">Please fill in all required fields (Name and Phone Number).</t>
+                                                <t t-elif="request.params.get('error') == 'invalid_phone_format'">Please enter a valid phone number using digits only.</t>
+                                                <t t-elif="request.params.get('error') == 'phone_verification_required'">Please verify your phone number before completing checkout.</t>
+                                                <t t-elif="request.params.get('error') == 'phone_verification_mismatch'">Please request a new verification code for the phone number you entered.</t>
+                                                <t t-elif="request.params.get('error') == 'invalid_verification_code'">The verification code is invalid or has expired. Please request a new one.</t>
+                                                <t t-elif="request.params.get('error') == 'friend_phone_required'">Please enter your friend's phone number for buy-together activation.</t>
+                                                <t t-elif="request.params.get('error') == 'missing_payment_method'">Please select a payment method.</t>
+                                                <t t-elif="request.params.get('error') == 'terms_not_accepted'">Please accept the terms and conditions.</t>
+                                                <t t-elif="request.params.get('error') == 'invalid_payment_method'">Invalid payment method selected.</t>
+                                                <t t-elif="request.params.get('error') == 'payment_access_denied'">Payment access denied. Please try again.</t>
+                                                <t t-elif="request.params.get('error') == 'gateway_unavailable'">Payment gateway is currently unavailable. Please try again later.</t>
+                                                <t t-elif="request.params.get('error') == 'processing_failed'">Payment processing failed. Please try again.</t>
+                                                <t t-else="">An error occurred during checkout. Please try again.</t>
+                                            </span>
+                                            <button type="button" class="popcorn-error-close">
+                                                <i class="fa fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </t>
                                 
                                 <form t-attf-action="/memberships/#{plan.id}/process_checkout" method="post" class="popcorn-checkout-form-content popcorn-membership-checkout-form" t-att-data-plan-id="plan.id">
                                     <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
@@ -247,6 +273,21 @@
                                             <input type="tel" id="phone" name="phone" class="popcorn-form-input" 
                                                    t-att-value="request.env.user.partner_id.phone or ''" required="required"/>
                                         </div>
+                                        <t t-if="phone_verification_required">
+                                            <div class="popcorn-form-group">
+                                                <label for="phone_verification_code" class="popcorn-form-label">Verification Code</label>
+                                                <div class="popcorn-verification-group">
+                                                    <input type="text" id="phone_verification_code" name="phone_verification_code" class="popcorn-form-input" placeholder="Enter SMS code"/>
+                                                    <button type="button" id="membership_send_phone_otp" class="popcorn-btn popcorn-btn-secondary popcorn-phone-otp-btn"
+                                                            data-phone-input="#phone"
+                                                            data-message-target="#membership_phone_otp_message"
+                                                            data-code-target="#phone_verification_code">
+                                                        <i class="fa fa-paper-plane"></i> Send Code
+                                                    </button>
+                                                </div>
+                                                <small id="membership_phone_otp_message" class="text-muted"></small>
+                                            </div>
+                                        </t>
                                     </div>
                                     
                                     <!-- Popcorn Money Section -->

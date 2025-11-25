@@ -13,6 +13,7 @@
                 <xpath expr="//group[@name='event']" position="inside">
                     <field name="is_on_waitlist" invisible="not event_id.seats_limited"/>
                     <field name="waitlist_position" invisible="not is_on_waitlist" readonly="1"/>
+                    <field name="pending_wechat_notification" invisible="not event_id.seats_limited"/>
                     <field name="membership_id" 
                            domain="[('partner_id', '=', partner_id), ('state', 'in', ['active', 'frozen', 'pending'])]"
                            invisible="not event_id.seats_limited"/>

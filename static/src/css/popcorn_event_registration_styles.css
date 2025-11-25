@@ -315,6 +315,23 @@
     text-decoration: none;
 }
 
+.popcorn-event-btn-primary:disabled,
+.popcorn-event-btn-primary.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+    transform: none;
+    box-shadow: none;
+}
+
+.popcorn-event-btn-primary:disabled:hover,
+.popcorn-event-btn-primary.disabled:hover {
+    background: var(--popcorn-event-primary);
+    border-color: var(--popcorn-event-primary);
+    transform: none;
+    box-shadow: none;
+}
+
 .popcorn-event-btn-secondary {
     background: var(--popcorn-event-white);
     color: var(--popcorn-event-gray-dark);

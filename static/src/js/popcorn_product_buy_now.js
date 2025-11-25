@@ -7,6 +7,7 @@ publicWidget.registry.BuyNowButton = publicWidget.Widget.extend({
     selector: 'body',
     events: {
         'click #buy_now_button': '_onClickBuyNow',
+        'click #buy_now_alipay_button': '_onClickBuyNowAlipay',
     },
 
     /**
@@ -41,17 +42,25 @@ publicWidget.registry.BuyNowButton = publicWidget.Widget.extend({
             return this._super();
         }
         
-        // Create Buy Now button
+        // Create Buy Now buttons
         const $buyNowButton = $('<a>')
             .attr('href', '#')
             .attr('id', 'buy_now_button')
             .attr('data-product-id', productId)
-            .addClass('btn btn-primary btn-lg')
+            .addClass('btn btn-primary btn-lg me-2')
             .html('<i class="fa fa-shopping-cart"/> Buy Now with WeChat Pay');
         
+        const $buyNowAlipayButton = $('<a>')
+            .attr('href', '#')
+            .attr('id', 'buy_now_alipay_button')
+            .attr('data-product-id', productId)
+            .addClass('btn btn-success btn-lg')
+            .html('<i class="fa fa-credit-card"/> Buy Now with Alipay');
+        
         const $buyNowContainer = $('<div>')
-            .addClass('mt-3')
-            .append($buyNowButton);
+            .addClass('mt-3 d-flex')
+            .append($buyNowButton)
+            .append($buyNowAlipayButton);
         
         // Inject button after Add to Cart form or button
         if ($addToCartForm.length) {
@@ -98,6 +107,36 @@ publicWidget.registry.BuyNowButton = publicWidget.Widget.extend({
         const url = `/shop/buy_now?product_id=${productId}&add_qty=${quantity}`;
         
         // Redirect to buy now flow
+        window.location.href = url;
+    },
+
+    /**
+     * Handle Buy Now Alipay button click
+     * Redirects to direct purchase flow with Alipay payment
+     */
+    _onClickBuyNowAlipay: function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        
+        const $button = $(ev.currentTarget);
+        const productId = $button.data('product-id');
+        
+        if (!productId) {
+            console.error('Product ID not found');
+            return;
+        }
+        
+        // Get quantity from form if available
+        let quantity = 1;
+        const $quantityInput = $('input[name="add_qty"]');
+        if ($quantityInput.length) {
+            quantity = parseFloat($quantityInput.val()) || 1;
+        }
+        
+        // Build URL for Alipay
+        const url = `/shop/buy_now/alipay?product_id=${productId}&add_qty=${quantity}`;
+        
+        // Redirect to Alipay buy now flow
         window.location.href = url;
     },
 });

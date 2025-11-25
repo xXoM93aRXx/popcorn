@@ -1,14 +1,20 @@
-odoo.define('@popcorn/js/popcorn_event_registration', ['@web/legacy/js/public/public_widget'], function (require) {
+odoo.define('@popcorn/js/popcorn_event_registration', ['@web/legacy/js/public/public_widget', '@web/core/l10n/translation'], function (require) {
     'use strict';
 
     var publicWidget = require('@web/legacy/js/public/public_widget');
+    const { _t } = require('@web/core/l10n/translation');
 
     publicWidget.registry.PopcornEventRegistration = publicWidget.Widget.extend({
         selector: '.popcorn-checkout-form',
-        
+
         events: {
             'click .popcorn-checkout-submit-btn': '_onSubmitClick',
             'change #use_popcorn_money': '_onPopcornMoneyChange',
+        },
+
+        start: function () {
+            console.log('PopcornEventRegistration widget initialized for', this.el);
+            return this._super.apply(this, arguments);
         },
 
         _onSubmitClick: function (ev) {
@@ -167,7 +173,115 @@ odoo.define('@popcorn/js/popcorn_event_registration', ['@web/legacy/js/public/pu
                 // Add required attribute back to payment method inputs
                 $('.popcorn-payment-methods input[type="radio"]').attr('required', 'required');
             }
+        },
+
+        _onSendPhoneOtp: function (ev) {
+            ev.preventDefault();
+            console.log('PopcornEventRegistration: send OTP button handler triggered');
+            sendPhoneOtp(ev.currentTarget, this.$el);
         }
+    });
+
+    function sendPhoneOtp(buttonElement, $scope) {
+        var $button = $(buttonElement);
+        var $form = $button.closest('form');
+        var $context = $scope || $(document);
+
+        var phoneSelector = $button.data('phoneInput') || '#phone';
+        var messageSelector = $button.data('messageTarget') || '#event_phone_otp_message';
+        var codeSelector = $button.data('codeTarget') || '#phone_verification_code';
+
+        var $phoneInput = $form.find(phoneSelector);
+        if (!$phoneInput.length) {
+            $phoneInput = $context.find(phoneSelector);
+        }
+
+        var $messageEl = $form.find(messageSelector);
+        if (!$messageEl.length) {
+            $messageEl = $context.find(messageSelector);
+        }
+
+        var $codeInput = $form.find(codeSelector);
+        if (!$codeInput.length) {
+            $codeInput = $context.find(codeSelector);
+        }
+
+        if (!$phoneInput.length) {
+            console.log('Phone OTP: phone input not found for selector', phoneSelector);
+            return;
+        }
+
+        var phone = ($phoneInput.val() || '').trim();
+        console.log('Phone OTP button clicked, selector:', phoneSelector, 'value:', phone);
+
+        if (!phone) {
+            if ($messageEl.length) {
+                $messageEl.text(_t('Please enter your phone number before requesting a code.')).addClass('text-danger');
+            }
+            return;
+        }
+
+        $button.prop('disabled', true);
+        if ($messageEl.length) {
+            $messageEl.text('').removeClass('text-danger');
+        }
+
+        var payload = JSON.stringify({ phone_number: phone });
+
+        $.ajax({
+            url: '/web/sms/send',
+            type: 'POST',
+            contentType: 'application/json',
+            dataType: 'json',
+            data: payload,
+            success: function (result) {
+                if (result && result.success) {
+                    if ($messageEl.length) {
+                        $messageEl.text(result.message || _t('Verification code sent successfully.'));
+                    }
+                    if ($codeInput.length) {
+                        $codeInput.focus();
+                    }
+                } else if ($messageEl.length) {
+                    $messageEl.text((result && result.message) || _t('Failed to send verification code.')).addClass('text-danger');
+                }
+            },
+            error: function (xhr) {
+                if ($messageEl.length) {
+                    var message = _t('Failed to send verification code.');
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    }
+                    $messageEl.text(message).addClass('text-danger');
+                }
+            },
+            complete: function () {
+                $button.prop('disabled', false);
+            },
+        });
+    }
+
+    function setupPhoneOtpButtons() {
+        document.querySelectorAll('.popcorn-phone-otp-btn').forEach(function (button) {
+            if (button.dataset.popcornOtpBound) {
+                return;
+            }
+            button.dataset.popcornOtpBound = '1';
+            button.addEventListener('click', function (event) {
+                event.preventDefault();
+                sendPhoneOtp(button);
+            });
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupPhoneOtpButtons);
+    } else {
+        setupPhoneOtpButtons();
+    }
+
+    window.addEventListener('load', function () {
+        setTimeout(setupPhoneOtpButtons, 200);
     });
 
     return publicWidget.registry.PopcornEventRegistration;
@@ -314,3 +428,30 @@ document.addEventListener('DOMContentLoaded', function() {
 window.addEventListener('load', function() {
     setTimeout(setupPopupFunctionality, 200);
 });
+
+// Handle registration form button loading state
+function setupRegistrationForm() {
+    var form = document.getElementById('event-registration-form');
+    var button = document.getElementById('register-club-btn');
+    
+    if (form && button) {
+        form.addEventListener('submit', function(e) {
+            // Disable button to prevent double submission
+            button.disabled = true;
+            button.classList.add('disabled');
+            
+            // Hide original text, show loading text
+            var btnText = button.querySelector('.btn-text');
+            var btnLoading = button.querySelector('.btn-loading');
+            if (btnText) btnText.style.display = 'none';
+            if (btnLoading) btnLoading.style.display = 'inline';
+        });
+    }
+}
+
+// Initialize registration form handler
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupRegistrationForm);
+} else {
+    setupRegistrationForm();
+}
