@@ -367,6 +367,11 @@
                                                                 <span class="popcorn-payment-method-name">
                                                                     <t t-esc="provider.name"/>
                                                                 </span>
+                                                                <t t-if="provider.code and provider.code.lower() == 'alipay'">
+                                                                    <span class="popcorn-payment-method-note" style="display: block; font-size: 0.85em; color: #666; margin-top: 4px; font-style: italic;">
+                                                                        (Requires an additional step in the browser)
+                                                                    </span>
+                                                                </t>
                                                             </label>
                                                         </div>
                                                     </t>

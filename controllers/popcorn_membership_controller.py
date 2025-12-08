@@ -646,6 +646,15 @@ class PopcornMembershipController(http.Controller):
                 import time
                 timestamp = int(time.time())
                 
+                # Generate access token for secure return URL
+                from odoo.addons.payment import utils as payment_utils
+                access_token = payment_utils.generate_access_token(
+                    partner.id, remaining_amount, plan.currency_id.id
+                )
+                
+                # Define landing route for Alipay redirect after payment
+                landing_route = '/memberships/success'
+                
                 payment_transaction = request.env['payment.transaction'].sudo().create({
                     'provider_id': payment_provider.id,
                     'payment_method_id': payment_method.id,
@@ -664,7 +673,15 @@ class PopcornMembershipController(http.Controller):
                     'remaining_amount': remaining_amount,
                     'applied_discount_id': applied_discount.id if applied_discount else False,
                     'customer_signature': customer_signature,
+                    'landing_route': landing_route,
                 })
+                
+                # Update landing route with access token for secure redirect
+                from odoo.addons.payment.controllers.portal import PaymentPortal
+                PaymentPortal._update_landing_route(payment_transaction, access_token)
+                
+                from odoo.addons.payment.controllers.post_processing import PaymentPostProcessing
+                PaymentPostProcessing.monitor_transaction(payment_transaction)
                 
                 _logger.info(f"Alipay payment transaction created with ID: {payment_transaction.id}")
                 _logger.info(f"Pending purchase data stored in transaction for webhook processing")
@@ -673,20 +690,33 @@ class PopcornMembershipController(http.Controller):
                 request.session['payment_transaction_id'] = payment_transaction.id
                 # pending_membership is already stored in session above
                 
-                # Get Alipay payment URL using the same method as other payment providers
-                # This ensures consistency and proper redirect handling
+                # Get Alipay payment URL using the same method as product purchase (which works)
                 try:
                     payment_link = payment_transaction._get_specific_rendering_values(None)
                     if payment_link and 'action_url' in payment_link:
                         alipay_payment_url = payment_link['action_url']
-                        _logger.info(f"Redirecting to Alipay payment: {alipay_payment_url[:100]}...")
-                        return redirect(alipay_payment_url, code=302)
+                        _logger.info(f"Got URL from action_url: {alipay_payment_url[:150]}")
                     else:
                         # Fallback to direct payment link method
                         alipay_payment_url = payment_transaction._get_payment_link()
-                        if alipay_payment_url:
-                            _logger.info(f"Redirecting to Alipay payment (fallback): {alipay_payment_url[:100]}...")
-                            return redirect(alipay_payment_url, code=302)
+                        _logger.info(f"Got URL from _get_payment_link: {alipay_payment_url[:150] if alipay_payment_url else 'None'}")
+                    
+                    if alipay_payment_url:
+                        # Ensure URL is absolute
+                        if not alipay_payment_url.startswith('http://') and not alipay_payment_url.startswith('https://'):
+                            _logger.error(f"Payment URL is not absolute: {alipay_payment_url}")
+                            # Fix relative URL
+                            if alipay_payment_url.startswith('/gateway.do') or alipay_payment_url.startswith('gateway.do'):
+                                provider = payment_transaction.provider_id
+                                gateway_base = 'https://openapi-sandbox.dl.alipaydev.com' if provider.alipay_sandbox else 'https://openapi.alipay.com'
+                                if '?' in alipay_payment_url:
+                                    query_params = alipay_payment_url.split('?', 1)[1]
+                                    alipay_payment_url = f"{gateway_base}/gateway.do?{query_params}"
+                                else:
+                                    alipay_payment_url = f"{gateway_base}/gateway.do"
+                        
+                        _logger.info(f"Redirecting to Alipay payment URL: {alipay_payment_url[:100]}...")
+                        return redirect(alipay_payment_url, code=302)
                 except Exception as e:
                     _logger.error(f"Failed to get Alipay payment URL: {str(e)}", exc_info=True)
                 
