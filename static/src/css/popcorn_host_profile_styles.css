@@ -255,6 +255,7 @@
     border: 2px solid #000;
     border-radius: 8px;
     padding: 1rem;
+    margin-bottom: 100px;
 }
 
 .popcorn-event-description-header {

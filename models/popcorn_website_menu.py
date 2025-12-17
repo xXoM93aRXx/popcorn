@@ -73,6 +73,14 @@ class WebsiteMenu(models.Model):
         return self.browse([menu.id for menu in unique_menus])
     
     @api.model
+    def _safe_get_sticky_footer_menus(self):
+        """Safely get sticky footer menus, returns empty recordset if method doesn't exist"""
+        try:
+            return self.get_sticky_footer_menus()
+        except AttributeError:
+            return self.browse([])
+    
+    @api.model
     def get_sticky_footer_menus_for_website(self, website_id=None):
         """Get child menus for sticky footer for a specific website"""
         if not website_id:

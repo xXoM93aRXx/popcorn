@@ -285,6 +285,13 @@ class PopcornEventController(http.Controller):
         if not event_club_type:
             return True, None, None  # No club type restriction, allow access
         
+        # For Social Experience events, check if any membership plan is in second_price list
+        # If yes, allow access (they'll pay instead of using quota)
+        if event_club_type == 'social_experience' and event.membership_plans_second_price_ids:
+            for membership in all_usable_memberships:
+                if membership.membership_plan_id in event.membership_plans_second_price_ids:
+                    return True, None, None  # Allow access - will redirect to payment
+        
         # Check if any membership allows this club type
         for membership in all_usable_memberships:
             if self._can_membership_attend_event(membership, event_club_type):
@@ -304,7 +311,9 @@ class PopcornEventController(http.Controller):
         
         if type_tag:
             tag_name = type_tag.name.lower()
-            if 'offline' in tag_name:
+            if 'social' in tag_name and 'experience' in tag_name:
+                return 'social_experience'
+            elif 'offline' in tag_name:
                 return 'regular_offline'
             elif 'online' in tag_name:
                 return 'regular_online'
@@ -344,9 +353,16 @@ class PopcornEventController(http.Controller):
         elif membership.plan_quota_mode == 'points' and not is_pending_auto_eligible:
             # Calculate points needed for this club type
             plan = membership.membership_plan_id
-            points_needed = (plan.points_per_offline if club_type == 'regular_offline' 
-                           else plan.points_per_online if club_type == 'regular_online' 
-                           else plan.points_per_sp)
+            if club_type == 'regular_offline':
+                points_needed = plan.points_per_offline
+            elif club_type == 'regular_online':
+                points_needed = plan.points_per_online
+            elif club_type == 'spclub':
+                points_needed = plan.points_per_sp
+            elif club_type == 'social_experience':
+                points_needed = plan.points_per_social_experience
+            else:
+                points_needed = 0
             
             if membership.points_remaining < points_needed:
                 return False
@@ -358,6 +374,7 @@ class PopcornEventController(http.Controller):
             return False
         elif club_type == 'spclub' and not membership.plan_allowed_spclub:
             return False
+        # Note: social_experience doesn't have a permission check - all memberships can attend
         
         return True
     
@@ -381,7 +398,11 @@ class PopcornEventController(http.Controller):
         # Filter active/frozen memberships first
         compatible_memberships = []
         for membership in active_memberships:
-            if self._can_membership_attend_event(membership, event_club_type):
+            # For Social Experience events, if membership plan is in second_price list, skip quota check
+            if event_club_type == 'social_experience' and membership.membership_plan_id in event.membership_plans_second_price_ids:
+                # Include membership without quota check - will redirect to payment
+                compatible_memberships.append(membership)
+            elif self._can_membership_attend_event(membership, event_club_type):
                 compatible_memberships.append(membership)
 
         # If no compatible active/frozen membership exists, consider pending memberships
@@ -393,7 +414,11 @@ class PopcornEventController(http.Controller):
             ])
 
             for membership in pending_auto:
-                if self._can_membership_attend_event(membership, event_club_type):
+                # For Social Experience events, if membership plan is in second_price list, skip quota check
+                if event_club_type == 'social_experience' and membership.membership_plan_id in event.membership_plans_second_price_ids:
+                    # Include membership without quota check - will redirect to payment
+                    compatible_memberships.append(membership)
+                elif self._can_membership_attend_event(membership, event_club_type):
                     compatible_memberships.append(membership)
         
         if not compatible_memberships:
@@ -411,14 +436,6 @@ class PopcornEventController(http.Controller):
         ), reverse=True)
         
         return compatible_memberships[0] if compatible_memberships else False
-    
-    def _get_consumption_text(self, membership, club_type):
-        """Get human-readable text for membership consumption"""
-        if membership.plan_quota_mode == 'unlimited':
-            return _("Unlimited membership - no consumption")
-        elif membership.plan_quota_mode == 'bucket_counts':
-            if club_type == 'regular_offline':
-                return _("1 offline session consumed (remaining: %s)") % membership.remaining_offline
     
     def _is_event_in_freeze_period(self, event, partner):
         """Check if an event falls within any of the user's freeze periods"""
@@ -455,11 +472,20 @@ class PopcornEventController(http.Controller):
                 return _("1 online session consumed (remaining: %s)") % membership.remaining_online
             elif club_type == 'spclub':
                 return _("1 special club session consumed (remaining: %s)") % membership.remaining_sp
+            elif club_type == 'social_experience':
+                return _("No membership quota consumed (bucket plans don't support Social Experience events)")
         elif membership.plan_quota_mode == 'points':
             plan = membership.membership_plan_id
-            points_needed = (plan.points_per_offline if club_type == 'regular_offline' 
-                           else plan.points_per_online if club_type == 'regular_online' 
-                           else plan.points_per_sp)
+            if club_type == 'regular_offline':
+                points_needed = plan.points_per_offline
+            elif club_type == 'regular_online':
+                points_needed = plan.points_per_online
+            elif club_type == 'spclub':
+                points_needed = plan.points_per_sp
+            elif club_type == 'social_experience':
+                points_needed = plan.points_per_social_experience
+            else:
+                points_needed = 0
             return _("%s points consumed (remaining: %s)") % (points_needed, membership.points_remaining)
         return _("Unknown consumption type")
     
@@ -514,10 +540,26 @@ class PopcornEventController(http.Controller):
         # User is logged in, check membership access and show registration options page
         has_access, redirect_url, error_message = self._check_membership_access(event)
         
+        # Check if this is a Social Experience event and user should pay second_price
+        # If yes, force has_access = False so they see the options page with second_price
+        event_club_type = self._get_event_club_type(event)
+        should_pay_second_price = False
+        if event_club_type == 'social_experience' and event.membership_plans_second_price_ids:
+            partner = request.env.user.sudo().partner_id
+            if partner:
+                # Find user's best membership for this event
+                best_membership = self._get_best_membership_for_event(partner, event)
+                # If user's membership plan is in the second_price list, show options page with second_price
+                if best_membership and best_membership.membership_plan_id in event.membership_plans_second_price_ids:
+                    should_pay_second_price = True
+                    has_access = False  # Force to show options page instead of direct registration
+        
         values = {
             'event': event,
             'has_membership_access': has_access,
             'membership_error': error_message,
+            'should_pay_second_price': should_pay_second_price,
+            'second_price': event.second_price if should_pay_second_price else 0,
         }
         return request.render('popcorn.event_registration_access_page', values)
     
@@ -572,8 +614,20 @@ class PopcornEventController(http.Controller):
         # Get the partner for the current user
         partner = request.env.user.sudo().partner_id
         
+        # Determine event club type
+        event_club_type = self._get_event_club_type(event)
+        if not event_club_type:
+            event_club_type = 'regular_offline'  # Default fallback
+        
         # Find the best membership for this event
         best_membership = self._get_best_membership_for_event(partner, event)
+        
+        # Check if this is a Social Experience event and user's membership should pay second_price
+        if event_club_type == 'social_experience' and best_membership:
+            # If user's membership plan is in the second_price list, redirect to payment
+            if best_membership.membership_plan_id in event.membership_plans_second_price_ids:
+                # Redirect to direct payment flow with second_price
+                return request.redirect(f'/popcorn/event/{event.id}/checkout?second_price={event.second_price}')
         
         if not best_membership:
             # Check if user has memberships but they don't have sufficient quota
@@ -595,12 +649,23 @@ class PopcornEventController(http.Controller):
             if all_memberships:
                 # First check quota (points/sessions) for all memberships
                 quota_issue_found = False
+                _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Checking quota for event_club_type: {event_club_type}")
                 for membership in all_memberships:
+                    _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Membership ID: {membership.id}, Plan: {membership.membership_plan_id.name}, Quota Mode: {membership.plan_quota_mode}, Points Remaining: {membership.points_remaining}")
                     if membership.plan_quota_mode == 'points':
                         plan = membership.membership_plan_id
-                        points_needed = (plan.points_per_offline if event_club_type == 'regular_offline' 
-                                       else plan.points_per_online if event_club_type == 'regular_online' 
-                                       else plan.points_per_sp)
+                        if event_club_type == 'regular_offline':
+                            points_needed = plan.points_per_offline
+                        elif event_club_type == 'regular_online':
+                            points_needed = plan.points_per_online
+                        elif event_club_type == 'spclub':
+                            points_needed = plan.points_per_sp
+                        elif event_club_type == 'social_experience':
+                            points_needed = plan.points_per_social_experience
+                            _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Social Experience detected! Plan points_per_social_experience: {plan.points_per_social_experience}, Points needed: {points_needed}")
+                        else:
+                            points_needed = 0
+                        _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Points needed: {points_needed}, Points remaining: {membership.points_remaining}")
                         if membership.points_remaining < points_needed:
                             error_message = _('Insufficient points. You need %s points but have %s remaining') % (points_needed, membership.points_remaining)
                             quota_issue_found = True
@@ -616,6 +681,11 @@ class PopcornEventController(http.Controller):
                             break
                         elif event_club_type == 'spclub' and membership.remaining_sp < 1:
                             error_message = _('No special club sessions remaining. You have %s special club sessions left') % membership.remaining_sp
+                            quota_issue_found = True
+                            break
+                        elif event_club_type == 'social_experience':
+                            # Bucket-based memberships don't support social_experience events
+                            error_message = _('Social Experience events are not supported with bucket-based memberships')
                             quota_issue_found = True
                             break
                 
@@ -681,8 +751,10 @@ class PopcornEventController(http.Controller):
         
         # Determine event club type for consumption
         event_club_type = self._get_event_club_type(event)
+        _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] event_registration_confirm - event_club_type detected: {event_club_type}")
         if not event_club_type:
             event_club_type = 'regular_offline'  # Default fallback
+            _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] No event_club_type found, using default: {event_club_type}")
         
         # Handle membership activation for pending policies
         if best_membership.state == 'pending':
@@ -720,9 +792,13 @@ class PopcornEventController(http.Controller):
             'state': 'open'  # Will be changed to 'draft' by model if needed
         }
         
+        _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Creating registration with vals: event_id={event.id}, membership_id={best_membership.id}, event_club_type={event_club_type}")
+        _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Best membership: ID={best_membership.id}, Plan={best_membership.membership_plan_id.name}, Quota Mode={best_membership.plan_quota_mode}, Points Remaining={best_membership.points_remaining}")
+        
         # Create the registration (consumption is now handled automatically in create method)
         try:
             registration = request.env['event.registration'].sudo().create(registration_vals)
+            _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Registration created: ID={registration.id}, club_type={registration.club_type}, points_consumed={registration.points_consumed}, consumption_state={registration.consumption_state}")
             
             # Process referral if present
             referral_code = request.session.get('referral_code')
@@ -832,8 +908,23 @@ class PopcornEventController(http.Controller):
         if request.env.user.id == request.env.ref('base.public_user').id:
             return redirect('/web/login?redirect=' + request.httprequest.url)
         
+        # Check if event has a price set (or second_price for Social Experience)
+        event_club_type = self._get_event_club_type(event)
+        should_use_second_price = False
+        second_price = None
+        
+        if event_club_type == 'social_experience' and event.membership_plans_second_price_ids:
+            partner = request.env.user.sudo().partner_id
+            if partner:
+                # Find user's best membership for this event
+                best_membership = self._get_best_membership_for_event(partner, event)
+                # If user's membership plan is in the second_price list, use second_price
+                if best_membership and best_membership.membership_plan_id in event.membership_plans_second_price_ids:
+                    should_use_second_price = True
+                    second_price = event.second_price
+        
         # Check if event has a price set
-        if not event.event_price or event.event_price <= 0:
+        if not should_use_second_price and (not event.event_price or event.event_price <= 0):
             return request.not_found()
         
         # Check if user is already registered for this event
@@ -854,6 +945,7 @@ class PopcornEventController(http.Controller):
             'event': event,
             'partner': partner,
             'phone_verification_required': not partner.phone,
+            'second_price': second_price if should_use_second_price else None,
         }
         
         return request.render('popcorn.event_checkout_page', values)
@@ -958,8 +1050,22 @@ class PopcornEventController(http.Controller):
             use_popcorn_money = kwargs.get('use_popcorn_money') == 'on'
             popcorn_money_balance = partner.popcorn_money_balance
             
-            # Calculate event price with discount if applied
-            event_price = event.event_price
+            # Check if using second_price (from Social Experience special pricing)
+            event_club_type = self._get_event_club_type(event)
+            should_use_second_price = False
+            if event_club_type == 'social_experience' and event.membership_plans_second_price_ids:
+                # Find user's best membership for this event
+                best_membership = self._get_best_membership_for_event(partner, event)
+                # If user's membership plan is in the second_price list, use second_price
+                if best_membership and best_membership.membership_plan_id in event.membership_plans_second_price_ids:
+                    should_use_second_price = True
+            
+            if should_use_second_price:
+                event_price = event.second_price
+            else:
+                # Calculate event price with discount if applied
+                event_price = event.event_price
+            
             if applied_discount:
                 # Apply discount calculation
                 if applied_discount.discount_type == 'percentage':
@@ -1109,7 +1215,7 @@ class PopcornEventController(http.Controller):
             request.session['event_purchase_details'] = {
                 'event_id': event.id,
                 'partner_id': partner.id,
-                'event_price': event.event_price,
+                'event_price': event_price,  # Use the computed event_price (may be second_price for Social Experience)
                 'payment_provider_id': payment_provider.id,
                 'payment_provider_name': payment_provider.name,
                 'use_popcorn_money': use_popcorn_money,
@@ -1710,16 +1816,9 @@ class PopcornPortalController(CustomerPortal):
             # Calculate upgrade price
             upgrade_price = self._calculate_upgrade_price(membership, target_plan)
             
-            # Store upgrade details in session for checkout
-            request.session['upgrade_details'] = {
-                'membership_id': membership.id,
-                'target_plan_id': target_plan.id,
-                'upgrade_price': upgrade_price,
-                'is_upgrade': True
-            }
-            
-            # Redirect to checkout page
-            return request.redirect(f'/memberships/{target_plan.id}/checkout?upgrade=true')
+            # Pass upgrade details via URL parameters (no session dependency)
+            redirect_url = f'/memberships/{target_plan.id}/checkout?upgrade=true&membership_id={membership.id}&upgrade_price={upgrade_price}'
+            return request.redirect(redirect_url)
             
         except Exception as e:
             # Redirect back with error

@@ -20,9 +20,10 @@ class PopcornMembershipController(http.Controller):
         if request.env.user.id == request.env.ref('base.public_user').id:
             return request.redirect('/web/login?redirect=' + request.httprequest.url)
         
-        # Get all active membership plans
+        # Get all active and published membership plans
         membership_plans = request.env['popcorn.membership.plan'].search([
-            ('active', '=', True)
+            ('active', '=', True),
+            ('website_published', '=', True)
         ], order='sequence, name')
         
         # Get error message from URL parameter if present
@@ -111,11 +112,12 @@ class PopcornMembershipController(http.Controller):
         # Get discount information for each plan
         plan_discounts = {}
         for plan in membership_plans:
-            # If user has renewal discount eligibility, show first-timer price
+            # If user has renewal discount eligibility, use first-timer price as base and apply discounts
             if has_renewal_discount:
-                best_price = plan.price_first_timer
-                best_discount = None
-                extra_days = 0
+                # Use first-timer price as the base price for discount calculations
+                original_price = plan.price_first_timer if plan.price_first_timer > 0 else plan.price_normal
+                available_discounts = plan.get_available_discounts(request.env.user.partner_id)
+                best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(request.env.user.partner_id, original_price=original_price)
             else:
                 # Determine correct original price based on first-timer status
                 is_first_timer = request.env.user.partner_id.is_first_timer
@@ -125,7 +127,7 @@ class PopcornMembershipController(http.Controller):
                 best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(request.env.user.partner_id, original_price=original_price)
             
             plan_discounts[plan.id] = {
-                'available_discounts': plan.get_available_discounts(request.env.user.partner_id) if not has_renewal_discount else [],
+                'available_discounts': available_discounts,
                 'best_price': best_price,
                 'best_discount': best_discount,
                 'original_price': plan.price_normal,
@@ -175,16 +177,27 @@ class PopcornMembershipController(http.Controller):
         if request.env.user.id == request.env.ref('base.public_user').id:
             return request.redirect('/web/login?redirect=' + request.httprequest.url)
         
-        # Check if this is an upgrade
-        is_upgrade = post.get('upgrade') == 'true'
+        # Check if this is an upgrade (from URL parameters)
+        is_upgrade = post.get('upgrade') == 'true' or request.params.get('upgrade') == 'true'
         upgrade_details = None
         
         if is_upgrade:
-            upgrade_details = request.session.get('upgrade_details', {})
-            if not upgrade_details or upgrade_details.get('target_plan_id') != plan.id:
+            # Get upgrade details from URL parameters (not session)
+            membership_id = post.get('membership_id') or request.params.get('membership_id')
+            upgrade_price = post.get('upgrade_price') or request.params.get('upgrade_price')
+            
+            if not membership_id or not upgrade_price:
                 return request.redirect('/my/cards')
-            # Clear any old renewal details to prevent interference
-            request.session.pop('renewal_details', None)
+            
+            try:
+                upgrade_details = {
+                    'membership_id': int(membership_id),
+                    'target_plan_id': plan.id,
+                    'upgrade_price': float(upgrade_price),
+                    'is_upgrade': True
+                }
+            except (ValueError, TypeError):
+                return request.redirect('/my/cards')
         
         # Check if this is a renewal (from URL parameter or from renewal eligibility)
         is_renewal = post.get('renew') == 'true'
@@ -194,11 +207,10 @@ class PopcornMembershipController(http.Controller):
             renewal_details = request.session.get('renewal_details', {})
             if not renewal_details or renewal_details.get('plan_id') != plan.id:
                 return request.redirect('/my/cards')
-            # Clear any old upgrade details to prevent interference
-            request.session.pop('upgrade_details', None)
         
         # Auto-detect renewal eligibility if user has an active membership eligible for renewal discount
-        if not is_renewal:
+        # IMPORTANT: Only check for renewal if NOT an upgrade (upgrade takes precedence)
+        if not is_renewal and not is_upgrade:
             active_memberships = request.env['popcorn.membership'].search([
                 ('partner_id', '=', request.env.user.partner_id.id),
                 ('state', 'in', ['active', 'frozen'])
@@ -215,11 +227,11 @@ class PopcornMembershipController(http.Controller):
         payment_providers = request.env['payment.provider'].sudo().search([('state', '=', 'enabled')])
         
         # Get discount information for this plan (including extra days)
-        # For renewals, force first-timer price
+        # For renewals, use first-timer price as base and apply discounts on top
         if is_renewal:
-            best_price = plan.price_first_timer
-            best_discount = None
-            extra_days = 0
+            # Use first-timer price as the base price for discount calculations
+            original_price = plan.price_first_timer if plan.price_first_timer > 0 else plan.price_normal
+            best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(request.env.user.partner_id, original_price=original_price)
         else:
             # Determine correct original price based on first-timer status
             original_price = plan.price_first_timer if (is_first_timer and plan.price_first_timer > 0) else plan.price_normal
@@ -261,26 +273,61 @@ class PopcornMembershipController(http.Controller):
             # Get partner first (needed for renewal check)
             partner = request.env.user.partner_id
             
-            # Check if this is an upgrade
-            upgrade_details = request.session.get('upgrade_details', {})
-            is_upgrade = upgrade_details.get('is_upgrade', False)
+            # Check if this is an upgrade (from URL parameters or POST data)
+            is_upgrade = post.get('upgrade') == 'true' or request.params.get('upgrade') == 'true'
+            upgrade_details = None
+            
+            _logger.info(f"process_membership_checkout - Initial check: is_upgrade from post.get('upgrade'): {post.get('upgrade')}, from request.params.get('upgrade'): {request.params.get('upgrade')}, final is_upgrade: {is_upgrade}")
+            
+            if is_upgrade:
+                # Get upgrade details from URL parameters or POST data (not session)
+                membership_id = post.get('membership_id') or request.params.get('membership_id')
+                upgrade_price = post.get('upgrade_price') or request.params.get('upgrade_price')
+                
+                if membership_id and upgrade_price:
+                    try:
+                        upgrade_details = {
+                            'membership_id': int(membership_id),
+                            'target_plan_id': plan.id,
+                            'upgrade_price': float(upgrade_price),
+                            'is_upgrade': True
+                        }
+                    except (ValueError, TypeError):
+                        # Invalid upgrade parameters - treat as new purchase
+                        is_upgrade = False
+                        upgrade_details = None
+                else:
+                    # Missing upgrade parameters - treat as new purchase
+                    is_upgrade = False
+                    upgrade_details = None
             
             # Check if this is a renewal (determined by checking actual membership data, not session)
-            # User has an active/frozen membership for this plan that's eligible for renewal discount
+            # User has ANY active/frozen membership (any plan) that's eligible for renewal discount
+            # Renewal discount can be applied to purchase ANY plan
+            # IMPORTANT: Upgrade takes precedence - don't check renewal if upgrade is in progress
             is_renewal = False
-            active_memberships = request.env['popcorn.membership'].search([
-                ('partner_id', '=', partner.id),
-                ('membership_plan_id', '=', plan.id),
-                ('state', 'in', ['active', 'frozen'])
-            ])
-            _logger.info(f"Checking renewal eligibility for plan {plan.id}, partner {partner.id}, found {len(active_memberships)} active memberships")
-            for membership in active_memberships:
-                if membership.is_eligible_for_renewal_discount():
-                    is_renewal = True
-                    _logger.info(f"Renewal detected: Membership {membership.id} is eligible for renewal discount")
-                    break
-            if not is_renewal:
-                _logger.info(f"Not a renewal: No eligible memberships found for renewal discount")
+            
+            # Only check for renewal eligibility if NOT an upgrade
+            if not is_upgrade:
+                # Check for ANY active/frozen memberships (any plan) - renewal can apply to any plan purchase
+                active_memberships = request.env['popcorn.membership'].search([
+                    ('partner_id', '=', partner.id),
+                    ('state', 'in', ['active', 'frozen'])
+                ])
+                _logger.info(f"Checking renewal eligibility for plan {plan.id} (name: {plan.name}), partner {partner.id}, found {len(active_memberships)} active/frozen memberships (any plan)")
+                
+                # Log details of found memberships
+                for membership in active_memberships:
+                    _logger.info(f"DEBUG: Found active/frozen membership ID {membership.id}: plan_id={membership.membership_plan_id.id}, plan_name={membership.membership_plan_id.name if membership.membership_plan_id else 'N/A'}, state={membership.state}, eligible_check={membership.is_eligible_for_renewal_discount()}")
+                    if membership.is_eligible_for_renewal_discount():
+                        is_renewal = True
+                        _logger.info(f"Renewal detected: Membership {membership.id} (plan: {membership.membership_plan_id.name if membership.membership_plan_id else 'N/A'}) is eligible for renewal discount - applying to purchase of plan {plan.name}")
+                        break
+                
+                if not is_renewal:
+                    _logger.info(f"Not a renewal: No eligible memberships found for renewal discount")
+            else:
+                _logger.info(f"Upgrade in progress - skipping renewal eligibility check")
             
             # Check if user wants to use popcorn money
             use_popcorn_money = post.get('use_popcorn_money') == 'on'
@@ -351,13 +398,27 @@ class PopcornMembershipController(http.Controller):
                     applied_discount = None
             
             # Calculate the amount to charge
+            # Priority: Upgrade takes precedence over renewal pricing
+            # If upgrade is in progress, use upgrade pricing. Otherwise, if user is eligible for renewal discount, they get renewal pricing (first-timer + discounts)
             if is_upgrade:
+                # Upgrade pricing (takes precedence)
                 amount = upgrade_details.get('upgrade_price', 0)
                 _logger.info(f"Amount calculation: Upgrade - amount = {amount}")
             elif is_renewal:
-                # Renewals always get first-timer price
-                amount = plan.price_first_timer
-                _logger.info(f"Amount calculation: Renewal - normal_price = {plan.price_normal}, first_timer_price = {plan.price_first_timer}, amount = {amount}")
+                # Renewals use first-timer price as base, then apply discounts
+                original_price = plan.price_first_timer if plan.price_first_timer > 0 else plan.price_normal
+                
+                # Use coupon discount if applied, otherwise use automatic best discount
+                if applied_discount:
+                    amount = applied_discount.get_discounted_price(plan, original_price, partner)
+                    best_discount = applied_discount
+                    extra_days = applied_discount.get_extra_days(plan, partner)
+                    _logger.info(f"Amount calculation: Renewal with applied discount - original_price = {original_price}, amount = {amount}")
+                else:
+                    # Use discount system to determine best price with first-timer price as base
+                    best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(partner, original_price=original_price)
+                    amount = best_price
+                    _logger.info(f"Amount calculation: Renewal - original_price = {original_price}, best_discount = {best_discount.name if best_discount else None}, amount = {amount}")
             else:
                 # Use coupon discount if applied, otherwise use automatic best discount
                 if applied_discount:
@@ -366,9 +427,13 @@ class PopcornMembershipController(http.Controller):
                         original_price = plan.price_first_timer
                     amount = applied_discount.get_discounted_price(plan, original_price, partner)
                     best_discount = applied_discount
+                    extra_days = applied_discount.get_extra_days(plan, partner)
                 else:
-                    # Use discount system to determine best price
-                    best_price, best_discount = plan.get_best_discount_price(partner)
+                    # Determine correct original price based on first-timer status
+                    # This ensures first timer pricing is used as base for discount calculations
+                    original_price = plan.price_first_timer if (partner.is_first_timer and plan.price_first_timer > 0) else plan.price_normal
+                    # Use get_best_discount_with_extra_days to respect first timer pricing
+                    best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(partner, original_price=original_price)
                     amount = best_price
             
             # Calculate how much popcorn money to use and remaining amount
@@ -406,15 +471,51 @@ class PopcornMembershipController(http.Controller):
             
             # Check if it's a manual payment (fallback)
             if payment_method_id == 'manual':
-                # Handle upgrade vs new membership
-                if is_upgrade:
+                # Handle upgrade vs renewal vs new membership
+                # Renewal takes precedence - create new membership with renewal pricing
+                if is_renewal:
+                    # Create new membership with renewal pricing (first-timer + discounts)
+                    membership = self._create_membership_from_plan(
+                        plan, 
+                        partner, 
+                        customer_signature=customer_signature,
+                        applied_discount=applied_discount,
+                        is_renewal=is_renewal
+                    )
+                    _logger.info(f"Renewal membership created with ID: {membership.id}")
+                    
+                    
+                    # Deduct popcorn money if used
+                    if use_popcorn_money and popcorn_money_to_use > 0:
+                        _logger.info(f"Deducting popcorn money: {popcorn_money_to_use}")
+                        partner.deduct_popcorn_money(popcorn_money_to_use, f'Membership renewal: {plan.display_name}')
+                    
+                    # Log the renewal
+                    if remaining_amount <= 0:
+                        payment_message = _('Membership renewal completed using Popcorn Money. Price: %s%s. Popcorn money used: %s%s. No additional payment required.') % (plan.currency_id.symbol, amount, plan.currency_id.symbol, popcorn_money_to_use)
+                    else:
+                        payment_message = _('Manual payment requested for renewal. Payment method: Manual')
+                        if use_popcorn_money and popcorn_money_to_use > 0:
+                            payment_message += _('. Popcorn money used: %s%s. Remaining: %s%s') % (plan.currency_id.symbol, popcorn_money_to_use, plan.currency_id.symbol, remaining_amount)
+                    
+                    membership.message_post(body=payment_message)
+                    
+                    # Redirect based on payment status
+                    if remaining_amount <= 0:
+                        return request.redirect('/memberships/success?membership_id=%s&payment_completed=true' % membership.id)
+                    else:
+                        return request.redirect('/memberships/success?membership_id=%s&payment_pending=true' % membership.id)
+                elif is_upgrade:
                     # Upgrade existing membership
-                    membership = self._create_upgrade_membership(plan, partner, upgrade_details)
+                    # Pass remaining_amount (actual money paid) instead of full upgrade_price
+                    membership = self._create_upgrade_membership(
+                        plan, 
+                        partner, 
+                        upgrade_details,
+                        actual_payment_amount=remaining_amount  # Use actual money paid, not full upgrade_price
+                    )
                     _logger.info(f"Upgrade membership created with ID: {membership.id}")
                     
-                    # Clear upgrade details from session
-                    if 'upgrade_details' in request.session:
-                        del request.session['upgrade_details']
                     
                     # Deduct popcorn money if used
                     if use_popcorn_money and popcorn_money_to_use > 0:
@@ -442,7 +543,8 @@ class PopcornMembershipController(http.Controller):
                         plan, 
                         partner, 
                         customer_signature=customer_signature,
-                        applied_discount=applied_discount
+                        applied_discount=applied_discount,
+                        is_renewal=is_renewal
                     )
                     
                     # Pair activation by phone for buy-together enabled plans
@@ -539,30 +641,12 @@ class PopcornMembershipController(http.Controller):
             # Check if this is an event purchase
             is_event_purchase = request.params.get('event_purchase') == 'true'
             
-            # Store membership details in session for after payment
-            request.session['pending_membership'] = {
-                'plan_id': plan.id,
-                'partner_id': partner.id,
-                'amount': amount,
-                'payment_provider_id': payment_provider.id,
-                'payment_provider_name': payment_provider.name,
-                'is_upgrade': is_upgrade,
-                'upgrade_details': upgrade_details if is_upgrade else None,
-                'is_event_purchase': is_event_purchase,
-                'use_popcorn_money': use_popcorn_money,
-                'popcorn_money_to_use': popcorn_money_to_use,
-                'remaining_amount': remaining_amount,
-                'customer_signature': customer_signature,
-                'applied_discount_id': applied_discount.id if applied_discount else None,
-            }
-            
-            _logger.info(f"Stored pending membership in session: {request.session['pending_membership']}")
-            
+            # All data will be stored on the transaction model - no session needed
             # Handle different payment methods based on provider name
             _logger.info(f"Payment provider name: '{payment_provider.name}', lowercase: '{payment_provider.name.lower()}'")
             if payment_provider.name.lower() in ['bank transfer', 'bank_transfer']:
                 # For bank transfer, create membership immediately but mark as pending payment
-                membership = self._create_membership_from_plan(plan, partner, customer_signature=customer_signature, applied_discount=applied_discount)
+                membership = self._create_membership_from_plan(plan, partner, customer_signature=customer_signature, applied_discount=applied_discount, is_renewal=is_renewal)
                 membership.write({'state': 'pending_payment'})
                 
                 # Log the bank transfer payment request
@@ -595,6 +679,13 @@ class PopcornMembershipController(http.Controller):
                 import time
                 timestamp = int(time.time())
                 
+                _logger.info(f"Creating WeChat payment transaction - is_upgrade: {is_upgrade}, is_renewal: {is_renewal}, upgrade_details: {upgrade_details}")
+                
+                # Ensure upgrade and renewal are mutually exclusive
+                # If upgrade, renewal must be False
+                final_is_upgrade = bool(is_upgrade)
+                final_is_renewal = bool(is_renewal) if not final_is_upgrade else False
+                
                 payment_transaction = request.env['payment.transaction'].sudo().create({
                     'provider_id': payment_provider.id,
                     'payment_method_id': payment_method.id,
@@ -606,8 +697,9 @@ class PopcornMembershipController(http.Controller):
                     # Store popcorn transaction data directly on transaction
                     'popcorn_transaction_type': 'membership',
                     'membership_plan_id': plan.id,
-                    'is_upgrade': is_upgrade,
-                    'upgrade_details': upgrade_details if is_upgrade else None,
+                    'is_upgrade': final_is_upgrade,
+                    'is_renewal': final_is_renewal,
+                    'upgrade_details': upgrade_details if final_is_upgrade else None,
                     'use_popcorn_money': use_popcorn_money,
                     'popcorn_money_to_use': popcorn_money_to_use,
                     'remaining_amount': remaining_amount,
@@ -616,7 +708,20 @@ class PopcornMembershipController(http.Controller):
                 })
                 
                 _logger.info(f"WeChat payment transaction created with ID: {payment_transaction.id}, "
-                           f"plan: {plan.name}, signature provided: {bool(customer_signature)}")
+                           f"plan: {plan.name}, is_upgrade: {payment_transaction.is_upgrade}, "
+                           f"is_renewal: {payment_transaction.is_renewal}, upgrade_details: {payment_transaction.upgrade_details}")
+                
+                # Verify transaction was created with correct flags
+                if final_is_upgrade and not payment_transaction.is_upgrade:
+                    _logger.error(f"CRITICAL: Transaction {payment_transaction.id} was created with is_upgrade=False but should be True!")
+                if final_is_upgrade and payment_transaction.is_renewal:
+                    _logger.error(f"CRITICAL: Transaction {payment_transaction.id} has both is_upgrade=True and is_renewal=True!")
+                
+                # Verify transaction was created with correct flags
+                if final_is_upgrade and not payment_transaction.is_upgrade:
+                    _logger.error(f"CRITICAL: Transaction {payment_transaction.id} was created with is_upgrade=False but should be True!")
+                if final_is_upgrade and payment_transaction.is_renewal:
+                    _logger.error(f"CRITICAL: Transaction {payment_transaction.id} has both is_upgrade=True and is_renewal=True!")
                 
                 # All data is now stored on transaction - no session needed
                 # Redirect to WeChat OAuth2 flow
@@ -655,6 +760,11 @@ class PopcornMembershipController(http.Controller):
                 # Define landing route for Alipay redirect after payment
                 landing_route = '/memberships/success'
                 
+                # Ensure upgrade and renewal are mutually exclusive
+                # If upgrade, renewal must be False
+                final_is_upgrade = bool(is_upgrade)
+                final_is_renewal = bool(is_renewal) if not final_is_upgrade else False
+                
                 payment_transaction = request.env['payment.transaction'].sudo().create({
                     'provider_id': payment_provider.id,
                     'payment_method_id': payment_method.id,
@@ -666,8 +776,9 @@ class PopcornMembershipController(http.Controller):
                     # Store popcorn transaction data directly on transaction
                     'popcorn_transaction_type': 'membership',
                     'membership_plan_id': plan.id,
-                    'is_upgrade': is_upgrade,
-                    'upgrade_details': upgrade_details if is_upgrade else None,
+                    'is_upgrade': final_is_upgrade,
+                    'is_renewal': final_is_renewal,
+                    'upgrade_details': upgrade_details if final_is_upgrade else None,
                     'use_popcorn_money': use_popcorn_money,
                     'popcorn_money_to_use': popcorn_money_to_use,
                     'remaining_amount': remaining_amount,
@@ -688,8 +799,6 @@ class PopcornMembershipController(http.Controller):
                 
                 # Store transaction ID and membership data in session for callback (NO membership created yet)
                 request.session['payment_transaction_id'] = payment_transaction.id
-                # pending_membership is already stored in session above
-                
                 # Get Alipay payment URL using the same method as product purchase (which works)
                 try:
                     payment_link = payment_transaction._get_specific_rendering_values(None)
@@ -747,6 +856,11 @@ class PopcornMembershipController(http.Controller):
                 import time
                 timestamp = int(time.time())
                 
+                # Ensure upgrade and renewal are mutually exclusive
+                # If upgrade, renewal must be False
+                final_is_upgrade = bool(is_upgrade)
+                final_is_renewal = bool(is_renewal) if not final_is_upgrade else False
+                
                 payment_transaction = request.env['payment.transaction'].sudo().create({
                     'provider_id': payment_provider.id,
                     'payment_method_id': payment_method.id,
@@ -758,8 +872,9 @@ class PopcornMembershipController(http.Controller):
                     # Store popcorn transaction data directly on transaction
                     'popcorn_transaction_type': 'membership',
                     'membership_plan_id': plan.id,
-                    'is_upgrade': is_upgrade,
-                    'upgrade_details': upgrade_details if is_upgrade else None,
+                    'is_upgrade': final_is_upgrade,
+                    'is_renewal': final_is_renewal,
+                    'upgrade_details': upgrade_details if final_is_upgrade else None,
                     'use_popcorn_money': use_popcorn_money,
                     'popcorn_money_to_use': popcorn_money_to_use,
                     'remaining_amount': remaining_amount,
@@ -772,8 +887,6 @@ class PopcornMembershipController(http.Controller):
                 
                 # Store transaction ID and membership data in session for callback (NO membership created yet)
                 request.session['payment_transaction_id'] = payment_transaction.id
-                # pending_membership is already stored in session above
-                
                 # Let the payment gateway handle the payment flow
                 try:
                     payment_link = payment_transaction._get_specific_rendering_values(None)
@@ -784,9 +897,8 @@ class PopcornMembershipController(http.Controller):
                     _logger.warning(f"Failed to get payment link: {str(e)}")
                 
                 # Fallback: if no payment link available, redirect to payment failed page
-                _logger.warning("No payment link available, redirecting to payment failed page")
-                request.session.pop('pending_membership', None)
-                return request.redirect('/memberships/payment/failed?error=gateway_unavailable')
+                    _logger.warning("No payment link available, redirecting to payment failed page")
+                    return request.redirect('/memberships/payment/failed?error=gateway_unavailable')
             
         except Exception as e:
             _logger.error(f"Failed to process checkout: {str(e)}", exc_info=True)
@@ -849,6 +961,14 @@ class PopcornMembershipController(http.Controller):
             # Create payment transaction with unique reference
             import time
             timestamp = int(time.time())
+            
+            # Ensure upgrade and renewal are mutually exclusive
+            # If upgrade, renewal must be False
+            pending_is_upgrade = bool(pending_membership.get('is_upgrade', False))
+            pending_is_renewal = bool(pending_membership.get('is_renewal', False))
+            final_is_upgrade = pending_is_upgrade
+            final_is_renewal = pending_is_renewal if not final_is_upgrade else False
+            
             payment_transaction = request.env['payment.transaction'].sudo().create({
                 'provider_id': payment_provider.id,
                 'payment_method_id': payment_method.id,
@@ -860,8 +980,9 @@ class PopcornMembershipController(http.Controller):
                 # Store popcorn transaction data directly on transaction
                 'popcorn_transaction_type': 'membership',
                 'membership_plan_id': plan.id,
-                'is_upgrade': pending_membership.get('is_upgrade', False),
-                'upgrade_details': pending_membership.get('upgrade_details'),
+                'is_upgrade': final_is_upgrade,
+                'is_renewal': final_is_renewal,
+                'upgrade_details': pending_membership.get('upgrade_details') if final_is_upgrade else None,
                 'use_popcorn_money': pending_membership.get('use_popcorn_money', False),
                 'popcorn_money_to_use': pending_membership.get('popcorn_money_to_use', 0),
                 'remaining_amount': amount,
@@ -887,13 +1008,36 @@ class PopcornMembershipController(http.Controller):
                 _logger.warning("No payment link available, creating membership directly")
                 
                 # Create the membership
-                if pending_membership['is_upgrade']:
+                # Upgrade takes precedence over renewal
+                if pending_membership.get('is_upgrade', False):
                     # Handle upgrade
-                    membership = self._create_upgrade_membership(plan, partner, pending_membership['upgrade_details'])
+                    applied_discount = None
+                    applied_discount_id = pending_membership.get('applied_discount_id')
+                    if applied_discount_id:
+                        try:
+                            applied_discount = request.env['popcorn.discount'].browse(int(applied_discount_id))
+                            if not applied_discount.exists() or not applied_discount.is_valid:
+                                applied_discount = None
+                        except (ValueError, TypeError):
+                            applied_discount = None
+                    
+                    # Calculate actual payment amount (upgrade_price - popcorn_money)
+                    upgrade_details_from_session = pending_membership['upgrade_details']
+                    upgrade_price = upgrade_details_from_session.get('upgrade_price', 0) if upgrade_details_from_session else 0
+                    popcorn_money_used = pending_membership.get('popcorn_money_to_use', 0) or 0
+                    actual_payment_amount = max(0, amount - popcorn_money_used)  # amount already accounts for discounts
+                    
+                    membership = self._create_upgrade_membership(
+                        plan, 
+                        partner, 
+                        upgrade_details_from_session,
+                        payment_transaction_id=None,
+                        payment_reference=None,
+                        applied_discount=applied_discount,
+                        actual_payment_amount=actual_payment_amount
+                    )
                     _logger.info(f"Upgrade membership created with ID: {membership.id}")
                     
-                    # Clear upgrade details from session
-                    request.session.pop('upgrade_details', None)
                     
                     # Log the upgrade
                     membership.message_post(
@@ -906,6 +1050,33 @@ class PopcornMembershipController(http.Controller):
                     _logger.info(f"Redirecting to upgrade success page: /my/cards/upgrade/success?membership_id={membership.id}")
                     # Redirect to upgrade success page
                     return request.redirect('/my/cards/upgrade/success?membership_id=%s' % membership.id)
+                elif pending_membership.get('is_renewal', False):
+                    # Handle renewal
+                    applied_discount = None
+                    applied_discount_id = pending_membership.get('applied_discount_id')
+                    if applied_discount_id:
+                        try:
+                            applied_discount = request.env['popcorn.discount'].browse(int(applied_discount_id))
+                            if not applied_discount.exists() or not applied_discount.is_valid:
+                                applied_discount = None
+                        except (ValueError, TypeError):
+                            applied_discount = None
+                    
+                    membership = self._create_membership_from_plan(
+                        plan, 
+                        partner, 
+                        customer_signature=pending_membership.get('customer_signature'),
+                        applied_discount=applied_discount,
+                        is_renewal=True
+                    )
+                    _logger.info(f"Renewal membership created with ID: {membership.id}")
+                    
+                    # Clear upgrade details from session if renewal takes precedence
+                    
+                    # Log the renewal
+                    membership.message_post(
+                        body=_('Membership renewed through %s payment. Amount: %s') % (payment_provider.name, amount)
+                    )
                 else:
                     # Get applied discount if any
                     applied_discount = None
@@ -923,7 +1094,8 @@ class PopcornMembershipController(http.Controller):
                         plan, 
                         partner, 
                         customer_signature=pending_membership.get('customer_signature'),
-                        applied_discount=applied_discount
+                        applied_discount=applied_discount,
+                        is_renewal=pending_membership.get('is_renewal', False)
                     )
                     _logger.info(f"Regular membership created with ID: {membership.id}")
                     
@@ -943,8 +1115,6 @@ class PopcornMembershipController(http.Controller):
             _logger.error(f"Failed to process payment: {str(e)}")
             # Clear session data on error
             request.session.pop('pending_membership', None)
-            request.session.pop('upgrade_details', None)
-            request.session.pop('renewal_details', None)
             return request.redirect('/memberships?error=payment_processing_failed')
 
     @http.route(['/memberships/payment/callback'], type='http', auth="public", website=True, methods=['GET', 'POST'])
@@ -1023,16 +1193,15 @@ class PopcornMembershipController(http.Controller):
                 return request.redirect('/memberships?warning=processing')
             
             # Original callback logic for other payment gateways
-            # Get transaction ID and pending membership data from session
-            transaction_id = request.session.get('payment_transaction_id')
-            pending_membership = request.session.get('pending_membership')
+            # Get transaction ID from params or session (fallback)
+            transaction_id = request.params.get('transaction_id') or request.session.get('payment_transaction_id')
             
-            if not transaction_id or not pending_membership:
-                _logger.error("No transaction ID or pending membership found in session")
-                return request.redirect('/memberships/payment/failed?error=session_expired')
+            if not transaction_id:
+                _logger.error("No transaction ID found")
+                return request.redirect('/memberships/payment/failed?error=transaction_not_found')
             
-            # Get the transaction
-            transaction = request.env['payment.transaction'].sudo().browse(transaction_id)
+            # Get the transaction - all data is stored on the transaction model
+            transaction = request.env['payment.transaction'].sudo().browse(int(transaction_id))
             
             if not transaction.exists():
                 _logger.error(f"Transaction {transaction_id} not found")
@@ -1040,105 +1209,33 @@ class PopcornMembershipController(http.Controller):
             
             # Check payment status
             if transaction.state == 'done':
-                # Payment successful - create membership or event registration now
-                plan = request.env['popcorn.membership.plan'].browse(pending_membership['plan_id'])
-                partner = request.env['res.partner'].browse(pending_membership['partner_id'])
+                # Transaction processing is handled by _process_membership_transaction() via write()/_set_done()
+                # Just find the created membership and redirect
+                membership = request.env['popcorn.membership'].search([
+                    ('payment_transaction_id', '=', transaction.id)
+                ], limit=1)
                 
-                # Deduct popcorn money if used
-                if pending_membership.get('use_popcorn_money') and pending_membership.get('popcorn_money_to_use', 0) > 0:
-                    _logger.info(f"Deducting popcorn money: {pending_membership['popcorn_money_to_use']}")
-                    partner.deduct_popcorn_money(pending_membership['popcorn_money_to_use'], f'Membership purchase: {plan.display_name}')
+                if not membership:
+                    _logger.error(f"No membership found for transaction {transaction_id}")
+                    return request.redirect('/memberships/payment/failed?error=membership_not_created')
                 
-                # Check if this is an event purchase
-                if pending_membership.get('is_event_purchase', False):
-                    # Handle event purchase
-                    registration = self._handle_event_purchase(plan, partner, transaction.id, transaction.reference)
-                    if registration:
-                        redirect_url = f'/popcorn/event/{registration.event_id.id}/purchase/success?registration_id={registration.id}'
-                    else:
-                        redirect_url = '/memberships/payment/failed?error=event_registration_failed'
-                elif pending_membership['is_upgrade']:
-                    membership = self._create_upgrade_membership(plan, partner, pending_membership['upgrade_details'])
-                    membership.write({
-                        'payment_transaction_id': transaction.id,
-                        'payment_reference': transaction.reference
-                    })
-                    payment_message = _('Payment successful via %s. Transaction: %s. Membership upgraded and activated.') % (transaction.provider_id.name, transaction.reference)
-                    if pending_membership.get('use_popcorn_money') and pending_membership.get('popcorn_money_to_use', 0) > 0:
-                        payment_message += _('. Popcorn money used: %s%s. Remaining: %s%s') % (plan.currency_id.symbol, pending_membership['popcorn_money_to_use'], plan.currency_id.symbol, pending_membership.get('remaining_amount', 0))
-                    membership.message_post(body=payment_message)
+                # Redirect based on transaction type
+                if transaction.is_upgrade:
                     redirect_url = '/my/cards/upgrade/success?membership_id=%s' % membership.id
                 else:
-                    # Get applied discount if any
-                    applied_discount = None
-                    applied_discount_id = pending_membership.get('applied_discount_id')
-                    if applied_discount_id:
-                        try:
-                            applied_discount = request.env['popcorn.discount'].browse(int(applied_discount_id))
-                            if not applied_discount.exists() or not applied_discount.is_valid:
-                                applied_discount = None
-                        except (ValueError, TypeError):
-                            applied_discount = None
-                    
-                    membership = self._create_membership_from_plan(
-                        plan, 
-                        partner, 
-                        customer_signature=pending_membership.get('customer_signature') if 'pending_membership' in locals() else None,
-                        applied_discount=applied_discount
-                    )
-                    
-                    # Respect the plan's activation policy
-                    membership_vals = {
-                        'payment_transaction_id': transaction.id,
-                        'payment_reference': transaction.reference,
-                    }
-                    
-                    if plan.activation_policy == 'immediate':
-                        membership_vals['state'] = 'active'
-                        membership_vals['activation_date'] = fields.Date.today()
-                    elif plan.activation_policy == 'first_attendance':
-                        membership_vals['state'] = 'pending'  # Will be activated on first event registration
-                    elif plan.activation_policy == 'manual':
-                        membership_vals['state'] = 'pending'  # Requires manual activation
-                    
-                    membership.write(membership_vals)
-                    payment_message = _('Payment successful via %s. Transaction: %s. Membership created and activated.') % (transaction.provider_id.name, transaction.reference)
-                    if pending_membership.get('use_popcorn_money') and pending_membership.get('popcorn_money_to_use', 0) > 0:
-                        payment_message += _('. Popcorn money used: %s%s. Remaining: %s%s') % (plan.currency_id.symbol, pending_membership['popcorn_money_to_use'], plan.currency_id.symbol, pending_membership.get('remaining_amount', 0))
-                    membership.message_post(body=payment_message)
                     redirect_url = '/memberships/success?membership_id=%s' % membership.id
                 
-                # Clear session data
-                request.session.pop('payment_transaction_id', None)
-                request.session.pop('pending_membership', None)
-                request.session.pop('upgrade_details', None)
-                request.session.pop('renewal_details', None)
-                
-                _logger.info(f"Payment successful. Membership created with ID: {membership.id}")
+                _logger.info(f"Payment successful. Membership ID: {membership.id}")
                 return request.redirect(redirect_url)
                 
             elif transaction.state == 'cancel':
-                # Payment cancelled - no membership created
+                # Payment cancelled
                 _logger.info(f"Payment cancelled for transaction {transaction_id}")
-                
-                # Clear session data
-                request.session.pop('payment_transaction_id', None)
-                request.session.pop('pending_membership', None)
-                request.session.pop('upgrade_details', None)
-                request.session.pop('renewal_details', None)
-                
                 return request.redirect('/memberships/payment/failed?error=payment_cancelled')
                 
             else:
                 # Payment pending or failed - no membership created
                 _logger.warning(f"Payment not completed for transaction {transaction_id}. State: {transaction.state}")
-                
-                # Clear session data
-                request.session.pop('payment_transaction_id', None)
-                request.session.pop('pending_membership', None)
-                request.session.pop('upgrade_details', None)
-                request.session.pop('renewal_details', None)
-                
                 return request.redirect('/memberships/payment/failed?error=payment_failed')
                 
         except Exception as e:
@@ -1426,55 +1523,63 @@ class PopcornMembershipController(http.Controller):
         
         return request.render('popcorn.membership_payment_failed_page', values)
     
-    def _create_upgrade_membership(self, plan, partner, upgrade_details):
-        """Upgrade an existing membership to a new plan"""
+    def _create_upgrade_membership(self, plan, partner, upgrade_details, payment_transaction_id=None, payment_reference=None, applied_discount=None, actual_payment_amount=None):
+        """Upgrade an existing membership to a new plan
+        
+        Args:
+            plan: Target membership plan
+            partner: Partner record
+            upgrade_details: Dictionary with upgrade information (membership_id, upgrade_price, etc.)
+            payment_transaction_id: Optional payment transaction ID
+            payment_reference: Optional payment reference
+            applied_discount: Optional discount record
+            actual_payment_amount: Actual money paid for upgrade (excludes popcorn money)
+                If not provided, defaults to upgrade_price (for backward compatibility)
+        """
         membership_id = upgrade_details.get('membership_id')
         upgrade_price = upgrade_details.get('upgrade_price', 0)
+        
+        # Use actual payment amount if provided, otherwise fall back to upgrade_price
+        # This ensures purchase_price_paid only reflects real money paid, not popcorn money
+        payment_amount_for_purchase_price = actual_payment_amount if actual_payment_amount is not None else upgrade_price
         
         # Get the original membership
         original_membership = request.env['popcorn.membership'].browse(int(membership_id))
         
-        # Store original plan name for logging
-        original_plan_name = original_membership.membership_plan_id.name
-        
-        # Update the existing membership with the new plan and pricing
-        upgrade_vals = {
-            'membership_plan_id': plan.id,
-            'purchase_price_paid': upgrade_price,
-            'price_tier': 'first_timer' if original_membership.upgrade_discount_allowed else 'normal',
-            'purchase_channel': 'online',  # Upgrades are processed through online checkout
-            'upgrade_discount_allowed': original_membership.upgrade_discount_allowed,
-        }
-        
-        # Update the existing membership
-        original_membership.write(upgrade_vals)
-        
-        # Log the upgrade
-        original_membership.message_post(
-            body=_('Upgraded from %s to %s. Upgrade price: %s') % (
-                original_plan_name,
-                plan.name,
-                upgrade_price
-            )
+        # Use model method to upgrade
+        # Pass actual payment amount so purchase_price_paid only reflects real money
+        upgraded_membership = original_membership.action_upgrade_to_plan(
+            plan,
+            payment_amount_for_purchase_price,  # Use actual money paid, not full upgrade_price
+            payment_transaction_id=payment_transaction_id,
+            payment_reference=payment_reference,
+            applied_discount=applied_discount
         )
         
-        return original_membership
+        return upgraded_membership
     
-    def _create_membership_from_plan(self, plan, partner, purchase_channel='online', price_tier=None, upgrade_discount_allowed=False, first_timer_customer=False, payment_transaction_id=None, payment_reference=None, customer_signature=None, applied_discount=None):
+    def _create_membership_from_plan(self, plan, partner, purchase_channel='online', price_tier=None, upgrade_discount_allowed=False, first_timer_customer=False, payment_transaction_id=None, payment_reference=None, customer_signature=None, applied_discount=None, is_renewal=False):
         """Create a membership directly from a plan (bypassing sales orders)"""
         # Determine price tier if not provided
         if price_tier is None:
-            price_tier = 'first_timer'
-            existing_memberships = request.env['popcorn.membership'].search([
-                ('partner_id', '=', partner.id),
-                ('state', 'in', ['active', 'frozen'])
-            ], limit=1)
-            
-            if existing_memberships:
-                price_tier = 'normal'
+            if is_renewal:
+                # For renewals, use first-timer price as base
+                price_tier = 'first_timer'
+            else:
+                price_tier = 'first_timer'
+                existing_memberships = request.env['popcorn.membership'].search([
+                    ('partner_id', '=', partner.id),
+                    ('state', 'in', ['active', 'frozen'])
+                ], limit=1)
+                
+                if existing_memberships:
+                    price_tier = 'normal'
         
         # Determine purchase price
-        if price_tier == 'first_timer' and plan.price_first_timer > 0:
+        # For renewals, always use first-timer price as base (even if customer has existing memberships)
+        if is_renewal:
+            purchase_price = plan.price_first_timer if plan.price_first_timer > 0 else plan.price_normal
+        elif price_tier == 'first_timer' and plan.price_first_timer > 0:
             purchase_price = plan.price_first_timer
         else:
             purchase_price = plan.price_normal
@@ -1729,8 +1834,6 @@ class PopcornMembershipController(http.Controller):
             # Clear session data on error
             request.session.pop('wechat_pending_event_purchase', None)
             request.session.pop('event_purchase_details', None)
-            request.session.pop('upgrade_details', None)
-            request.session.pop('renewal_details', None)
             return request.redirect('/event?error=processing_failed')
 
     def _handle_event_purchase(self, plan, partner, payment_transaction_id=None, payment_reference=None):

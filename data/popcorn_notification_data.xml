@@ -628,7 +628,6 @@
             <field name="show_action_button" eval="False"/>
             <field name="show_once_per_session" eval="True"/>
             <field name="show_once_per_user" eval="False"/>
-            <field name="send_wechat_notification" eval="True"/>
             <field name="active" eval="True"/>
         </record>
 

@@ -25,6 +25,9 @@
             <field name="model">popcorn.membership.plan</field>
             <field name="arch" type="xml">
                 <form string="Membership Plan">
+                    <header>
+                        <field name="website_published" widget="boolean_toggle"/>
+                    </header>
                     <sheet>
                         <div class="oe_title">
                             <h1>
@@ -68,6 +71,7 @@
                                 <field name="points_per_offline"/>
                                 <field name="points_per_online"/>
                                 <field name="points_per_sp"/>
+                                <field name="points_per_social_experience"/>
                             </group>
                         </group>
                         

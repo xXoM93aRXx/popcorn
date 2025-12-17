@@ -15,6 +15,7 @@ class PopcornMembershipPlan(models.Model):
     name = fields.Char(string='Plan Name', required=True, tracking=True)
     sequence = fields.Integer(string='Sequence', default=10, help='Order of display')
     active = fields.Boolean(string='Active', default=True, tracking=True)
+    website_published = fields.Boolean(string='Published on Website', default=False, tracking=True)
     anchor_tag = fields.Char(string='Anchor Tag', help='Anchor tag for direct linking on the website (e.g., "premium-plan")')
     
     # Plan Configuration
@@ -49,6 +50,8 @@ class PopcornMembershipPlan(models.Model):
     points_per_offline = fields.Integer(string='Points per Offline Session', default=3, tracking=True)
     points_per_online = fields.Integer(string='Points per Online Session', default=2, tracking=True)
     points_per_sp = fields.Integer(string='Points per Special Club Session', default=4, tracking=True)
+    points_per_social_experience = fields.Integer(string='Points per Social Experience', default=0, tracking=True,
+                                                  help='Points cost for Social Experience events')
     
     # Freeze Settings
     freeze_allowed = fields.Boolean(string='Freeze Allowed', default=False, tracking=True)

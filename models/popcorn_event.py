@@ -1,5 +1,5 @@
 from odoo import models, fields, api, _
-from odoo.exceptions import AccessError
+from odoo.exceptions import AccessError, ValidationError
 from odoo.http import request
 import logging
 from datetime import timedelta
@@ -26,6 +26,18 @@ class EventEvent(models.Model):
         string='Event Price',
         digits='Product Price',
         help='Price for attending this event'
+    )
+    
+    second_price = fields.Float(
+        string='Second Price',
+        digits='Product Price',
+        help='Alternative price for memberships in the special pricing list (for Social Experience events)'
+    )
+    
+    membership_plans_second_price_ids = fields.Many2many(
+        'popcorn.membership.plan',
+        string='Membership Plans with Second Price',
+        help='Membership plans that should pay second_price for Social Experience events (skips quota check)'
     )
     
     hide_after_minutes = fields.Integer(
@@ -500,6 +512,13 @@ class EventEvent(models.Model):
         help='Automatically calculated text color for optimal contrast'
     )
     
+    @api.constrains('second_price', 'membership_plans_second_price_ids')
+    def _check_second_price_required(self):
+        """Ensure second_price is set when membership_plans_second_price_ids has entries"""
+        for event in self:
+            if event.membership_plans_second_price_ids and (not event.second_price or event.second_price <= 0):
+                raise ValidationError(_('Second Price must be set when membership plans are selected for special pricing'))
+    
     def can_register_with_membership(self, membership):
         """Check if a specific membership can be used for this event"""
         self.ensure_one()
@@ -534,6 +553,8 @@ class EventEvent(models.Model):
                 points_needed = plan.points_per_online
             elif self.club_type == 'spclub':
                 points_needed = plan.points_per_sp
+            elif self.club_type == 'social_experience':
+                points_needed = plan.points_per_social_experience
             else:
                 points_needed = 0
             

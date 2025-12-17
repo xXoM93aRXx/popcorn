@@ -51,9 +51,10 @@
                     <div class="popcorn-event-description-full" style="display: none;">
                         <div t-field="event.description" itemprop="description"/>
                     </div>
+                    
                 </div>
             </xpath>
-            
+
             <xpath expr="//div[@class='o_wevent_event_main_dates_mobile d-lg-none mt-3']" position="after">
                 <!-- Location (mobile only - before host bio) -->
                 <div class="d-lg-none mt-3 mb-4">

@@ -2,6 +2,9 @@
 
 from odoo import api, fields, models, _
 
+import pytz
+from datetime import datetime, time
+
 
 class ResPartner(models.Model):
     """Extends res.partner with Popcorn Club specific fields"""
@@ -89,14 +92,21 @@ class ResPartner(models.Model):
     first_timer_discount_remaining_days = fields.Integer(
         string='Remaining Discount Days',
         compute='_compute_first_timer_discount_remaining_days',
-        store=True,
+        store=False,
         help='Number of days remaining for first-timer discount'
+    )
+
+    first_timer_discount_remaining_hours = fields.Integer(
+        string='Remaining Discount Hours',
+        compute='_compute_first_timer_discount_remaining_days',
+        store=False,
+        help='Number of whole hours remaining for first-timer discount (company timezone, end-of-day)'
     )
     
     first_timer_discount_is_expired = fields.Boolean(
         string='Discount Expired',
         compute='_compute_first_timer_discount_remaining_days',
-        store=True,
+        store=False,
         help='Whether the first-timer discount has expired'
     )
     
@@ -257,14 +267,31 @@ class ResPartner(models.Model):
     def _compute_first_timer_discount_remaining_days(self):
         """Compute remaining days for first-timer discount"""
         today = fields.Date.today()
+        now_utc = fields.Datetime.now()  # naive UTC
+        company_tz_name = (self.env.company.partner_id.tz or 'UTC')
+        try:
+            company_tz = pytz.timezone(company_tz_name)
+        except Exception:
+            company_tz = pytz.UTC
+
         for partner in self:
             if partner.first_timer_discount_expiry:
                 remaining_days = (partner.first_timer_discount_expiry - today).days
                 partner.first_timer_discount_remaining_days = max(0, remaining_days)
                 partner.first_timer_discount_is_expired = remaining_days <= 0
+                try:
+                    expiry_local = company_tz.localize(
+                        datetime.combine(partner.first_timer_discount_expiry, time(23, 59, 59))
+                    )
+                    expiry_utc = expiry_local.astimezone(pytz.UTC).replace(tzinfo=None)  # naive UTC
+                    hours = (expiry_utc - now_utc).total_seconds() / 3600.0
+                    partner.first_timer_discount_remaining_hours = int(max(hours, 0.0))
+                except Exception:
+                    partner.first_timer_discount_remaining_hours = 0
             else:
                 partner.first_timer_discount_remaining_days = 0
                 partner.first_timer_discount_is_expired = True
+                partner.first_timer_discount_remaining_hours = 0
     
     @api.depends('first_timer_discount_code')
     def _compute_first_timer_discount_status(self):

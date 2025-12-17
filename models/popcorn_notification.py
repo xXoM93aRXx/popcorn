@@ -339,15 +339,24 @@ class PopcornNotification(models.Model):
                 
                 # For discounts, we need to find partners who can use them
                 # This depends on discount configuration (customer_type, partner_id, etc.)
-                # For now, get partners from memberships that used these discounts
+                # Get partners from:
+                # - partner-specific discounts (discount.partner_id)
+                # - memberships that used these discounts (legacy behavior)
                 discount_partner_ids = set()
                 if discounts:
+                    # 1) Partner-specific discounts (e.g., first-timer coupons)
+                    partner_specific_ids = discounts.mapped('partner_id.id')
+                    if partner_specific_ids:
+                        discount_partner_ids |= set([pid for pid in partner_specific_ids if pid])
+
                     # Find memberships that used these discounts
                     memberships_with_discounts = self.env['popcorn.membership'].search([
                         ('applied_discount_id', 'in', discounts.ids),
                         ('state', 'in', ['active', 'frozen'])
                     ])
-                    discount_partner_ids = set(memberships_with_discounts.mapped('partner_id.id'))
+                    membership_partner_ids = memberships_with_discounts.mapped('partner_id.id')
+                    if membership_partner_ids:
+                        discount_partner_ids |= set([pid for pid in membership_partner_ids if pid])
                 
                 if initial_partners is None:
                     initial_partners = discount_partner_ids

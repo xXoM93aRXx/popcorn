@@ -18,6 +18,7 @@
                 <field name="first_timer_discount_code" readonly="1" invisible="not is_first_timer"/>
                 <field name="first_timer_discount_expiry" readonly="1" invisible="not is_first_timer"/>
                 <field name="first_timer_discount_remaining_days" readonly="1" invisible="not is_first_timer"/>
+                <field name="first_timer_discount_remaining_hours" readonly="1" invisible="not is_first_timer"/>
                 <field name="first_timer_discount_is_expired" readonly="1" invisible="not is_first_timer"/>
                 <field name="first_timer_discount_is_used" readonly="1" invisible="not is_first_timer"/>
                 <field name="first_timer_discount_is_available" readonly="1" invisible="not is_first_timer"/>
@@ -76,6 +77,7 @@
                 <field name="first_timer_discount_code"/>
                 <field name="first_timer_discount_expiry"/>
                 <field name="first_timer_discount_remaining_days"/>
+                <field name="first_timer_discount_remaining_hours"/>
                 <field name="first_timer_discount_is_expired"/>
                 <field name="first_timer_discount_is_used"/>
                 <field name="first_timer_discount_is_available"/>
@@ -92,8 +94,8 @@
                 <separator/>
                 <filter string="Has Discount Code" name="has_discount_code" domain="[('first_timer_discount_code', '!=', False)]"/>
                 <filter string="No Discount Code" name="no_discount_code" domain="[('first_timer_discount_code', '=', False)]"/>
-                <filter string="Discount Expired" name="discount_expired" domain="[('first_timer_discount_is_expired', '=', True)]"/>
-                <filter string="Discount Active" name="discount_active" domain="[('first_timer_discount_is_expired', '=', False), ('first_timer_discount_code', '!=', False)]"/>
+                <filter string="Discount Expired" name="discount_expired" domain="['|', ('first_timer_discount_expiry', '&lt;', context_today()), ('first_timer_discount_expiry', '=', False)]"/>
+                <filter string="Discount Active" name="discount_active" domain="[('first_timer_discount_expiry', '&gt;=', context_today()), ('first_timer_discount_code', '!=', False)]"/>
                 <filter string="Discount Used" name="discount_used" domain="[('first_timer_discount_is_used', '=', True)]"/>
                 <filter string="Discount Available" name="discount_available" domain="[('first_timer_discount_is_available', '=', True)]"/>
                 <separator/>
@@ -118,6 +120,7 @@
                 <field name="phone"/>
                 <field name="first_timer_discount_code"/>
                 <field name="first_timer_discount_remaining_days"/>
+                <field name="first_timer_discount_remaining_hours" optional="hide"/>
                 <field name="create_date"/>
             </list>
         </field>
@@ -136,8 +139,8 @@
                 <filter string="First Timers Only" name="first_timers_only" domain="[('is_first_timer', '=', True)]"/>
                 <filter string="Has Discount Code" name="has_discount_code" domain="[('first_timer_discount_code', '!=', False)]"/>
                 <filter string="No Discount Code" name="no_discount_code" domain="[('first_timer_discount_code', '=', False)]"/>
-                <filter string="Discount Expired" name="discount_expired" domain="[('first_timer_discount_is_expired', '=', True)]"/>
-                <filter string="Discount Active" name="discount_active" domain="[('first_timer_discount_is_expired', '=', False), ('first_timer_discount_code', '!=', False)]"/>
+                <filter string="Discount Expired" name="discount_expired" domain="['|', ('first_timer_discount_expiry', '&lt;', context_today()), ('first_timer_discount_expiry', '=', False)]"/>
+                <filter string="Discount Active" name="discount_active" domain="[('first_timer_discount_expiry', '&gt;=', context_today()), ('first_timer_discount_code', '!=', False)]"/>
                 <separator/>
                 <filter string="Expires Today" name="expires_today" domain="[('first_timer_discount_expiry', '=', context_today())]"/>
                 <filter string="Expires This Week" name="expires_week" domain="[('first_timer_discount_expiry', '&lt;=', (context_today() + datetime.timedelta(days=7)))]"/>

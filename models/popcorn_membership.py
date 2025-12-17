@@ -3,7 +3,8 @@
 import logging
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError, UserError
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
+import pytz
 
 _logger = logging.getLogger(__name__)
 
@@ -98,6 +99,7 @@ class PopcornMembership(models.Model):
     # Computed fields for duration
     total_duration_days = fields.Integer(string='Total Duration (Days)', compute='_compute_total_duration_days', store=True)
     days_until_expiry = fields.Integer(string='Days Until Expiry', compute='_compute_days_until_expiry', store=False)
+    hours_until_expiry = fields.Integer(string='Hours Until Expiry', compute='_compute_hours_until_expiry', store=False)
     total_clubs_remaining = fields.Integer(string='Total Clubs Remaining', compute='_compute_total_clubs_remaining', store=False)
     
     # Computed fields for eligibility
@@ -120,6 +122,32 @@ class PopcornMembership(models.Model):
                 membership.days_until_expiry = delta.days
             else:
                 membership.days_until_expiry = 0
+
+    @api.depends('effective_end_date', 'state')
+    def _compute_hours_until_expiry(self):
+        """Compute whole hours until membership expires (end of effective_end_date in company timezone), clamped at 0."""
+        now_utc = fields.Datetime.now()  # naive UTC
+        company_tz_name = (self.env.company.partner_id.tz or 'UTC')
+        try:
+            company_tz = pytz.timezone(company_tz_name)
+        except Exception:
+            company_tz = pytz.UTC
+
+        for membership in self:
+            if membership.state == 'expired' or not membership.effective_end_date:
+                membership.hours_until_expiry = 0.0
+                continue
+
+            try:
+                expiry_local = company_tz.localize(
+                    datetime.combine(membership.effective_end_date, time(23, 59, 59))
+                )
+                expiry_utc = expiry_local.astimezone(pytz.UTC).replace(tzinfo=None)  # naive UTC
+                hours = (expiry_utc - now_utc).total_seconds() / 3600.0
+                # Floor to whole hours (and clamp at 0)
+                membership.hours_until_expiry = int(max(hours, 0.0))
+            except Exception:
+                membership.hours_until_expiry = 0
     
     def _compute_total_clubs_remaining(self):
         """Compute total clubs/sessions remaining (for points-based plans, calculate equivalent clubs)"""
@@ -274,6 +302,9 @@ class PopcornMembership(models.Model):
                         total_points += points
                     elif club_type == 'spclub':
                         points = plan.points_per_sp
+                        total_points += points
+                    elif club_type == 'social_experience':
+                        points = plan.points_per_social_experience
                         total_points += points
         
             return total_points
@@ -921,6 +952,63 @@ class PopcornMembership(models.Model):
         )
         
         return True
+    
+    def action_upgrade_to_plan(self, new_plan, actual_payment_amount, payment_transaction_id=None, payment_reference=None, applied_discount=None):
+        """Upgrade this membership to a new plan
+        
+        Args:
+            new_plan: popcorn.membership.plan record
+            actual_payment_amount: Actual money paid for upgrade (excludes popcorn money)
+                This is the remaining_amount from payment transaction, which equals:
+                upgrade_price - popcorn_money_to_use
+            payment_transaction_id: Optional payment transaction ID
+            payment_reference: Optional payment reference
+            applied_discount: Optional discount record
+        
+        Returns:
+            self (upgraded membership record, same ID)
+        """
+        self.ensure_one()
+        
+        # Store original values
+        original_purchase_price = self.purchase_price_paid
+        
+        # Calculate accumulated purchase price
+        # Only add actual money paid (not popcorn money) to purchase_price_paid
+        new_purchase_price = original_purchase_price + actual_payment_amount
+        
+        # Build upgrade values
+        upgrade_vals = {
+            'membership_plan_id': new_plan.id,
+            'purchase_price_paid': new_purchase_price,
+            'price_tier': 'first_timer' if self.upgrade_discount_allowed else 'normal',
+            'purchase_channel': 'online',
+            'upgrade_discount_allowed': self.upgrade_discount_allowed,
+        }
+        
+        # Add payment info if provided
+        if payment_transaction_id:
+            upgrade_vals['payment_transaction_id'] = payment_transaction_id
+        if payment_reference:
+            upgrade_vals['payment_reference'] = payment_reference
+        if applied_discount:
+            upgrade_vals['applied_discount_id'] = applied_discount.id
+        
+        # Update the existing membership
+        self.write(upgrade_vals)
+        
+        # Invalidate computed fields that depend on membership_plan_id
+        self.invalidate_recordset([
+            'remaining_offline', 'remaining_online', 'remaining_sp',
+            'points_remaining',
+            'end_date_base', 'effective_end_date', 'total_duration_days',
+            'plan_duration_days', 'plan_quota_mode',
+            'plan_allowed_regular_offline', 'plan_allowed_regular_online',
+            'plan_allowed_spclub'
+        ])
+        self.flush_recordset()
+        
+        return self
     
     def remove_discount(self):
         """Remove applied discount and revert to normal pricing"""

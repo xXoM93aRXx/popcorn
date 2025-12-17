@@ -260,6 +260,16 @@
                                     <input type="hidden" name="plan_id" t-att-value="plan.id"/>
                                     <input type="hidden" class="popcorn-plan-id" t-att-value="plan.id"/>
                                     
+                                    <!-- Upgrade/Renewal parameters -->
+                                    <t t-if="is_upgrade and upgrade_details">
+                                        <input type="hidden" name="upgrade" value="true"/>
+                                        <input type="hidden" name="membership_id" t-att-value="upgrade_details.get('membership_id')"/>
+                                        <input type="hidden" name="upgrade_price" t-att-value="upgrade_details.get('upgrade_price')"/>
+                                    </t>
+                                    <t t-if="is_renewal">
+                                        <input type="hidden" name="renew" value="true"/>
+                                    </t>
+                                    
                                     <!-- Personal Information -->
                                     <div class="popcorn-form-section">
                                         <h3 class="popcorn-section-title">Personal Information</h3>

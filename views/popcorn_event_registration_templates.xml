@@ -83,20 +83,45 @@
                                     <h3><span t-translation="on">Choose Registration Option:</span></h3>
                                     
                                     <!-- Direct Event Purchase Option -->
-                                    <t t-if="event.event_price and event.event_price > 0">
+                                    <t t-if="(event.event_price and event.event_price > 0) or should_pay_second_price">
                                         <div class="popcorn-purchase-option">
                                             <div class="popcorn-purchase-info">
                                                 <h4><span t-translation="on">Buy Club Ticket</span></h4>
-                                                <p class="popcorn-price"><span t-translation="on">Price:</span> <strong><t t-esc="event.currency_id.symbol"/><t t-esc="'{:,.2f}'.format(event.event_price)"/></strong></p>
-                                                <p class="popcorn-purchase-desc"><span t-translation="on">Purchase this club directly without a membership</span></p>
+                                                <p class="popcorn-price">
+                                                    <span t-translation="on">Price:</span> 
+                                                    <strong>
+                                                        <t t-esc="event.currency_id.symbol"/>
+                                                        <t t-if="should_pay_second_price">
+                                                            <t t-esc="'{:,.2f}'.format(second_price)"/>
+                                                        </t>
+                                                        <t t-else="">
+                                                            <t t-esc="'{:,.2f}'.format(event.event_price)"/>
+                                                        </t>
+                                                    </strong>
+                                                </p>
+                                                <p class="popcorn-purchase-desc">
+                                                    <t t-if="should_pay_second_price">
+                                                        <span t-translation="on">Purchase this Social Experience event with special pricing</span>
+                                                    </t>
+                                                    <t t-else="">
+                                                        <span t-translation="on">Purchase this club directly without a membership</span>
+                                                    </t>
+                                                </p>
                                             </div>
                                             <div class="popcorn-purchase-actions">
-                                                <form t-attf-action="/popcorn/event/#{event.id}/purchase/direct-payment" method="POST" style="display: inline;">
-                                                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                                                    <button type="submit" class="popcorn-event-btn popcorn-event-btn-primary">
+                                                <t t-if="should_pay_second_price">
+                                                    <a t-attf-href="/popcorn/event/#{event.id}/checkout" class="popcorn-event-btn popcorn-event-btn-primary">
                                                         <i class="fa fa-shopping-cart"></i> <span t-translation="on">Buy Club Ticket</span>
-                                                    </button>
-                                                </form>
+                                                    </a>
+                                                </t>
+                                                <t t-else="">
+                                                    <form t-attf-action="/popcorn/event/#{event.id}/purchase/direct-payment" method="POST" style="display: inline;">
+                                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                                        <button type="submit" class="popcorn-event-btn popcorn-event-btn-primary">
+                                                            <i class="fa fa-shopping-cart"></i> <span t-translation="on">Buy Club Ticket</span>
+                                                        </button>
+                                                    </form>
+                                                </t>
                                                 
                                                 <!-- Referral Button for Direct Purchase -->
                                                 <t t-if="event.referral_prize and event.referral_prize > 0">
@@ -532,7 +557,13 @@
                                     <div class="popcorn-price-row">
                                         <span class="popcorn-price-label">Registration Fee:</span>
                                         <span class="popcorn-price-value">
-                                            <t t-esc="event.currency_id.symbol"/><t t-esc="'{:,.2f}'.format(event.event_price)"/>
+                                            <t t-esc="event.currency_id.symbol"/>
+                                            <t t-if="second_price">
+                                                <t t-esc="'{:,.2f}'.format(second_price)"/>
+                                            </t>
+                                            <t t-else="">
+                                                <t t-esc="'{:,.2f}'.format(event.event_price)"/>
+                                            </t>
                                         </span>
                                     </div>
                                     <div class="popcorn-price-row popcorn-discount-row" id="popcorn-discount-row" style="display: none;">
@@ -552,7 +583,13 @@
                                     <div class="popcorn-price-row popcorn-total-row">
                                         <span class="popcorn-price-label">Total:</span>
                                         <span class="popcorn-price-value popcorn-total" id="popcorn-total-price">
-                                            <t t-esc="event.currency_id.symbol"/><t t-esc="'{:,.2f}'.format(event.event_price)"/>
+                                            <t t-esc="event.currency_id.symbol"/>
+                                            <t t-if="second_price">
+                                                <t t-esc="'{:,.2f}'.format(second_price)"/>
+                                            </t>
+                                            <t t-else="">
+                                                <t t-esc="'{:,.2f}'.format(event.event_price)"/>
+                                            </t>
                                         </span>
                                     </div>
                                 </div>

@@ -15,7 +15,8 @@ class PopcornEventRegistration(models.Model):
     club_type = fields.Selection([
         ('regular_offline', 'Regular Offline'),
         ('regular_online', 'Regular Online'),
-        ('spclub', 'Special Club')
+        ('spclub', 'Special Club'),
+        ('social_experience', 'Social Experience')
     ], string='Club Type', compute='_compute_club_type', store=True)
     
     # Membership consumption
@@ -210,6 +211,7 @@ class PopcornEventRegistration(models.Model):
     def _compute_club_type(self):
         """Compute club type from the event's Type tag"""
         for registration in self:
+            _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] _compute_club_type called for registration {registration.id}")
             if registration.event_id and registration.event_id.tag_ids:
                 # Look for the tag with category "Type" to determine club type
                 type_tag = registration.event_id.tag_ids.filtered(
@@ -217,7 +219,11 @@ class PopcornEventRegistration(models.Model):
                 )[:1]  # Safely grab the first record
                 if type_tag:
                     tag_name = type_tag.name.lower()
-                    if 'offline' in tag_name:
+                    _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Found type tag: {type_tag.name}, lowercase: {tag_name}")
+                    if 'social' in tag_name and 'experience' in tag_name:
+                        registration.club_type = 'social_experience'
+                        _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Setting club_type to 'social_experience'")
+                    elif 'offline' in tag_name:
                         registration.club_type = 'regular_offline'
                     elif 'online' in tag_name:
                         registration.club_type = 'regular_online'
@@ -226,6 +232,7 @@ class PopcornEventRegistration(models.Model):
                     else:
                         registration.club_type = False
                 else:
+                    _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] No type tag found, using fallback")
                     # Fallback: determine from event properties
                     if hasattr(registration.event_id, 'is_online_event') and registration.event_id.is_online_event:
                         registration.club_type = 'regular_online'
@@ -234,6 +241,8 @@ class PopcornEventRegistration(models.Model):
             else:
                 # Default to offline if no tags
                 registration.club_type = 'regular_offline'
+                _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] No event_id or tag_ids, defaulting to 'regular_offline'")
+            _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Final club_type: {registration.club_type}")
     
     @api.depends(
         'club_type',
@@ -242,6 +251,7 @@ class PopcornEventRegistration(models.Model):
         'membership_id.membership_plan_id.points_per_offline',
         'membership_id.membership_plan_id.points_per_online',
         'membership_id.membership_plan_id.points_per_sp',
+        'membership_id.membership_plan_id.points_per_social_experience',
     )
     def _compute_points_consumed(self):
         """Compute points consumed based on club type"""
@@ -253,7 +263,9 @@ class PopcornEventRegistration(models.Model):
             # Get points from membership plan if available
             if registration.membership_id and registration.membership_id.membership_plan_id:
                 plan = registration.membership_id.membership_plan_id
-                if registration.club_type == 'regular_offline':
+                if registration.club_type == 'social_experience':
+                    registration.points_consumed = plan.points_per_social_experience
+                elif registration.club_type == 'regular_offline':
                     registration.points_consumed = plan.points_per_offline
                 elif registration.club_type == 'regular_online':
                     registration.points_consumed = plan.points_per_online
@@ -474,6 +486,9 @@ class PopcornEventRegistration(models.Model):
             return membership.remaining_online >= 1
         elif self.club_type == 'spclub':
             return membership.remaining_sp >= 1
+        elif self.club_type == 'social_experience':
+            # Bucket-based memberships don't support social_experience events
+            return False
         
         return False
     
@@ -706,19 +721,27 @@ class PopcornEventRegistration(models.Model):
         """Automatically consume membership quota when registration is created"""
         self.ensure_one()
         
+        _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] _consume_membership_quota called for registration {self.id}")
+        _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] membership_id: {self.membership_id.id if self.membership_id else None}, consumption_state: {self.consumption_state}, club_type: {self.club_type}, points_consumed: {self.points_consumed}")
+        
         if not self.membership_id or self.consumption_state != 'pending':
+            _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Skipping consumption - membership_id: {self.membership_id.id if self.membership_id else None}, consumption_state: {self.consumption_state}")
             return
         
         membership = self.membership_id
+        _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Membership quota_mode: {membership.plan_quota_mode}, points_remaining BEFORE: {membership.points_remaining}")
         
         # Check if membership has sufficient quota BEFORE consuming
         if not self._can_consume_membership():
+            _logger.error(f"[SOCIAL_EXPERIENCE_DEBUG] Cannot consume membership - insufficient quota!")
             raise ValidationError(_('Insufficient membership quota for this event'))
         
         # Mark as consumed first
         self.write({
             'consumption_state': 'consumed'
         })
+        
+        _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Consumption state set to 'consumed', points_remaining AFTER: {membership.points_remaining}")
         
         # Log the quota consumption
         membership.message_post(
@@ -877,14 +900,17 @@ class PopcornEventRegistration(models.Model):
             elif registration.state == 'open':
                 # Seats available - consume quota if membership exists
                 if registration.membership_id and registration.consumption_state == 'pending':
-                    _logger.info(f"Consuming membership quota")
+                    _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Registration state is 'open', consuming membership quota")
+                    _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Before consumption - club_type: {registration.club_type}, points_consumed: {registration.points_consumed}, membership points_remaining: {registration.membership_id.points_remaining}")
                     registration._consume_membership_quota()
+                    _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] After consumption - membership points_remaining: {registration.membership_id.points_remaining}")
         elif not is_import and registration.event_id:
             # Unlimited seats - just consume quota if membership exists
-            _logger.info(f"Event has unlimited seats")
+            _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Event has unlimited seats")
             if registration.membership_id and registration.consumption_state == 'pending':
-                _logger.info(f"Consuming membership quota")
+                _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Before consumption - club_type: {registration.club_type}, points_consumed: {registration.points_consumed}, membership points_remaining: {registration.membership_id.points_remaining}")
                 registration._consume_membership_quota()
+                _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] After consumption - membership points_remaining: {registration.membership_id.points_remaining}")
         
         # Note: Club registrations do NOT affect first-timer status
         # Only memberships affect is_first_timer (for membership pricing eligibility)

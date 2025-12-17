@@ -27,6 +27,10 @@ class PaymentTransaction(models.Model):
         string='Is Upgrade',
         help='Whether this is a membership upgrade transaction'
     )
+    is_renewal = fields.Boolean(
+        string='Is Renewal',
+        help='Whether this is a membership renewal transaction'
+    )
     upgrade_details = fields.Json(
         string='Upgrade Details',
         help='Details of membership upgrade (old membership, new tier, etc.)'
@@ -185,26 +189,16 @@ class PaymentTransaction(models.Model):
         partner = self.partner_id
         
         _logger.info(
-            f"Creating membership for transaction {self.reference}: "
-            f"Plan: {plan.name}, Partner: {partner.name}"
+            f"Processing membership transaction {self.reference}: "
+            f"Plan: {plan.name}, Partner: {partner.name}, "
+            f"is_upgrade: {self.is_upgrade}, is_renewal: {self.is_renewal}, "
+            f"upgrade_details: {self.upgrade_details}"
         )
-        
-        # Check if membership already exists for this transaction
-        existing_membership = self.env['popcorn.membership'].search([
-            ('payment_transaction_id', '=', self.id)
-        ], limit=1)
-        
-        if existing_membership:
-            _logger.info(
-                f"Membership {existing_membership.id} already exists for transaction {self.reference}, "
-                f"skipping creation"
-            )
-            return existing_membership
         
         # Get applied discount if any
         applied_discount = self.applied_discount_id if self.applied_discount_id else None
         
-        # Deduct popcorn money if used
+        # Deduct popcorn money if used (for all transaction types)
         if self.use_popcorn_money and self.popcorn_money_to_use > 0:
             _logger.info(f"Deducting popcorn money: {self.popcorn_money_to_use} for partner {partner.name}")
             partner.deduct_popcorn_money(
@@ -212,44 +206,165 @@ class PaymentTransaction(models.Model):
                 f'Membership purchase: {plan.display_name}'
             )
         
-        # Create membership using the transaction data
-        # Handle upgrade if applicable
-        if self.is_upgrade and self.upgrade_details:
-            # For upgrades, we would need to call the upgrade method
-            # For now, create standard membership and let the upgrade be handled separately
-            membership = self._create_membership_from_transaction(
-                plan, partner, applied_discount
+        # Priority: Upgrade first, then renewal, then new membership
+        # Check for upgrade FIRST before checking if membership exists
+        # IMPORTANT: If is_upgrade is True, we MUST handle it as an upgrade, not renewal
+        # Even if upgrade_details is missing, we should log an error but still treat it as upgrade
+        if self.is_upgrade:
+            # Ensure upgrade_details is a dict (JSON field may return as dict or string)
+            upgrade_details_dict = {}
+            if self.upgrade_details:
+                if isinstance(self.upgrade_details, str):
+                    import json
+                    try:
+                        upgrade_details_dict = json.loads(self.upgrade_details)
+                    except (json.JSONDecodeError, TypeError):
+                        _logger.error(f"Invalid upgrade_details JSON for transaction {self.reference}: {self.upgrade_details}")
+                        upgrade_details_dict = {}
+                else:
+                    upgrade_details_dict = self.upgrade_details or {}
+            
+            # Upgrade existing membership
+            membership_id = upgrade_details_dict.get('membership_id')
+            upgrade_price = upgrade_details_dict.get('upgrade_price', 0)
+            
+            # IMPORTANT: Use actual payment amount (remaining_amount) for purchase_price calculation
+            # remaining_amount = upgrade_price - popcorn_money_to_use
+            # purchase_price_paid should only reflect real money paid, not popcorn money
+            actual_payment_amount = self.remaining_amount if self.remaining_amount else (self.amount if self.amount else 0)
+            
+            _logger.info(
+                f"Upgrade processing - membership_id: {membership_id}, "
+                f"upgrade_price: {upgrade_price}, "
+                f"popcorn_money_to_use: {self.popcorn_money_to_use or 0}, "
+                f"remaining_amount: {self.remaining_amount or 0}, "
+                f"actual_payment_amount (for purchase_price): {actual_payment_amount}, "
+                f"upgrade_details: {upgrade_details_dict}"
             )
+            
+            if not membership_id:
+                _logger.error(f"Upgrade transaction {self.reference} missing membership_id in upgrade_details. upgrade_details: {upgrade_details_dict}")
+                raise UserError(_("Membership ID is missing for upgrade transaction"))
+            
+            # Get the original membership
+            original_membership = self.env['popcorn.membership'].browse(int(membership_id))
+            
+            if not original_membership.exists():
+                _logger.error(f"Membership {membership_id} not found for upgrade transaction {self.reference}")
+                raise UserError(_("Original membership not found for upgrade"))
+            
+            # Validate ownership
+            if original_membership.partner_id.id != partner.id:
+                _logger.error(f"Membership {membership_id} does not belong to partner {partner.id} for upgrade transaction {self.reference}")
+                raise UserError(_("Membership does not belong to this partner"))
+            
+            # Upgrade the membership using model method
+            # Pass actual_payment_amount (not upgrade_price) so purchase_price_paid only reflects real money paid
+            membership = original_membership.action_upgrade_to_plan(
+                plan,
+                actual_payment_amount,  # Use actual payment amount, not full upgrade_price
+                payment_transaction_id=self.id,
+                payment_reference=self.reference,
+                applied_discount=applied_discount
+            )
+            
+            _logger.info(f"Membership {membership.id} upgraded successfully for transaction {self.reference}")
+            
+            # Add payment message
+            payment_message = _(
+                'Payment successful via %s. Transaction: %s. Membership upgraded and activated.'
+            ) % (self.provider_id.name if self.provider_id else 'Unknown', self.reference)
+            
+            membership.message_post(body=payment_message)
+            
+            if self.use_popcorn_money and self.popcorn_money_to_use > 0:
+                currency_symbol = plan.currency_id.symbol if plan.currency_id else ''
+                payment_message += _(
+                    ' Popcorn money used: %s%s. Remaining: %s%s'
+                ) % (
+                    currency_symbol, self.popcorn_money_to_use,
+                    currency_symbol, self.remaining_amount or 0
+                )
+            
+            _logger.info(f"Membership {membership.id} upgraded successfully for transaction {self.reference}")
+            return membership
+        
+        # IMPORTANT: Only process renewal if NOT an upgrade
+        # If is_upgrade is True, we already handled it above
+        elif self.is_renewal and not self.is_upgrade:
+            # Renewal creates a NEW membership
+            # Check if renewal membership already exists for this transaction
+            renewal_membership = self.env['popcorn.membership'].search([
+                ('payment_transaction_id', '=', self.id),
+                ('partner_id', '=', partner.id)
+            ], limit=1)
+            
+            if renewal_membership:
+                _logger.info(f"Renewal membership {renewal_membership.id} already exists for transaction {self.reference}, skipping creation")
+                membership = renewal_membership
+            else:
+                # Create new membership for renewal
+                membership = self._create_membership_from_transaction(
+                    plan, partner, applied_discount
+                )
+                _logger.info(f"Renewal membership {membership.id} created successfully for transaction {self.reference}")
+            
+            # Add payment message
+            payment_message = _(
+                'Payment successful via %s. Transaction: %s. Membership renewed and activated.'
+            ) % (self.provider_id.name if self.provider_id else 'Unknown', self.reference)
+            
+            membership.message_post(body=payment_message)
+            
+            if self.use_popcorn_money and self.popcorn_money_to_use > 0:
+                currency_symbol = plan.currency_id.symbol if plan.currency_id else ''
+                payment_message += _(
+                    ' Popcorn money used: %s%s. Remaining: %s%s'
+                ) % (
+                    currency_symbol, self.popcorn_money_to_use,
+                    currency_symbol, self.remaining_amount or 0
+                )
+            
+            _logger.info(f"Renewal membership {membership.id} created successfully for transaction {self.reference}")
+            return membership
+            
         else:
-            # Create standard membership
+            # Create standard new membership
+            # Check if membership already exists for this transaction (for new purchases only)
+            existing_membership = self.env['popcorn.membership'].search([
+                ('payment_transaction_id', '=', self.id)
+            ], limit=1)
+            
+            if existing_membership:
+                _logger.info(
+                    f"Membership {existing_membership.id} already exists for transaction {self.reference}, "
+                    f"skipping creation"
+                )
+                return existing_membership
+            
             membership = self._create_membership_from_transaction(
                 plan, partner, applied_discount
             )
-        
-        # Link membership to transaction
-        membership.write({
-            'payment_transaction_id': self.id,
-            'payment_reference': self.reference
-        })
-        
-        # Add payment message
-        payment_message = _(
-            'Payment successful via %s. Transaction: %s. Membership created and activated.'
-        ) % (self.provider_id.name if self.provider_id else 'Unknown', self.reference)
-        
-        if self.use_popcorn_money and self.popcorn_money_to_use > 0:
-            currency_symbol = plan.currency_id.symbol if plan.currency_id else ''
-            payment_message += _(
-                ' Popcorn money used: %s%s. Remaining: %s%s'
-            ) % (
-                currency_symbol, self.popcorn_money_to_use,
-                currency_symbol, self.remaining_amount or 0
-            )
-        
-        membership.message_post(body=payment_message)
-        
-        _logger.info(f"Membership {membership.id} created successfully for transaction {self.reference}")
-        return membership
+            
+            _logger.info(f"Membership {membership.id} created successfully for transaction {self.reference}")
+            
+            # Add payment message
+            payment_message = _(
+                'Payment successful via %s. Transaction: %s. Membership created and activated.'
+            ) % (self.provider_id.name if self.provider_id else 'Unknown', self.reference)
+            
+            if self.use_popcorn_money and self.popcorn_money_to_use > 0:
+                currency_symbol = plan.currency_id.symbol if plan.currency_id else ''
+                payment_message += _(
+                    ' Popcorn money used: %s%s. Remaining: %s%s'
+                ) % (
+                    currency_symbol, self.popcorn_money_to_use,
+                    currency_symbol, self.remaining_amount or 0
+                )
+            
+            membership.message_post(body=payment_message)
+            
+            return membership
     
     def _create_membership_from_transaction(self, plan, partner, applied_discount=None):
         """Create membership from transaction data"""
@@ -287,7 +402,7 @@ class PaymentTransaction(models.Model):
             'partner_id': partner.id,
             'membership_plan_id': plan.id,
             'state': 'pending',
-            'purchase_price_paid': best_price,
+            'purchase_price_paid': self.amount,
             'price_tier': 'discount' if best_discount else price_tier,
             'purchase_channel': 'online',
             'upgrade_discount_allowed': False,
@@ -306,12 +421,6 @@ class PaymentTransaction(models.Model):
             membership_vals['state'] = 'pending'
         elif plan.activation_policy == 'manual':
             membership_vals['state'] = 'pending'
-        
-        # Handle upgrade if applicable
-        if self.is_upgrade and self.upgrade_details:
-            # Upgrade logic would go here
-            # For now, create standard membership
-            pass
         
         # Create the membership
         membership = self.env['popcorn.membership'].create(membership_vals)
