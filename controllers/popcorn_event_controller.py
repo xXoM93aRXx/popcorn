@@ -461,6 +461,33 @@ class PopcornEventController(http.Controller):
         
         return False, None
     
+    def _log_contract_signature_status(self, membership, event):
+        """Log contract signature status when registering for an event with membership
+        
+        Args:
+            membership: The membership object used for registration
+            event: The event object being registered for
+        
+        If membership has no contract, the function is skipped entirely.
+        If contract exists, logs whether it has a signature or not.
+        """
+        # Skip if membership has no contract
+        if not membership.contract_id:
+            return
+        
+        contract = membership.contract_id
+        has_signature = bool(contract.customer_signature)
+        
+        # Log the contract signature status
+        _logger.info(
+            f"[CONTRACT_SIGNATURE_CHECK] Event Registration - "
+            f"Event: {event.name} (ID: {event.id}), "
+            f"Partner: {membership.partner_id.name} (ID: {membership.partner_id.id}), "
+            f"Membership: {membership.id}, "
+            f"Contract: {contract.id}, "
+            f"Has Signature: {has_signature}"
+        )
+    
     def _get_consumption_text(self, membership, club_type):
         """Get human-readable text for membership consumption"""
         if membership.plan_quota_mode == 'unlimited':
@@ -544,15 +571,28 @@ class PopcornEventController(http.Controller):
         # If yes, force has_access = False so they see the options page with second_price
         event_club_type = self._get_event_club_type(event)
         should_pay_second_price = False
-        if event_club_type == 'social_experience' and event.membership_plans_second_price_ids:
+        needs_signature = False
+        contract_id = None
+        
+        if has_access:
             partner = request.env.user.sudo().partner_id
             if partner:
                 # Find user's best membership for this event
                 best_membership = self._get_best_membership_for_event(partner, event)
+                
+                # Check if membership has a contract that needs signature
+                if best_membership and best_membership.contract_id:
+                    contract = best_membership.contract_id
+                    # Only require signature if contract exists but has no signature
+                    if not contract.customer_signature:
+                        needs_signature = True
+                        contract_id = contract.id
+                
                 # If user's membership plan is in the second_price list, show options page with second_price
                 if best_membership and best_membership.membership_plan_id in event.membership_plans_second_price_ids:
                     should_pay_second_price = True
                     has_access = False  # Force to show options page instead of direct registration
+                    needs_signature = False  # Reset since we're not using membership directly
         
         values = {
             'event': event,
@@ -560,6 +600,8 @@ class PopcornEventController(http.Controller):
             'membership_error': error_message,
             'should_pay_second_price': should_pay_second_price,
             'second_price': event.second_price if should_pay_second_price else 0,
+            'needs_contract_signature': needs_signature,
+            'contract_id': contract_id,
         }
         return request.render('popcorn.event_registration_access_page', values)
     
@@ -777,6 +819,9 @@ class PopcornEventController(http.Controller):
                 best_membership.message_post(
                     body=_('Membership auto-activated during registration for event: %s') % event.name
                 )
+        
+        # Check and log contract signature status if contract exists
+        self._log_contract_signature_status(best_membership, event)
         
         # Auto-create the registration with membership details
         # Note: state will be set by the model's create() method based on availability
@@ -1043,6 +1088,14 @@ class PopcornEventController(http.Controller):
                     applied_discount = request.env['popcorn.discount'].browse(int(applied_discount_id))
                     if not applied_discount.exists() or not applied_discount.is_valid:
                         applied_discount = None
+                    else:
+                        # Validate event type restriction if discount has one
+                        if applied_discount.event_type:
+                            event_club_type = self._get_event_club_type(event)
+                            if event_club_type != applied_discount.event_type:
+                                # Discount doesn't match event type - invalidate it
+                                _logger.warning(f"Discount {applied_discount_id} event_type ({applied_discount.event_type}) doesn't match event club_type ({event_club_type})")
+                                applied_discount = None
                 except (ValueError, TypeError):
                     applied_discount = None
             

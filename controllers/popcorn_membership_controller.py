@@ -13,6 +13,15 @@ _logger = logging.getLogger(__name__)
 class PopcornMembershipController(http.Controller):
     """Controller for standalone membership purchase"""
     
+    def _is_sms_config_active(self):
+        """Check if SMS configuration is active"""
+        try:
+            sms_config = request.env['sms.config'].sudo().search([('is_active', '=', True)], limit=1)
+            return bool(sms_config and sms_config.is_active)
+        except Exception as e:
+            _logger.warning('Failed to check SMS config status: %s', str(e))
+            return False
+    
     @http.route(['/memberships'], type='http', auth="public", website=True)
     def memberships_list(self, **post):
         """Display all available membership plans"""
@@ -247,6 +256,10 @@ class PopcornMembershipController(http.Controller):
             }
         }
         
+        # Check if SMS config is active - only require verification if SMS is active
+        sms_config_active = self._is_sms_config_active()
+        phone_verification_required = sms_config_active and not partner.phone
+        
         values = {
             'plan': plan,
             'payment_providers': payment_providers,
@@ -256,7 +269,8 @@ class PopcornMembershipController(http.Controller):
             'renewal_details': renewal_details,
             'is_first_timer': is_first_timer,
             'plan_discounts': plan_discounts,
-            'phone_verification_required': not partner.phone,
+            'phone_verification_required': phone_verification_required,
+            'sms_config_active': sms_config_active,
             'partner': partner,
         }
         
@@ -347,8 +361,10 @@ class PopcornMembershipController(http.Controller):
             if not sanitized_input_phone:
                 return request.redirect('/memberships/%s/checkout?error=invalid_phone_format' % plan.id)
 
+            # Check if SMS config is active - only require verification if SMS is active
+            sms_config_active = self._is_sms_config_active()
             sanitized_partner_phone = Users._sanitize_phone(partner.phone)
-            phone_needs_verification = not sanitized_partner_phone or sanitized_partner_phone != sanitized_input_phone
+            phone_needs_verification = sms_config_active and (not sanitized_partner_phone or sanitized_partner_phone != sanitized_input_phone)
 
             if phone_needs_verification:
                 verification_code = (post.get('phone_verification_code') or '').strip()

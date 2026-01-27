@@ -103,6 +103,7 @@
             'popcorn/static/src/js/popcorn_referral.js',
             'popcorn/static/src/js/popcorn_membership_anchor_scroll.js',
             'popcorn/static/src/js/popcorn_frontend_signature.js',
+            'popcorn/static/src/js/popcorn_event_signature.js',
             'popcorn/static/src/js/popcorn_notifications.js',
             'popcorn/static/src/js/popcorn_coupon.js',
             'popcorn/static/src/css/popcorn_coupon_styles.css',

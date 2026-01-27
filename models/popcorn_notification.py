@@ -261,6 +261,7 @@ class PopcornNotification(models.Model):
             elif model_name == 'event.registration':
                 # Registration rules - START FROM UPCOMING EVENTS (optimization)
                 registration_domain = []
+                has_computed_field = False
                 
                 # ALWAYS start with upcoming events filter (most selective)
                 registration_domain.append(('event_start_time', '>', fields.Datetime.now()))
@@ -275,6 +276,14 @@ class PopcornNotification(models.Model):
                     if field_name in ['event_start_time', 'state']:
                         continue
                     
+                    # Check if field is computed (not stored)
+                    field_info = self.env['event.registration']._fields.get(field_name)
+                    if field_info and not field_info.store:
+                        # Computed field - will filter in Python later
+                        has_computed_field = True
+                        continue
+                    
+                    # Stored field - add to domain
                     value = rule.value
                     if value.lower() == 'true':
                         value = True
@@ -287,17 +296,46 @@ class PopcornNotification(models.Model):
                         registration_domain.append((field_name, '=', value))
                     elif rule.operator == '!=':
                         registration_domain.append((field_name, '!=', value))
+                    elif rule.operator == '<=':
+                        registration_domain.append((field_name, '<=', int(value) if value.isdigit() else value))
+                    elif rule.operator == '>=':
+                        registration_domain.append((field_name, '>=', int(value) if value.isdigit() else value))
+                    elif rule.operator == '>':
+                        registration_domain.append((field_name, '>', int(value) if value.isdigit() else value))
+                    elif rule.operator == '<':
+                        registration_domain.append((field_name, '<', int(value) if value.isdigit() else value))
                 
                 # Find matching registrations (starting from upcoming ones)
                 _logger.debug(f'[Bulk Filter] Searching registrations with domain: {registration_domain}')
                 registrations = self.env['event.registration'].search(registration_domain)
                 _logger.debug(f'[Bulk Filter] Found {len(registrations)} matching registration(s)')
-                registration_partner_ids = registrations.mapped('partner_id.id')
                 
-                if initial_partners is None:
-                    initial_partners = set(registration_partner_ids)
+                if has_computed_field:
+                    # Filter by computed fields in Python
+                    for registration in registrations:
+                        # Evaluate computed field rules
+                        all_rules_pass = True
+                        for rule in rules:
+                            field_name = rule.field_id.name
+                            field_info = self.env['event.registration']._fields.get(field_name)
+                            if field_info and not field_info.store:
+                                # Computed field - evaluate
+                                field_value = getattr(registration, field_name, None)
+                                # Convert value for comparison
+                                comparison_value = rule._convert_value_to_type(field_value, rule.value)
+                                if not rule._evaluate_condition(field_value, rule.operator, comparison_value):
+                                    all_rules_pass = False
+                                    break
+                        
+                        if all_rules_pass and registration.partner_id.id:
+                            matching_partner_ids.add(registration.partner_id.id)
                 else:
-                    initial_partners &= set(registration_partner_ids)
+                    # All fields are stored - use registration partner IDs directly
+                    registration_partner_ids = registrations.mapped('partner_id.id')
+                    if initial_partners is None:
+                        initial_partners = set(registration_partner_ids)
+                    else:
+                        initial_partners &= set(registration_partner_ids)
             
             elif model_name == 'popcorn.discount':
                 # Discount/coupon rules - START FROM ACTIVE DISCOUNTS (optimization)

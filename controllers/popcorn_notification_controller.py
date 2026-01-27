@@ -74,4 +74,3 @@ class PopcornNotificationController(http.Controller):
         except Exception as e:
             _logger.error(f"Error in accept_terms: {str(e)}", exc_info=True)
             return {'success': False, 'error': str(e)}
-

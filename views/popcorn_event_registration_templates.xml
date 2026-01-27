@@ -44,6 +44,7 @@
                             <t t-if="has_membership_access">
                                 <form t-attf-action="/popcorn/event/#{event.id}/registration/confirm" method="POST" id="event-registration-form">
                                     <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                    <input type="hidden" id="contract_id" t-att-value="contract_id or ''"/>
                                     <button type="submit" id="register-club-btn" class="popcorn-event-btn popcorn-event-btn-primary">
                                         <i class="fa fa-check"></i> <span class="btn-text" t-translation="on">Register for Club</span>
                                         <span class="btn-loading" style="display: none;">
@@ -51,6 +52,46 @@
                                         </span>
                                     </button>
                                 </form>
+                                
+                                <!-- Signature Modal for Contract Signing (only shown if signature is needed) -->
+                                <t t-if="needs_contract_signature">
+                                    <div class="modal fade" id="eventSignatureModal" tabindex="-1" role="dialog" aria-labelledby="eventSignatureModalLabel" aria-hidden="true">
+                                        <div class="modal-dialog" role="document">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="eventSignatureModalLabel">
+                                                        <i class="fa fa-pencil me-2"></i><span t-translation="on">Sign Membership Contract</span>
+                                                    </h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="alert alert-warning">
+                                                        <i class="fa fa-exclamation-triangle me-2"></i>
+                                                        <span t-translation="on">Please sign your membership contract before registering for this event.</span>
+                                                    </div>
+                                                    
+                                                    <div class="popcorn-signature-canvas-wrapper">
+                                                        <canvas id="event-signature-canvas" width="600" height="200"></canvas>
+                                                    </div>
+                                                    
+                                                    <div class="popcorn-signature-actions mt-3">
+                                                        <button type="button" class="btn btn-secondary event-clear-signature">
+                                                            <i class="fa fa-eraser"></i> <span t-translation="on">Clear</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                        <span t-translation="on">Cancel</span>
+                                                    </button>
+                                                    <button type="button" class="btn btn-primary event-confirm-signature">
+                                                        <i class="fa fa-check"></i> <span t-translation="on">Confirm Signature</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </t>
                                 
                                 <!-- Referral Button -->
                                 <t t-if="event.referral_prize and event.referral_prize > 0">
@@ -401,7 +442,7 @@
                                                 <label for="phone_verification_code" class="popcorn-form-label">Verification Code</label>
                                                 <div class="popcorn-verification-group">
                                                     <input type="text" id="phone_verification_code" name="phone_verification_code" class="popcorn-form-input" placeholder="Enter SMS code" />
-                                                    <button type="button" id="event_send_phone_otp" class="popcorn-btn popcorn-btn-secondary popcorn-phone-otp-btn"
+                                                    <button type="button" id="event_send_phone_otp" class="popcorn-btn popcorn-btn-secondary"
                                                             data-phone-input="#phone"
                                                             data-message-target="#event_phone_otp_message"
                                                             data-code-target="#phone_verification_code">

@@ -41,27 +41,14 @@
                     </button>
                 </t>
                 <t t-elif="event.has_conflicting_registration">
-                    <div class="popcorn-conflict-buttons">
+                    <t t-if="event.conflicting_event">
                         <button type="button" 
-                                t-att-class="'btn btn-warning popcorn-fixed-registration-button ' + (cta_additional_classes or '')"
-                                disabled="disabled"
-                                t-att-title="'You have a conflicting registration for another event at the same time'">
-                            <i class="fa fa-calendar-times-o me-2"/> 
-                            <span t-translation="on">Oops! It looks like you already booked</span>
-                            <t t-if="event.conflicting_event">
-                                <span t-translation="on"> (<t t-esc="event.conflicting_event.name"/><t t-if="event.conflicting_event.event_chinese_name"> - <t t-esc="event.conflicting_event.event_chinese_name"/></t>)</span>
-                            </t>
+                                t-att-class="'btn btn-outline-danger popcorn-fixed-registration-button ' + (cta_additional_classes or '')"
+                                t-att-data-conflicting-event-id="event.conflicting_event.id"
+                                onclick="confirmCancelConflictingRegistration(this)">
+                            <i class="fa fa-times me-2"/> <span t-translation="on">Cancel Registration:</span> <t t-esc="event.conflicting_event.name"/><t t-if="event.conflicting_event.event_chinese_name"> (<t t-esc="event.conflicting_event.event_chinese_name"/>)</t>
                         </button>
-                        <t t-if="event.conflicting_event">
-                            <button type="button" 
-                                    t-att-class="'btn btn-outline-danger btn-sm ' + (cta_additional_classes or '')"
-                                    style="width: 100%; margin-top: 8px;"
-                                    t-att-data-conflicting-event-id="event.conflicting_event.id"
-                                    onclick="confirmCancelConflictingRegistration(this)">
-                                <i class="fa fa-times me-1"/> <span t-translation="on">Cancel Registration:</span> <t t-esc="event.conflicting_event.name"/><t t-if="event.conflicting_event.event_chinese_name"> (<t t-esc="event.conflicting_event.event_chinese_name"/>)</t>
-                            </button>
-                        </t>
-                    </div>
+                    </t>
                 </t>
                 <t t-elif="event.event_registrations_open or (event.seats_limited and event.seats_available == 0)">
                     <!-- Check if event is full and has waitlist capability -->

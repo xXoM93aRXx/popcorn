@@ -1,6 +1,8 @@
 odoo.define('@popcorn/js/popcorn_event_registration', ['@web/legacy/js/public/public_widget', '@web/core/l10n/translation'], function (require) {
     'use strict';
 
+    console.log('Popcorn Event Registration JS: Module loaded and running');
+
     var publicWidget = require('@web/legacy/js/public/public_widget');
     const { _t } = require('@web/core/l10n/translation');
 
@@ -10,10 +12,16 @@ odoo.define('@popcorn/js/popcorn_event_registration', ['@web/legacy/js/public/pu
         events: {
             'click .popcorn-checkout-submit-btn': '_onSubmitClick',
             'change #use_popcorn_money': '_onPopcornMoneyChange',
+            'click #event_send_phone_otp': '_onSendPhoneOtp',
         },
 
         start: function () {
             console.log('PopcornEventRegistration widget initialized for', this.el);
+            // Setup OTP buttons as fallback for any dynamically added buttons
+            var self = this;
+            setTimeout(function() {
+                self._setupOtpButtons();
+            }, 100);
             return this._super.apply(this, arguments);
         },
 
@@ -177,8 +185,21 @@ odoo.define('@popcorn/js/popcorn_event_registration', ['@web/legacy/js/public/pu
 
         _onSendPhoneOtp: function (ev) {
             ev.preventDefault();
+            ev.stopPropagation();
             console.log('PopcornEventRegistration: send OTP button handler triggered');
             sendPhoneOtp(ev.currentTarget, this.$el);
+        },
+
+        _setupOtpButtons: function () {
+            // Fallback setup for any OTP buttons that might be added dynamically
+            var self = this;
+            var $button = this.$el.find('#event_send_phone_otp');
+            console.log('PopcornEventRegistration: Looking for #event_send_phone_otp, found:', $button.length > 0 ? 'YES' : 'NO', $button.length);
+            if ($button.length && !$button.data('popcorn-otp-bound')) {
+                $button.data('popcorn-otp-bound', true);
+                console.log('PopcornEventRegistration: OTP button marked as bound');
+                // Widget events should handle this, but this is a safety net
+            }
         }
     });
 
@@ -261,28 +282,6 @@ odoo.define('@popcorn/js/popcorn_event_registration', ['@web/legacy/js/public/pu
         });
     }
 
-    function setupPhoneOtpButtons() {
-        document.querySelectorAll('.popcorn-phone-otp-btn').forEach(function (button) {
-            if (button.dataset.popcornOtpBound) {
-                return;
-            }
-            button.dataset.popcornOtpBound = '1';
-            button.addEventListener('click', function (event) {
-                event.preventDefault();
-                sendPhoneOtp(button);
-            });
-        });
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', setupPhoneOtpButtons);
-    } else {
-        setupPhoneOtpButtons();
-    }
-
-    window.addEventListener('load', function () {
-        setTimeout(setupPhoneOtpButtons, 200);
-    });
 
     return publicWidget.registry.PopcornEventRegistration;
 });

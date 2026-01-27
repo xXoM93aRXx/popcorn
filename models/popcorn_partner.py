@@ -394,11 +394,11 @@ class ResPartner(models.Model):
                     'popcorn.first_timer_discount_amount', '118.00'
                 ))
                 
-                # Create the actual discount record (restricted to regular clubs only)
+                # Create the actual discount record (restricted to regular offline clubs only)
                 self.env['popcorn.discount'].sudo().create({
                     'name': f'First Timer Discount - {partner.name}',
                     'code': discount_code,
-                    'description': f'First timer discount for {partner.name} - Valid for Regular clubs only',
+                    'description': f'First timer discount for {partner.name} - Valid for Regular Offline clubs only',
                     'active': True,
                     'discount_type': 'fixed_amount',
                     'discount_value': discount_amount,
@@ -410,7 +410,7 @@ class ResPartner(models.Model):
                     'partner_id': partner.id,  # Restrict to this specific partner
                     'event_type': 'regular_offline',  # Only valid for regular offline clubs
                     'is_public': True,
-                    'website_description': f'Welcome discount for {partner.name}! Get {discount_amount}RMB off your first regular club registration.'
+                    'website_description': f'Welcome discount for {partner.name}! Get {discount_amount}RMB off your first regular offline club registration.'
                 })
                 
                 # Post message

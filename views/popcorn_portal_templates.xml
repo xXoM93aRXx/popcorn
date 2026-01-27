@@ -324,7 +324,7 @@
                                                             <!-- Time -->
                                                             <div class="club-time">
                                                                 <i class="fa fa-clock-o me-1"></i>
-                                                                <span t-field="registration.event_id.date_begin" t-options="{'widget': 'datetime', 'format': 'dd MMM yyyy HH:mm'}"/>
+                                                                <span t-field="registration.event_id.date_begin" t-options="{'widget': 'datetime', 'format': 'EEE dd MMM yyyy HH:mm'}"/>
                                                             </div>
                                                             
                                                             <!-- Action Buttons -->
@@ -409,7 +409,7 @@
                                                             <!-- Time -->
                                                             <div class="club-time">
                                                                 <i class="fa fa-clock-o me-1"></i>
-                                                                <span t-field="registration.event_id.date_begin" t-options="{'widget': 'datetime', 'format': 'dd MMM yyyy HH:mm'}"/>
+                                                                <span t-field="registration.event_id.date_begin" t-options="{'widget': 'datetime', 'format': 'EEE dd MMM yyyy HH:mm'}"/>
                                                             </div>
                                                             
                                                             <!-- Action Buttons -->

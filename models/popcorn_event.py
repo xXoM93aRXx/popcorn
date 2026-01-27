@@ -62,7 +62,8 @@ class EventEvent(models.Model):
     club_type = fields.Selection([
         ('regular_offline', 'Regular Offline'),
         ('regular_online', 'Regular Online'),
-        ('spclub', 'Special Club')
+        ('spclub', 'Special Club'),
+        ('social_experience', 'Social Experience')
     ], string='Club Type', compute='_compute_club_type', store=False, 
        help='Automatically determined club type for membership validation')
     
@@ -222,7 +223,9 @@ class EventEvent(models.Model):
                 )
                 if type_tag:
                     tag_name = type_tag.name.lower()
-                    if 'offline' in tag_name:
+                    if 'social' in tag_name and 'experience' in tag_name:
+                        event.club_type = 'social_experience'
+                    elif 'offline' in tag_name:
                         event.club_type = 'regular_offline'
                     elif 'online' in tag_name:
                         event.club_type = 'regular_online'

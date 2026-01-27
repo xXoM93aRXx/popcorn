@@ -124,6 +124,38 @@ class PopcornContract(models.Model):
         
         return True
     
+    def action_sign_customer_from_event(self, signature_data):
+        """Sign contract with customer signature during event registration
+        This allows signing draft contracts (created during checkout) that haven't been approved yet.
+        """
+        self.ensure_one()
+        if not signature_data:
+            raise UserError(_('Signature data is required'))
+        
+        # Allow signing draft contracts for event registration scenarios
+        if self.state not in ['draft', 'approved', 'signed']:
+            raise UserError(_('Contract cannot be signed in current state'))
+        
+        vals = {
+            'signed_by_customer': True,
+            'customer_signature_date': fields.Datetime.now(),
+            'customer_signature': signature_data,
+        }
+        
+        # If contract is in draft state, set state to signed (skip approval for event registration)
+        # If already approved or signed, just update the signature
+        if self.state == 'draft':
+            vals['state'] = 'signed'
+        
+        self.write(vals)
+        
+        # Log the customer signature
+        self.message_post(
+            body=_('Contract signed by customer during event registration')
+        )
+        
+        return True
+    
     def action_activate(self):
         """Activate the contract"""
         self.ensure_one()
