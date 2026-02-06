@@ -261,28 +261,13 @@ class PopcornProductController(http.Controller):
             if not transaction:
                 return request.redirect('/shop?error=transaction_not_found')
             
-            # Mark transaction as done (WeChat/Alipay payment was successful)
-            # Same approach as membership payments - trust payment callback and mark as done immediately
-            # The webhook will verify later, but we proceed with order confirmation now
-            if transaction.state == 'draft':
-                transaction.write({'state': 'done'})
-                
-                # Manually confirm the order without sending emails (to avoid PDF generation errors)
-                # Public users may not have access to mail templates or Wkhtmltopdf may not be installed
-                # We don't call _post_process() here because it tries to send emails with public user context
-                # Instead, we confirm the order manually and mark as post-processed
+            # Do not force state changes here. If the provider already confirmed the transaction,
+            # confirm the order without creating accounting payments and mark as post-processed.
+            if transaction.state == 'done' and not transaction.is_post_processed:
                 order = transaction.sale_order_ids[0] if transaction.sale_order_ids else None
-                if order and order.state in ('draft', 'sent'):
-                    # Check if payment amount is sufficient for confirmation
-                    if order._is_confirmation_amount_reached():
-                        # Confirm order without sending email to avoid PDF/access errors
-                        order.with_context(send_email=False).action_confirm()
-                
-                # Mark transaction as post-processed to prevent cron/webhook from trying again
-                # This avoids email sending issues while still allowing webhook verification
+                if order and order.state in ('draft', 'sent') and order._is_confirmation_amount_reached():
+                    order.with_context(send_email=False).action_confirm()
                 transaction.write({'is_post_processed': True})
-                
-                # Refresh order to get updated state
                 if transaction.sale_order_ids:
                     transaction.sale_order_ids.invalidate_recordset(['state'])
             

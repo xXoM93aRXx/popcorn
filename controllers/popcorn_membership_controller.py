@@ -364,7 +364,7 @@ class PopcornMembershipController(http.Controller):
             # Check if SMS config is active - only require verification if SMS is active
             sms_config_active = self._is_sms_config_active()
             sanitized_partner_phone = Users._sanitize_phone(partner.phone)
-            phone_needs_verification = sms_config_active and (not sanitized_partner_phone or sanitized_partner_phone != sanitized_input_phone)
+            phone_needs_verification = False
 
             if phone_needs_verification:
                 verification_code = (post.get('phone_verification_code') or '').strip()

@@ -151,12 +151,6 @@ function setupPopcornMoney() {
       const paymentMethods = document.querySelector('.popcorn-payment-methods');
       const formLabel = document.querySelector('.popcorn-form-label');
       
-      console.log('Membership Popcorn Money checkbox changed:', isChecked);
-      console.log('Elements found:', {
-        popcornMoneyRow: !!popcornMoneyRow,
-        popcornMoneyUsed: !!popcornMoneyUsed,
-        totalPrice: !!totalPrice
-      });
       
       // Store original price if not already stored
       if (!storedOriginalPrice) {
@@ -170,7 +164,6 @@ function setupPopcornMoney() {
         const label = row.querySelector('.popcorn-price-label');
         if (label) {
           const labelText = label.textContent.trim();
-          console.log('Checking label:', labelText);
           
           // Look for the "Total" row which contains the final discounted price
           if (labelText.includes('Total') || labelText.includes('总计') || labelText.includes('合计')) {
@@ -178,7 +171,6 @@ function setupPopcornMoney() {
             if (priceValue) {
               originalPriceText = priceValue.textContent;
               originalPrice = parseFloat(priceValue.textContent.replace(/[^\d.-]/g, ''));
-              console.log('Found total price (with discounts):', labelText, originalPriceText, originalPrice);
               break;
             }
           }
@@ -191,7 +183,6 @@ function setupPopcornMoney() {
           const label = row.querySelector('.popcorn-price-label');
           if (label) {
             const labelText = label.textContent.trim();
-            console.log('Fallback - checking label:', labelText);
             
             if (labelText.includes('Membership Fee') || labelText.includes('Upgrade Price') || 
                 labelText.includes('会员费') || labelText.includes('升级价格')) {
@@ -199,7 +190,6 @@ function setupPopcornMoney() {
               if (priceValue) {
                 originalPriceText = priceValue.textContent;
                 originalPrice = parseFloat(priceValue.textContent.replace(/[^\d.-]/g, ''));
-                console.log('Fallback to base price:', labelText, originalPriceText, originalPrice);
                 break;
               }
             }
@@ -214,25 +204,21 @@ function setupPopcornMoney() {
         if (priceValue) {
           originalPriceText = priceValue.textContent;
           originalPrice = parseFloat(priceValue.textContent.replace(/[^\d.-]/g, ''));
-          console.log('Final fallback to first row price:', originalPriceText, originalPrice);
         }
         }
         
         storedOriginalPrice = originalPrice;
         storedOriginalPriceText = originalPriceText;
-        console.log('Stored original price:', originalPriceText, 'Parsed:', originalPrice);
       }
       
       const originalPrice = storedOriginalPrice;
       const originalPriceText = storedOriginalPriceText;
-      console.log('Using stored original price:', originalPriceText, 'Parsed:', originalPrice);
       
       // Get popcorn money balance from the checkbox label
       const label = document.querySelector('label[for="use_popcorn_money"]');
       const balanceText = label ? label.querySelector('.popcorn-money-balance').textContent : '';
       const balance = balanceText ? parseFloat(balanceText.match(/[\d.-]+/)[0]) : 0;
       
-      console.log('Balance text:', balanceText, 'Parsed:', balance);
       
       if (isChecked) {
         // Show popcorn money row
@@ -244,10 +230,6 @@ function setupPopcornMoney() {
         const popcornMoneyToUse = Math.min(balance, originalPrice);
         const remainingPrice = originalPrice - popcornMoneyToUse;
         
-        console.log('Calculations:', {
-          popcornMoneyToUse: popcornMoneyToUse,
-          remainingPrice: remainingPrice
-        });
         
         // Update popcorn money used display
         const currencySymbol = originalPriceText.match(/[^\d.-]/)[0] || '$';
@@ -258,7 +240,6 @@ function setupPopcornMoney() {
         // Update total price
         if (totalPrice) {
           totalPrice.textContent = currencySymbol + remainingPrice.toFixed(2);
-          console.log('Updated total price to:', currencySymbol + remainingPrice.toFixed(2));
         }
         
         // If popcorn money covers the full amount, hide payment methods
@@ -292,7 +273,6 @@ function setupPopcornMoney() {
         // Reset total price to original
         if (totalPrice) {
           totalPrice.textContent = originalPriceText;
-          console.log('Reset total price to:', originalPriceText);
         }
         
         // Show payment methods
