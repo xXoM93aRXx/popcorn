@@ -30,6 +30,10 @@ access_ir_model_fields_portal,ir.model.fields.portal,base.model_ir_model_fields,
 access_popcorn_contract_user,popcorn.contract.user,model_popcorn_contract,base.group_user,1,1,1,0
 access_popcorn_contract_manager,popcorn.contract.manager,model_popcorn_contract,base.group_system,1,1,1,1
 access_popcorn_contract_portal,popcorn.contract.portal,model_popcorn_contract,base.group_portal,1,0,0,0
+access_popcorn_discount_customer_type_user,popcorn.discount.customer.type.user,model_popcorn_discount_customer_type,base.group_user,1,0,0,0
+access_popcorn_discount_customer_type_manager,popcorn.discount.customer.type.manager,model_popcorn_discount_customer_type,base.group_system,1,1,1,1
+access_popcorn_discount_customer_type_public,popcorn.discount.customer.type.public,model_popcorn_discount_customer_type,base.group_public,1,0,0,0
+access_popcorn_discount_customer_type_portal,popcorn.discount.customer.type.portal,model_popcorn_discount_customer_type,base.group_portal,1,0,0,0
 access_popcorn_discount_user,popcorn.discount.user,model_popcorn_discount,base.group_user,1,0,0,0
 access_popcorn_discount_manager,popcorn.discount.manager,model_popcorn_discount,base.group_system,1,1,1,1
 access_popcorn_discount_portal,popcorn.discount.portal,model_popcorn_discount,base.group_portal,1,1,1,0

@@ -21,6 +21,8 @@
                     <field name="payment_amount"/>
                     <field name="payment_transaction_id" readonly="1"/>
                     <field name="club_type" readonly="1" invisible="not event_id.seats_limited"/>
+                    <field name="is_late_attendance"/>
+                    <field name="is_no_show_attendance"/>
                     <field name="is_auto_booked" readonly="1"/>
                     <field name="referral_id" readonly="1"/>
                 </xpath>
@@ -43,9 +45,19 @@
                     <button name="action_add_to_waitlist" string="Add to Waitlist" type="object" 
                             class="oe_stat_button" icon="fa-clock-o"
                             invisible="is_on_waitlist or not event_id.seats_limited"
-                            confirm="Add this person to the waitlist?">
-                        <field name="is_on_waitlist" widget="statinfo" string="Waitlist"/>
-                    </button>
+                            confirm="Add this person to the waitlist?"/>
+                </xpath>
+
+                <!-- Add attendance policy actions like native header actions -->
+                <xpath expr="//header/button[@name='action_set_done']" position="after">
+                    <button name="action_mark_late_attendance" string="Late" type="object"
+                            icon="fa-exclamation-circle"
+                            invisible="not active or is_on_waitlist or state in ['cancel', 'draft']"
+                            confirm="Toggle late attendance for this registration?"/>
+                    <button name="action_mark_no_show_attendance" string="No Show" type="object"
+                            icon="fa-user-times"
+                            invisible="not active or is_on_waitlist or state in ['cancel', 'draft']"
+                            confirm="Toggle no-show for this registration?"/>
                 </xpath>
                 
             </field>
@@ -71,10 +83,34 @@
                 <xpath expr="//field[@name='partner_id']" position="after">
                     <field name="payment_amount" string="Payment Amount" optional="show" readonly="1"/>
                 </xpath>
+
+                <!-- Show Late badge right after Status -->
+                <xpath expr="//field[@name='state']" position="after">
+                    <field name="is_late_attendance" string="Late" optional="hide" column_invisible="True"/>
+                    <field name="is_no_show_attendance" string="No Show" optional="hide" column_invisible="True"/>
+                    <field name="late_attendance_badge" string="" optional="show" widget="badge"
+                           decoration-danger="is_late_attendance"
+                           invisible="not is_late_attendance"/>
+                    <field name="no_show_attendance_badge" string="" optional="show" widget="badge"
+                           decoration-danger="is_no_show_attendance"
+                           invisible="not is_no_show_attendance"/>
+                </xpath>
                 
                 <!-- Remove sale status field -->
                 <xpath expr="//field[@name='sale_status']" position="replace">
                     <field name="sale_status" column_invisible="True"/>
+                </xpath>
+
+                <!-- Put Late / No Show in native row action area -->
+                <xpath expr="//button[@name='action_cancel']" position="after">
+                    <button name="action_mark_late_attendance" string="Late" type="object"
+                            icon="fa-exclamation-circle"
+                            confirm="Toggle late attendance for this registration?"
+                            invisible="not active or is_on_waitlist or state in ['cancel', 'draft']"/>
+                    <button name="action_mark_no_show_attendance" string="No Show" type="object"
+                            icon="fa-user-times"
+                            confirm="Toggle no-show for this registration?"
+                            invisible="not active or is_on_waitlist or state in ['cancel', 'draft']"/>
                 </xpath>
             </field>
         </record>

@@ -473,7 +473,7 @@
                                     </t>
                                     
                                     <!-- First Timer Discount Notification (Only for Regular Offline clubs) -->
-                                    <div class="popcorn-form-section" t-if="request.env.user.partner_id.is_first_timer and request.env.user.partner_id.first_timer_discount_code and request.env.user.partner_id.first_timer_discount_is_available and event.club_type == 'regular_offline'">
+                                    <div class="popcorn-form-section" t-if="event.club_type == 'regular_offline' and request.env.user.partner_id.has_valid_first_timer_coupon(event.club_type)">
                                         <div class="popcorn-first-timer-discount-notification">
                                             <div class="popcorn-discount-notification-content">
                                                 <i class="fa fa-gift popcorn-discount-icon"></i>

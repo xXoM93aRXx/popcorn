@@ -116,12 +116,12 @@ class ResPartner(models.Model):
         store=True,
         help='Whether the first-timer discount has been used'
     )
-    
-    first_timer_discount_is_available = fields.Boolean(
-        string='Discount Available',
-        compute='_compute_first_timer_discount_status',
-        store=True,
-        help='Whether the first-timer discount is available (not expired and not used)'
+
+    has_expired_membership = fields.Boolean(
+        string='Has Expired Membership',
+        compute='_compute_has_expired_membership',
+        store=False,
+        help='True if this partner has expired membership(s) and NO active/frozen memberships (Old Customer)'
     )
     
     # Staff member field
@@ -294,8 +294,25 @@ class ResPartner(models.Model):
                 partner.first_timer_discount_remaining_hours = 0
     
     @api.depends('first_timer_discount_code')
+    def _compute_has_expired_membership(self):
+        """Compute if partner is an Old Customer: has expired membership(s) and NO active/frozen memberships"""
+        for partner in self:
+            has_expired = bool(
+                self.env['popcorn.membership'].search([
+                    ('partner_id', '=', partner.id),
+                    ('state', '=', 'expired')
+                ], limit=1)
+            )
+            has_active = bool(
+                self.env['popcorn.membership'].search([
+                    ('partner_id', '=', partner.id),
+                    ('state', 'in', ['active', 'frozen'])
+                ], limit=1)
+            )
+            partner.has_expired_membership = has_expired and not has_active
+
     def _compute_first_timer_discount_status(self):
-        """Compute if first-timer discount has been used and is available"""
+        """Compute if first-timer discount has been used"""
         for partner in self:
             if partner.first_timer_discount_code:
                 # Check if the discount has been used
@@ -305,17 +322,35 @@ class ResPartner(models.Model):
                 
                 if discount_record:
                     partner.first_timer_discount_is_used = discount_record.usage_count > 0
-                    # Available if not expired AND not used
-                    partner.first_timer_discount_is_available = (
-                        not partner.first_timer_discount_is_expired and 
-                        not partner.first_timer_discount_is_used
-                    )
                 else:
                     partner.first_timer_discount_is_used = False
-                    partner.first_timer_discount_is_available = False
             else:
                 partner.first_timer_discount_is_used = False
-                partner.first_timer_discount_is_available = False
+
+    def _get_first_timer_discount_record(self):
+        """Get the live discount record linked to this partner's first-timer code."""
+        self.ensure_one()
+        if not self.first_timer_discount_code:
+            return self.env['popcorn.discount']
+
+        return self.env['popcorn.discount'].sudo().search([
+            ('code', '=', self.first_timer_discount_code),
+            ('partner_id', '=', self.id),
+        ], limit=1)
+
+    def has_valid_first_timer_coupon(self, club_type=None):
+        """Return True if the partner currently has a usable first-timer coupon."""
+        self.ensure_one()
+        if not self.is_first_timer or not self.first_timer_discount_code:
+            return False
+
+        discount = self._get_first_timer_discount_record()
+        if not discount:
+            return False
+        if club_type and discount.event_type and discount.event_type != club_type:
+            return False
+
+        return discount._is_currently_valid()
     
     def action_refresh_discount_expiry(self):
         """Manually refresh the discount expiry status"""

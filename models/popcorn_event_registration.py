@@ -72,6 +72,61 @@ class PopcornEventRegistration(models.Model):
     # Computed fields for registration desk
     event_host = fields.Char(string='Host', related='event_id.host_id.name', readonly=True, store=True)
     event_start_time = fields.Datetime(string='Club Start Time', related='event_id.date_begin', readonly=True, store=True)
+    is_late_attendance = fields.Boolean(
+        string='Late Attendance',
+        default=False,
+        tracking=True,
+        copy=False,
+        help='Indicates this attendee arrived late at the registration desk.'
+    )
+    is_no_show_attendance = fields.Boolean(
+        string='No Show',
+        default=False,
+        tracking=True,
+        copy=False,
+        help='Indicates this attendee did not show up.'
+    )
+    late_attendance_badge = fields.Char(
+        string='Late',
+        compute='_compute_late_attendance_badge',
+        store=False
+    )
+    no_show_attendance_badge = fields.Char(
+        string='No Show',
+        compute='_compute_no_show_attendance_badge',
+        store=False
+    )
+    late_no_show_incident = fields.Boolean(
+        string='Late/No-show Incident',
+        default=False,
+        copy=False,
+        help='Internal flag for attendance policy counting (late or no-show incident).'
+    )
+    late_no_show_incident_date = fields.Datetime(
+        string='Late/No-show Incident Date',
+        copy=False
+    )
+    quota_penalty_violation = fields.Boolean(
+        string='Quota Penalty Violation',
+        default=False,
+        copy=False,
+        help='Internal marker for bucket/points attendance penalty policy.'
+    )
+    quota_penalty_violation_date = fields.Datetime(
+        string='Quota Penalty Violation Date',
+        copy=False
+    )
+    quota_penalty_incident_type = fields.Selection([
+        ('late', 'Late Attendance'),
+        ('no_show', 'No Show'),
+        ('cancel_window', 'Cancellation Window'),
+    ], string='Quota Penalty Incident Type', copy=False)
+    quota_penalty_applied = fields.Boolean(
+        string='Quota Penalty Applied',
+        default=False,
+        copy=False,
+        help='Whether quota/points penalty adjustment has already been applied for this registration.'
+    )
     
     # Computed fields for notifications
     hours_until_event = fields.Float(string='Hours Until Event', compute='_compute_hours_until_event', store=False)
@@ -206,6 +261,16 @@ class PopcornEventRegistration(models.Model):
                     registration.event_datetime_wechat = ''
             else:
                 registration.event_datetime_wechat = ''
+
+    @api.depends('is_late_attendance')
+    def _compute_late_attendance_badge(self):
+        for registration in self:
+            registration.late_attendance_badge = 'Late' if registration.is_late_attendance else ''
+
+    @api.depends('is_no_show_attendance')
+    def _compute_no_show_attendance_badge(self):
+        for registration in self:
+            registration.no_show_attendance_badge = 'No Show' if registration.is_no_show_attendance else ''
     
     @api.depends('event_id.tag_ids')
     def _compute_club_type(self):
@@ -583,7 +648,13 @@ class PopcornEventRegistration(models.Model):
         # If membership was consumed or pending, restore the quota
         if self.consumption_state in ['consumed', 'pending'] and self.membership_id:
             if self.consumption_state == 'consumed':
-                self._restore_membership_quota()
+                if self._should_block_quota_refund_for_cancel_window():
+                    self._apply_cancel_window_non_refund_penalty()
+                    self.message_post(
+                        body=_('Quota/points refund blocked due to repeated cancellation-window violations.')
+                    )
+                else:
+                    self._restore_membership_quota()
             # If pending, just mark as cancelled (no quota to restore)
         
         # Handle automatic refund for single club purchases (not membership)
@@ -606,6 +677,11 @@ class PopcornEventRegistration(models.Model):
             'state': 'cancel',
             'consumption_state': 'cancelled'
         })
+
+        # Count cancellation incident for unlimited memberships.
+        incident_type = self._get_cancellation_incident_type()
+        if incident_type:
+            self._apply_attendance_penalty_policy(incident_type)
         
         # Log the cancellation
         self.message_post(
@@ -998,17 +1074,39 @@ class PopcornEventRegistration(models.Model):
         # Store original states and consumption states to check for cancellations
         original_states = {reg.id: reg.state for reg in self}
         original_consumption_states = {reg.id: reg.consumption_state for reg in self}
-        
         # If cancelling from backend, also update consumption_state
         if 'state' in vals and vals['state'] == 'cancel' and not self._context.get('skip_waitlist_promotion'):
             vals['consumption_state'] = 'cancelled'
         
         result = super().write(vals)
         
+        # Consume membership quota when draft registrations are confirmed
+        if 'state' in vals:
+            new_state = vals['state']
+            for registration in self:
+                original_state = original_states.get(registration.id)
+                if (
+                    original_state == 'draft'
+                    and new_state in ['open', 'confirmed', 'done']
+                    and registration.membership_id
+                    and registration.consumption_state == 'pending'
+                ):
+                    registration._consume_membership_quota()
+
         # Post-write validation
         for registration in self:
             if registration.partner_id and registration.event_id:
                 registration._validate_registration()
+
+        # Count cancellation incidents for unlimited memberships regardless
+        # of waitlist-promotion context.
+        if 'state' in vals and vals['state'] == 'cancel':
+            for registration in self:
+                original_state = original_states.get(registration.id)
+                if original_state in ['open', 'confirmed']:
+                    incident_type = registration._get_cancellation_incident_type()
+                    if incident_type:
+                        registration._apply_attendance_penalty_policy(incident_type)
         
         # Handle state changes for waitlist promotion and quota restoration
         # Only promote from waitlist if state is being changed directly (not from action_cancel_registration)
@@ -1028,10 +1126,21 @@ class PopcornEventRegistration(models.Model):
                     
                     # Restore membership quota if it was consumed
                     if registration.membership_id and original_consumption_state == 'consumed':
-                        _logger.info(f"Restoring membership quota for membership {registration.membership_id.id}")
-                        registration._restore_membership_quota()
+                        if registration._should_block_quota_refund_for_cancel_window():
+                            _logger.info(
+                                f"Quota refund blocked by cancel-window policy for membership {registration.membership_id.id}"
+                            )
+                            registration._apply_cancel_window_non_refund_penalty()
+                            registration.message_post(
+                                body=_('Quota/points refund blocked due to repeated cancellation-window violations.')
+                            )
+                        else:
+                            _logger.info(f"Restoring membership quota for membership {registration.membership_id.id}")
+                            registration._restore_membership_quota()
                     else:
                         _logger.info(f"No quota to restore (membership_id: {registration.membership_id.id if registration.membership_id else None}, consumption_state: {original_consumption_state})")
+
+                    # Violation record is handled by unified attendance penalty policy.
                     
                     # Promote next person from waitlist
                     if registration.event_id.seats_limited:
@@ -1040,6 +1149,8 @@ class PopcornEventRegistration(models.Model):
                         registration.event_id._promote_waitlist_safe()
                     else:
                         _logger.info(f"Event has unlimited seats, skipping waitlist promotion")
+
+                    # Cancellation incident counting is handled above.
                 
                 # Handle waitlist registration cancellations from backend
                 elif new_state == 'cancel' and original_state == 'draft' and registration.is_on_waitlist:
@@ -1144,7 +1255,232 @@ class PopcornEventRegistration(models.Model):
             registration.message_post(
                 body=_('Manually added to waitlist')
             )
-    
+
+    def action_mark_late_attendance(self):
+        """Toggle late attendance flag from registration desk."""
+        for registration in self:
+            if registration.state in ['cancel', 'draft'] or registration.is_on_waitlist:
+                raise UserError(_('Only confirmed/open attendees can be marked as late attendance.'))
+
+            mark_as_late = not registration.is_late_attendance
+            vals = {'is_late_attendance': mark_as_late}
+            if mark_as_late and registration.state != 'done':
+                vals['state'] = 'done'
+            if mark_as_late:
+                vals['is_no_show_attendance'] = False
+            registration.write(vals)
+
+            if mark_as_late:
+                message = _('Marked as late attendance from registration desk')
+            else:
+                message = _('Removed late attendance mark from registration desk')
+            registration.message_post(body=message)
+
+            if mark_as_late:
+                registration._apply_attendance_penalty_policy('late')
+        return True
+
+    def action_mark_no_show_attendance(self):
+        """Toggle no-show flag from registration desk."""
+        for registration in self:
+            if registration.state in ['cancel', 'draft'] or registration.is_on_waitlist:
+                raise UserError(_('Only confirmed/open attendees can be marked as no-show.'))
+
+            mark_as_no_show = not registration.is_no_show_attendance
+            vals = {'is_no_show_attendance': mark_as_no_show}
+            if mark_as_no_show:
+                vals['is_late_attendance'] = False
+            registration.write(vals)
+
+            if mark_as_no_show:
+                message = _('Marked as no-show from registration desk')
+            else:
+                message = _('Removed no-show mark from registration desk')
+            registration.message_post(body=message)
+
+            if mark_as_no_show:
+                registration._apply_attendance_penalty_policy('no_show')
+        return True
+
+    def _mark_late_no_show_incident(self, incident_type):
+        """Backward-compatible wrapper; delegates to unified attendance policy."""
+        return self._apply_attendance_penalty_policy(incident_type)
+
+    def _is_quota_penalty_incident_type(self, incident_type):
+        return incident_type in ['late', 'no_show', 'cancel_window']
+
+    def _apply_attendance_penalty_policy(self, incident_type):
+        """
+        Unified attendance penalty engine.
+        - unlimited: every 3 incidents => 3-day penalty freeze
+        - bucket/points: 2 incidents in rolling 30 days => cancel-window refund blocked
+        """
+        self.ensure_one()
+        membership = self.membership_id
+        if not membership:
+            return False
+
+        if incident_type == 'late':
+            body = _('Attendance policy incident recorded: late attendance')
+        elif incident_type == 'cancel_window':
+            body = _('Attendance policy incident recorded: cancellation within cancellation window')
+        else:
+            body = _('Attendance policy incident recorded: no-show')
+
+        # Unlimited memberships use freeze policy incidents.
+        if membership.plan_quota_mode == 'unlimited':
+            if self.late_no_show_incident:
+                return False
+            self.write({
+                'late_no_show_incident': True,
+                'late_no_show_incident_date': fields.Datetime.now(),
+            })
+            self.message_post(body=body)
+            membership._evaluate_unlimited_late_no_show_policy()
+            return True
+
+        # Bucket/points memberships use rolling 30-day violation policy.
+        if membership.plan_quota_mode in ['bucket_counts', 'points'] and self._is_quota_penalty_incident_type(incident_type):
+            if self.quota_penalty_violation:
+                return False
+            self.write({
+                'quota_penalty_violation': True,
+                'quota_penalty_violation_date': fields.Datetime.now(),
+                'quota_penalty_incident_type': incident_type,
+            })
+            violation_count_30d = self._get_recent_quota_policy_violation_count(include_current=True)
+            membership.message_post(
+                body=_(
+                    'Attendance policy violation recorded for event "%s" (%s). '
+                    'Current count in last 30 days: %s.'
+                ) % (self.event_id.name, incident_type, violation_count_30d)
+            )
+            if violation_count_30d == 2:
+                self._apply_cancel_window_non_refund_penalty()
+            return True
+
+        return False
+
+    def _get_cancellation_incident_type(self):
+        """
+        Return cancellation incident type:
+        - cancel_window: cancellation happens during event cancellation window
+                         (from cancellation deadline up to event start)
+        - False: cancellation happens outside that window (no incident)
+        """
+        self.ensure_one()
+        if not self.event_id or not self.event_id.date_begin:
+            return False
+
+        now = fields.Datetime.now()
+        event_start = self.event_id.date_begin
+        cancellation_deadline = event_start - timedelta(hours=self.event_id.cancellation_deadline_hours or 24)
+        if cancellation_deadline <= now < event_start:
+            return 'cancel_window'
+        return False
+
+    def _is_cancel_window_violation_for_quota_policy(self):
+        """Whether this cancellation counts for bucket/points non-refund policy."""
+        self.ensure_one()
+        membership = self.membership_id
+        if not membership:
+            return False
+        if membership.plan_quota_mode not in ['bucket_counts', 'points']:
+            return False
+        return self._get_cancellation_incident_type() == 'cancel_window'
+
+    def _should_block_quota_refund_for_cancel_window(self):
+        """
+        Bucket/points rule:
+        - 1st violation in last 30 days: normal refund
+        - 2nd violation in last 30 days: refund blocked
+        """
+        self.ensure_one()
+        if not self._is_cancel_window_violation_for_quota_policy():
+            return False
+        recent_violations = self._get_recent_quota_policy_violation_count(include_current=False)
+        projected_count = recent_violations + 1
+        return projected_count == 2
+
+    def _register_cancel_window_violation(self):
+        """Backward-compatible wrapper for unified attendance policy."""
+        return self._apply_attendance_penalty_policy('cancel_window')
+
+    def _apply_cancel_window_non_refund_penalty(self):
+        """
+        Apply persistent adjustment so computed remaining quota/points
+        does not return the last club/points on blocked refund.
+        """
+        self.ensure_one()
+        membership = self.membership_id
+        if not membership:
+            return False
+        if self.quota_penalty_applied:
+            return False
+        if self.consumption_state != 'consumed':
+            return False
+
+        if membership.plan_quota_mode == 'points':
+            points_penalty = self.points_consumed or 0
+            if points_penalty:
+                membership.write({'adj_points': membership.adj_points - points_penalty})
+                self.write({'quota_penalty_applied': True})
+                membership.message_post(
+                    body=_(
+                        'Attendance policy penalty applied for event "%s": '
+                        '%s points were not refunded.'
+                    ) % (self.event_id.name, points_penalty)
+                )
+            return True
+
+        if membership.plan_quota_mode == 'bucket_counts':
+            if self.club_type == 'regular_offline':
+                membership.write({'adj_offline': membership.adj_offline - 1})
+                self.write({'quota_penalty_applied': True})
+                membership.message_post(
+                    body=_(
+                        'Attendance policy penalty applied for event "%s": '
+                        '1 offline session was not refunded.'
+                    ) % self.event_id.name
+                )
+            elif self.club_type == 'regular_online':
+                membership.write({'adj_online': membership.adj_online - 1})
+                self.write({'quota_penalty_applied': True})
+                membership.message_post(
+                    body=_(
+                        'Attendance policy penalty applied for event "%s": '
+                        '1 online session was not refunded.'
+                    ) % self.event_id.name
+                )
+            elif self.club_type == 'spclub':
+                membership.write({'adj_sp': membership.adj_sp - 1})
+                self.write({'quota_penalty_applied': True})
+                membership.message_post(
+                    body=_(
+                        'Attendance policy penalty applied for event "%s": '
+                        '1 special session was not refunded.'
+                    ) % self.event_id.name
+                )
+            return True
+
+        return False
+
+    def _get_recent_quota_policy_violation_count(self, include_current=False):
+        """Count quota policy violations for this membership in rolling 30 days."""
+        self.ensure_one()
+        if not self.membership_id:
+            return 0
+        now = fields.Datetime.now()
+        window_start = now - timedelta(days=30)
+        domain = [
+            ('membership_id', '=', self.membership_id.id),
+            ('quota_penalty_violation', '=', True),
+            ('quota_penalty_violation_date', '>=', window_start),
+        ]
+        if not include_current:
+            domain.append(('id', '!=', self.id))
+        return self.search_count(domain)
+
     def _process_automatic_refund(self):
         """Process automatic refund for single club purchases"""
         self.ensure_one()

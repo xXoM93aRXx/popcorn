@@ -38,6 +38,25 @@ class Badge(models.Model):
             if not rule._evaluate_rule_for_partner(partner):
                 return False
         return True
+
+    def get_remaining_text_for_partner(self, partner):
+        """Return rendered remaining text based on rule templates for a partner."""
+        self.ensure_one()
+        if not partner or self._evaluate_badge_for_partner(partner):
+            return ''
+
+        texts = []
+        for rule in self.badge_rule_ids.filtered('active'):
+            records = rule._find_records_for_partner(rule.model_id.model, partner)
+            if rule.use_time_filter and rule.time_filter_months > 0 and records:
+                records = rule._apply_time_filter(records)
+            field_value = rule._get_field_value(records, rule.field_id.name, rule.model_id.model)
+            comparison_value = rule._convert_value_to_type(field_value, rule.value)
+            remaining = rule._get_remaining_amount(field_value, comparison_value)
+            if remaining and remaining > 0 and rule.remaining_text_template:
+                texts.append(rule._render_remaining_text(remaining))
+
+        return ' / '.join(texts)
     
     @api.model
     def evaluate_for_partner_xmlrpc(self, badge_id, partner_id):
@@ -73,6 +92,10 @@ class BadgeRule(models.Model):
         ('ilike', 'Contains (case insensitive)'),
     ], string='Operator', default='=', required=True)
     value = fields.Char('Value', required=True, help="Threshold value for comparison")
+    remaining_text_template = fields.Char(
+        string='Remaining Text',
+        help="Use {remaining} as a placeholder, e.g. '{remaining} more to earn this badge'"
+    )
     
     # Time-based filtering
     use_time_filter = fields.Boolean('Filter by Time Period', default=False,
@@ -139,6 +162,32 @@ class BadgeRule(models.Model):
             _logger = logging.getLogger(__name__)
             _logger.warning(f"Error evaluating badge rule {self.name}: {str(e)}")
             return False
+
+    def _get_remaining_amount(self, field_value, comparison_value):
+        """Return remaining amount for numeric comparisons, or None."""
+        if not isinstance(field_value, (int, float)) or not isinstance(comparison_value, (int, float)):
+            return None
+
+        if self.operator == '>=':
+            return max(0, comparison_value - field_value)
+        if self.operator == '>':
+            return max(0, (comparison_value + 1) - field_value)
+        if self.operator == '=':
+            return abs(comparison_value - field_value)
+        if self.operator == '<=':
+            return max(0, field_value - comparison_value)
+        if self.operator == '<':
+            return max(0, field_value - (comparison_value - 1))
+        return None
+
+    def _render_remaining_text(self, remaining):
+        """Render the remaining text template with the remaining value."""
+        template = self.remaining_text_template or ''
+        if isinstance(remaining, float) and remaining.is_integer():
+            remaining_value = str(int(remaining))
+        else:
+            remaining_value = str(remaining)
+        return template.replace('{remaining}', remaining_value)
     
     def _evaluate_distinct_hosts_rule(self, partner):
         """Evaluate distinct hosts count rule within time period"""

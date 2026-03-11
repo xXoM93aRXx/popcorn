@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="customer_type_first_timer" model="popcorn.discount.customer.type">
+            <field name="name">First Timer</field>
+            <field name="code">first_timer</field>
+            <field name="sequence">1</field>
+        </record>
+        <record id="customer_type_existing" model="popcorn.discount.customer.type">
+            <field name="name">Existing Customer</field>
+            <field name="code">existing</field>
+            <field name="sequence">2</field>
+        </record>
+        <record id="customer_type_new" model="popcorn.discount.customer.type">
+            <field name="name">New Customer</field>
+            <field name="code">new</field>
+            <field name="sequence">3</field>
+        </record>
+        <record id="customer_type_old" model="popcorn.discount.customer.type">
+            <field name="name">Old Customer</field>
+            <field name="code">old</field>
+            <field name="sequence">4</field>
+        </record>
+    </data>
+</odoo>

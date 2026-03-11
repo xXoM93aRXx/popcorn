@@ -29,6 +29,10 @@
                                                     <p class="badge-description" t-if="badge.description">
                                                         <t t-esc="badge.description"/>
                                                     </p>
+                                                    <t t-set="remaining_text" t-value="badge.get_remaining_text_for_partner(partner)"/>
+                                                    <p t-if="remaining_text" class="badge-remaining-text">
+                                                        <t t-esc="remaining_text"/>
+                                                    </p>
                                                     <div class="badge-status">
                                                         <span t-if="badge.earned" class="status-earned">
                                                             <i class="fa fa-check-circle"></i> Earned

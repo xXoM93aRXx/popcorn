@@ -46,6 +46,11 @@ class PopcornMembership(models.Model):
         ('pitch_day', 'Pitch Day'),
         ('other', 'Other')
     ], string='Purchase Channel', required=True, default='online')
+    pdb = fields.Boolean(
+        string='PDB',
+        default=False,
+        help='Pitch Day purchase'
+    )
     
     # Dates
     activation_date = fields.Date(string='Activation Date')
@@ -56,6 +61,12 @@ class PopcornMembership(models.Model):
     freeze_active = fields.Boolean(string='Freeze Active', default=False)
     freeze_start = fields.Date(string='Freeze Start Date')
     freeze_end = fields.Date(string='Freeze End Date')
+    freeze_is_penalty = fields.Boolean(
+        string='Penalty Freeze',
+        default=False,
+        copy=False,
+        help='If enabled, this freeze was applied as a policy penalty and cannot be unfrozen by portal users.'
+    )
     extra_days_extension = fields.Integer(string='Extra Days Extension', default=0)
     
     # Manual adjustments (tracked in chatter)
@@ -104,7 +115,16 @@ class PopcornMembership(models.Model):
     
     # Computed fields for eligibility
     can_renew_discount = fields.Boolean(string='Can Renew with Discount', compute='_compute_can_renew_discount', store=False)
-    
+    attendance_policy_freeze_count = fields.Integer(
+        string='Attendance Policy Freeze Count',
+        default=0,
+        help='Number of attendance-policy freezes already applied.'
+    )
+    attendance_policy_last_penalty_date = fields.Datetime(
+        string='Attendance Policy Last Penalty Date',
+        copy=False,
+        help='Last datetime when attendance policy penalty freeze was applied.'
+    )
     @api.depends('membership_plan_id.duration_days', 'extra_days_extension')
     def _compute_total_duration_days(self):
         """Compute total duration including extra days"""
@@ -254,12 +274,18 @@ class PopcornMembership(models.Model):
         try:
             # Only count registrations that went through proper consumption flow
             # Exclude imported registrations and registrations without proper state
-            registrations = self.env['event.registration'].sudo().search([
+            domain = [
                 ('membership_id', '=', self.id),
                 ('consumption_state', '=', 'consumed'),
-                ('state', 'in', ['open', 'confirmed', 'done']),  # Only count valid registrations
-                ('is_imported', '=', False)  # Exclude imported registrations
-            ])
+                ('state', 'in', ['open', 'confirmed', 'done']),
+                ('is_imported', '=', False),
+            ]
+            # Bucket: no-show does not count as consumed unless penalty was applied
+            if self.plan_quota_mode == 'bucket_counts':
+                domain.append('|')
+                domain.append(('is_no_show_attendance', '=', False))
+                domain.append(('quota_penalty_applied', '=', True))
+            registrations = self.env['event.registration'].sudo().search(domain)
             
             count = 0
             for reg in registrations:
@@ -280,13 +306,18 @@ class PopcornMembership(models.Model):
             
         try:
             # Only count registrations that went through proper consumption flow
-            # Exclude imported registrations and registrations without proper state
-            registrations = self.env['event.registration'].sudo().search([
+            domain = [
                 ('membership_id', '=', self.id),
                 ('consumption_state', '=', 'consumed'),
-                ('state', 'in', ['open', 'confirmed', 'done']),  # Only count valid registrations
-                ('is_imported', '=', False)  # Exclude imported registrations
-            ])
+                ('state', 'in', ['open', 'confirmed', 'done']),
+                ('is_imported', '=', False),
+            ]
+            # Points: no-show does not count as consumed unless penalty was applied
+            if self.plan_quota_mode == 'points':
+                domain.append('|')
+                domain.append(('is_no_show_attendance', '=', False))
+                domain.append(('quota_penalty_applied', '=', True))
+            registrations = self.env['event.registration'].sudo().search(domain)
             
             total_points = 0
             for reg in registrations:
@@ -405,14 +436,85 @@ class PopcornMembership(models.Model):
             'freeze_active': True,
             'freeze_start': freeze_start,
             'freeze_end': freeze_end,
-            'freeze_total_days_used': self.freeze_total_days_used + freeze_days
+            'freeze_total_days_used': self.freeze_total_days_used + freeze_days,
+            'freeze_is_penalty': False,
         })
+
+    def _apply_attendance_policy_freeze(self, freeze_days):
+        """Apply or extend freeze for attendance policy."""
+        self.ensure_one()
+        if freeze_days <= 0:
+            return False
+
+        freeze_start = fields.Date.today()
+        freeze_end = freeze_start + timedelta(days=freeze_days - 1)
+
+        if self.freeze_active and self.freeze_end:
+            # Extend from current freeze end when already frozen.
+            freeze_start = self.freeze_start or fields.Date.today()
+            freeze_end = self.freeze_end + timedelta(days=freeze_days)
+
+        vals = {
+            'freeze_active': True,
+            'freeze_start': freeze_start,
+            'freeze_end': freeze_end,
+            'freeze_is_penalty': True,
+        }
+        if self.state == 'active':
+            vals['state'] = 'frozen'
+        self.write(vals)
+        return True
+
+    def _evaluate_unlimited_late_no_show_policy(self):
+        """
+        Unlimited memberships:
+        - if 3+ incidents in rolling 30 days => freeze 3 days
+        - apply at most once per rolling 30 days
+        """
+        Registration = self.env['event.registration'].sudo()
+        for membership in self:
+            if membership.plan_quota_mode != 'unlimited':
+                continue
+            if membership.state not in ['active', 'frozen']:
+                continue
+
+            now = fields.Datetime.now()
+            window_start = now - timedelta(days=30)
+            incident_count = Registration.search_count([
+                ('membership_id', '=', membership.id),
+                ('late_no_show_incident', '=', True),
+                ('late_no_show_incident_date', '>=', window_start),
+            ])
+            if incident_count < 3:
+                continue
+
+            if (
+                membership.attendance_policy_last_penalty_date
+                and membership.attendance_policy_last_penalty_date >= window_start
+            ):
+                continue
+
+            freeze_days = 3
+            membership._apply_attendance_policy_freeze(freeze_days)
+            membership.write({
+                'attendance_policy_freeze_count': (membership.attendance_policy_freeze_count or 0) + 1,
+                'attendance_policy_last_penalty_date': now,
+            })
+            membership.message_post(
+                body=_(
+                    'Attendance policy applied: %s incidents detected in last 30 days. '
+                    'Membership frozen for %s days. (Max once per 30 days)'
+                ) % (incident_count, freeze_days)
+            )
     
     def action_unfreeze(self):
         """End active freeze period"""
         self.ensure_one()
         if not self.freeze_active:
             raise UserError(_('Membership is not currently frozen'))
+        # Portal users cannot end policy penalty freezes.
+        if self.freeze_is_penalty and not self.env.user.has_group('base.group_user'):
+            raise UserError(_('Penalty freeze cannot be ended from portal.'))
         
         # Just clear the freeze state - freeze_total_days_used already contains the freeze days
         # that were added when the freeze was initiated, so we don't need to add them again
@@ -420,6 +522,8 @@ class PopcornMembership(models.Model):
             'freeze_active': False,
             'freeze_start': False,
             'freeze_end': False,
+            'freeze_is_penalty': False,
+            'state': 'active' if self.state == 'frozen' else self.state,
             # freeze_total_days_used remains unchanged - it already contains the correct total
         })
     
@@ -566,18 +670,22 @@ class PopcornMembership(models.Model):
         return target_plan.price_first_timer
     
     def _calculate_bucket_upgrade_price(self, target_plan):
-        """Calculate upgrade price for bucket-based plans (Experience, Online)"""
+        """Calculate upgrade price for bucket-based plans (Experience, Online)
+        
+        Credit is based on consumed sessions (booked clubs). Booking = consumed,
+        so past + future booked clubs all count toward the upgrade discount.
+        Upgrade price = new membership cost - (unit_value × consumed clubs)
+        """
         plan = self.membership_plan_id
         if not plan.unit_base_count:
             return target_plan.price_first_timer
         
-        # Calculate remaining units
+        # Calculate consumed sessions (booked clubs - includes past and future)
         used_offline = self._count_used_sessions('regular_offline')
         used_online = self._count_used_sessions('regular_online')
         used_sp = self._count_used_sessions('spclub')
         
-        total_used = used_offline + used_online + used_sp
-        units_left = max(0, plan.unit_base_count - total_used)
+        total_consumed = used_offline + used_online + used_sp
         
         # Calculate unit value
         if plan.unit_value_fixed > 0:
@@ -585,7 +693,8 @@ class PopcornMembership(models.Model):
         else:
             unit_value = self.purchase_price_paid / plan.unit_base_count
         
-        upgrade_price = target_plan.price_first_timer - (unit_value * units_left)
+        # Credit = consumed clubs - they pay new cost minus value of what they've used
+        upgrade_price = target_plan.price_first_timer - (unit_value * total_consumed)
         return max(0, upgrade_price)
     
     def _calculate_points_upgrade_price(self, target_plan):
@@ -916,7 +1025,7 @@ class PopcornMembership(models.Model):
         """Apply a discount to this membership"""
         self.ensure_one()
         
-        if not discount or not discount.is_valid:
+        if not discount or not discount._is_currently_valid():
             raise UserError(_('Invalid or expired discount'))
         
         # Check if discount applies to this plan
@@ -924,13 +1033,11 @@ class PopcornMembership(models.Model):
             raise UserError(_('This discount does not apply to the selected membership plan'))
         
         # Check customer type restrictions
-        if discount.customer_type != 'all':
-            if discount.customer_type == 'first_timer' and not self.partner_id.is_first_timer:
-                raise UserError(_('This discount is only available for first-time customers'))
-            elif discount.customer_type == 'existing' and self.partner_id.is_first_timer:
-                raise UserError(_('This discount is only available for existing customers'))
-            elif discount.customer_type == 'new' and self.partner_id.is_first_timer:
-                raise UserError(_('This discount is only available for new customers'))
+        if not discount._customer_matches_types(self.partner_id):
+            if discount.customer_type == 'multiple' and discount.customer_type_ids:
+                type_names = ', '.join(discount.customer_type_ids.mapped('name'))
+                raise UserError(_('This discount is only available for: %s') % type_names)
+            raise UserError(_('This discount is not available for your customer type'))
         
         # Calculate discounted price
         discounted_price = self.membership_plan_id.get_discounted_price(discount, self.partner_id)

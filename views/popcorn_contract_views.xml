@@ -37,6 +37,9 @@
                             class="btn-warning" invisible="state != 'active'"/>
                     <button name="action_open_signature_dialog" string="Sign Contract" type="object" 
                             class="btn-info" invisible="state not in ['approved', 'signed'] or signed_by_customer"/>
+                    <button name="action_invalidate_signature" string="Invalidate Signature" type="object" 
+                            class="btn-warning" confirm="Are you sure you want to remove the customer signature? This action cannot be undone."
+                            invisible="not signed_by_customer"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,pending_approval,approved,signed,active"/>
                 </header>
                 <sheet>

@@ -1,6 +1,6 @@
 {
     'name': 'Popcorn Club',
-    'version': '18.0.1.0.2',
+    'version': '18.0.1.0.3',
     'category': 'Customizations',
     'summary': 'A generic Odoo 18 module for Popcorn Club',
     'description': """
@@ -24,6 +24,7 @@
     'website': 'https://www.yourcompany.com',
     'depends': ['base', 'event', 'website', 'website_event', 'website_sale', 'payment', 'delivery', 'mail', 'web', 'juhe_login', 'wechat_payment_gateway'],
     'data': [
+        'data/popcorn_discount_customer_type_data.xml',
         'views/popcorn_discount_views.xml',
         'views/popcorn_partner_views.xml',
         'views/popcorn_discount_settings_views.xml',
@@ -40,6 +41,7 @@
         'data/popcorn_event_overbooking_cron.xml',
         'data/popcorn_membership_expiry_followup_data.xml',
         'data/popcorn_membership_auto_expiry_data.xml',
+        'data/popcorn_discount_auto_expiry_data.xml',
         'data/popcorn_first_timer_coupon_reminder_data.xml',
         'views/popcorn_event_tag_category_views.xml',
         'views/popcorn_activity_sport_views.xml',

@@ -67,9 +67,18 @@ class PopcornDiscount(models.Model):
         ('all', 'All Customers'),
         ('first_timer', 'First Timer Only'),
         ('existing', 'Existing Customers Only'),
-        ('new', 'New Customers Only')
+        ('new', 'New Customers Only'),
+        ('old', 'Old Customers Only'),
+        ('multiple', 'Multiple Types'),
     ], string='Customer Type', default='all', required=True)
-    
+    customer_type_ids = fields.Many2many(
+        'popcorn.discount.customer.type',
+        'popcorn_discount_customer_type_rel',
+        'discount_id', 'customer_type_id',
+        string='Customer Types (when Multiple)',
+        help='Select multiple customer types. Shown only when "Multiple Types" is selected above.'
+    )
+
     partner_id = fields.Many2one('res.partner', string='Specific Customer',
                                  help='If set, this discount can only be used by this specific customer')
 
@@ -109,16 +118,23 @@ class PopcornDiscount(models.Model):
     @api.depends('active', 'date_from', 'date_to', 'usage_limit', 'usage_count')
     def _compute_is_valid(self):
         """Check if discount is currently valid"""
-        today = fields.Date.today()
         for discount in self:
-            valid = discount.active
-            if discount.date_from and discount.date_from > today:
-                valid = False
-            if discount.date_to and discount.date_to < today:
-                valid = False
-            if discount.usage_limit > 0 and discount.usage_count >= discount.usage_limit:
-                valid = False
-            discount.is_valid = valid
+            discount.is_valid = discount._is_currently_valid()
+
+    def _is_currently_valid(self, today=None):
+        """Live validity check that does not rely on stored computed state."""
+        self.ensure_one()
+        today = today or fields.Date.today()
+
+        if not self.active:
+            return False
+        if self.date_from and self.date_from > today:
+            return False
+        if self.date_to and self.date_to < today:
+            return False
+        if self.usage_limit > 0 and self.usage_count >= self.usage_limit:
+            return False
+        return True
 
     @api.depends('usage_limit', 'usage_count')
     def _compute_remaining_usage(self):
@@ -128,6 +144,37 @@ class PopcornDiscount(models.Model):
                 discount.remaining_usage = -1  # Unlimited
             else:
                 discount.remaining_usage = max(0, discount.usage_limit - discount.usage_count)
+
+    def _customer_matches_types(self, customer_partner):
+        """Check if customer matches the discount's customer type restrictions."""
+        self.ensure_one()
+        if not customer_partner:
+            return True
+        if self.customer_type == 'all':
+            return True
+        if self.customer_type == 'multiple':
+            if not self.customer_type_ids:
+                return True  # No types selected = all
+            for ct in self.customer_type_ids:
+                if ct.code == 'first_timer' and customer_partner.is_first_timer:
+                    return True
+                if ct.code == 'existing' and not customer_partner.is_first_timer:
+                    return True
+                if ct.code == 'new' and customer_partner.is_first_timer:
+                    return True
+                if ct.code == 'old' and customer_partner.has_expired_membership:
+                    return True
+            return False
+        # Single selection (existing behavior)
+        if self.customer_type == 'first_timer':
+            return customer_partner.is_first_timer
+        if self.customer_type == 'existing':
+            return not customer_partner.is_first_timer
+        if self.customer_type == 'new':
+            return customer_partner.is_first_timer
+        if self.customer_type == 'old':
+            return customer_partner.has_expired_membership
+        return True
 
     def _compute_days_until_expiry(self):
         """Compute days until the discount's valid-to date."""
@@ -158,6 +205,21 @@ class PopcornDiscount(models.Model):
             if discount.date_from and discount.date_to and discount.date_from > discount.date_to:
                 raise ValidationError(_('Valid From date cannot be after Valid To date'))
 
+    @api.onchange('customer_type')
+    def _onchange_customer_type_clear_multiple(self):
+        """Clear customer_type_ids when switching away from Multiple"""
+        if self.customer_type != 'multiple':
+            self.customer_type_ids = [(5, 0, 0)]
+
+    @api.constrains('customer_type', 'customer_type_ids')
+    def _check_multiple_has_types(self):
+        """When Multiple is selected, at least one type must be chosen"""
+        for discount in self:
+            if discount.customer_type == 'multiple' and not discount.customer_type_ids:
+                raise ValidationError(_(
+                    'Please select at least one customer type when "Multiple Types" is selected.'
+                ))
+
     @api.constrains('usage_limit', 'usage_limit_per_customer')
     def _check_usage_limits(self):
         """Validate usage limits"""
@@ -170,6 +232,8 @@ class PopcornDiscount(models.Model):
     def action_increment_usage(self):
         """Increment usage count (called when discount is applied)"""
         self.ensure_one()
+        if not self._is_currently_valid():
+            raise UserError(_('This discount has expired or is no longer valid'))
         if self.usage_limit > 0 and self.usage_count >= self.usage_limit:
             raise UserError(_('This discount has reached its usage limit'))
         
@@ -234,7 +298,7 @@ class PopcornDiscount(models.Model):
         self.ensure_one()
         
         # Check if discount is valid
-        if not self.is_valid:
+        if not self._is_currently_valid():
             return original_price
         
         # Check if discount is restricted to a specific partner
@@ -242,14 +306,9 @@ class PopcornDiscount(models.Model):
             return original_price
         
         # Check customer type restrictions
-        if customer_partner and self.customer_type != 'all':
-            if self.customer_type == 'first_timer' and not customer_partner.is_first_timer:
-                return original_price
-            elif self.customer_type == 'existing' and customer_partner.is_first_timer:
-                return original_price
-            elif self.customer_type == 'new' and customer_partner.is_first_timer:
-                return original_price
-        
+        if customer_partner and not self._customer_matches_types(customer_partner):
+            return original_price
+
         # Check if plan is applicable
         if self.membership_plan_ids and membership_plan not in self.membership_plan_ids:
             return original_price
@@ -282,7 +341,7 @@ class PopcornDiscount(models.Model):
         self.ensure_one()
         
         # Check if discount is valid
-        if not self.is_valid:
+        if not self._is_currently_valid():
             return 0
         
         # Check if discount is restricted to a specific partner
@@ -290,14 +349,9 @@ class PopcornDiscount(models.Model):
             return 0
         
         # Check customer type restrictions
-        if customer_partner and self.customer_type != 'all':
-            if self.customer_type == 'first_timer' and not customer_partner.is_first_timer:
-                return 0
-            elif self.customer_type == 'existing' and customer_partner.is_first_timer:
-                return 0
-            elif self.customer_type == 'new' and customer_partner.is_first_timer:
-                return 0
-        
+        if customer_partner and not self._customer_matches_types(customer_partner):
+            return 0
+
         # Check if plan is applicable
         if self.membership_plan_ids and membership_plan not in self.membership_plan_ids:
             return 0
@@ -312,29 +366,19 @@ class PopcornDiscount(models.Model):
     def get_available_discounts(self, membership_plan, customer_partner=None):
         """Get all available discounts for a membership plan and customer"""
         domain = [
-            ('is_valid', '=', True),
+            ('active', '=', True),
             ('partner_id', '=', False),  # Exclude partner-specific discounts (first-timer coupons)
             '|',
             ('membership_plan_ids', '=', False),  # Applies to all plans
             ('membership_plan_ids', 'in', membership_plan.id)
         ]
         
-        discounts = self.search(domain)
+        discounts = self.search(domain).filtered(lambda d: d._is_currently_valid())
         
         # Filter by customer type
         if customer_partner:
-            filtered_discounts = self.env['popcorn.discount']
-            for discount in discounts:
-                if discount.customer_type == 'all':
-                    filtered_discounts |= discount
-                elif discount.customer_type == 'first_timer' and customer_partner.is_first_timer:
-                    filtered_discounts |= discount
-                elif discount.customer_type == 'existing' and not customer_partner.is_first_timer:
-                    filtered_discounts |= discount
-                elif discount.customer_type == 'new' and customer_partner.is_first_timer:
-                    filtered_discounts |= discount
-            discounts = filtered_discounts
-        
+            discounts = discounts.filtered(lambda d: d._customer_matches_types(customer_partner))
+
         return discounts
     
     @api.constrains('discount_type', 'extra_days')
@@ -364,7 +408,7 @@ class PopcornDiscount(models.Model):
             'discount_value': self.discount_value,
             'extra_days': self.extra_days,
             'badge_image': self.badge_image,
-            'is_valid': self.is_valid,
+            'is_valid': self._is_currently_valid(),
             'website_description': self.website_description,
             'display_name': self.display_name
         }

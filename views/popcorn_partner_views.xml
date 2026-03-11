@@ -21,7 +21,6 @@
                 <field name="first_timer_discount_remaining_hours" readonly="1" invisible="not is_first_timer"/>
                 <field name="first_timer_discount_is_expired" readonly="1" invisible="not is_first_timer"/>
                 <field name="first_timer_discount_is_used" readonly="1" invisible="not is_first_timer"/>
-                <field name="first_timer_discount_is_available" readonly="1" invisible="not is_first_timer"/>
             </xpath>
             
             <!-- Add button to generate first-timer discount in button box -->
@@ -80,7 +79,6 @@
                 <field name="first_timer_discount_remaining_hours"/>
                 <field name="first_timer_discount_is_expired"/>
                 <field name="first_timer_discount_is_used"/>
-                <field name="first_timer_discount_is_available"/>
             </xpath>
             <xpath expr="//filter[@name='supplier']" position="after">
                 <filter string="Hosts" name="hosts" domain="[('is_host', '=', True)]"/>
@@ -97,7 +95,6 @@
                 <filter string="Discount Expired" name="discount_expired" domain="['|', ('first_timer_discount_expiry', '&lt;', context_today()), ('first_timer_discount_expiry', '=', False)]"/>
                 <filter string="Discount Active" name="discount_active" domain="[('first_timer_discount_expiry', '&gt;=', context_today()), ('first_timer_discount_code', '!=', False)]"/>
                 <filter string="Discount Used" name="discount_used" domain="[('first_timer_discount_is_used', '=', True)]"/>
-                <filter string="Discount Available" name="discount_available" domain="[('first_timer_discount_is_available', '=', True)]"/>
                 <separator/>
                 <group expand="0" string="Group By">
                     <filter string="MBTI" name="group_mbti" context="{'group_by': 'mbti'}"/>

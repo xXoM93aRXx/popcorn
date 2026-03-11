@@ -570,7 +570,7 @@
                                                                          <i class="fa fa-pause"></i> <span t-translation="on">Freeze</span>
                                                                      </button>
                                                                  </t>
-                                                                 <t t-if="membership.freeze_active">
+                                                                <t t-if="membership.freeze_active and not membership.freeze_is_penalty">
                                                                      <button type="button" class="btn btn-outline-warning btn-sm popcorn-unfreeze-btn" 
                                                                              t-att-data-membership-id="membership.id">
                                                                          <i class="fa fa-play"></i> <span t-translation="on">Unfreeze</span>

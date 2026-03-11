@@ -98,6 +98,7 @@
                 <field name="field_id"/>
                 <field name="operator"/>
                 <field name="value"/>
+                <field name="remaining_text_template"/>
                 <field name="use_time_filter"/>
                 <field name="time_filter_months"/>
                 <field name="active"/>
@@ -135,6 +136,7 @@
                             <field name="field_id"/>
                             <field name="operator"/>
                             <field name="value"/>
+                            <field name="remaining_text_template" placeholder="{remaining} more to earn this badge"/>
                         </group>
                     </group>
                     <separator string="Time Filter"/>

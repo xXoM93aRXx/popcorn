@@ -329,43 +329,33 @@ class PopcornMembershipPlan(models.Model):
         
         # Get discounts linked to this plan (exclude partner-specific and codes)
         linked_discounts = self.discount_ids.filtered(
-            lambda d: d.is_valid and 
-                     not d.partner_id and 
+            lambda d: d._is_currently_valid() and
+                     not d.partner_id and
                      not d.code  # Exclude coupon codes
         )
         
         # Get global discounts (not linked to specific plans)
         # Exclude partner-specific and codes
         global_discounts = self.env['popcorn.discount'].search([
-            ('is_valid', '=', True),
+            ('active', '=', True),
             ('membership_plan_ids', '=', False),
             ('partner_id', '=', False),  # Exclude first-timer discounts
             ('code', '=', False),  # Exclude coupon codes (require manual entry)
-        ])
+        ]).filtered(lambda d: d._is_currently_valid())
         
         all_discounts = linked_discounts | global_discounts
         
         # Filter by customer type if customer is provided
         if customer_partner:
-            filtered_discounts = self.env['popcorn.discount']
-            for discount in all_discounts:
-                if discount.customer_type == 'all':
-                    filtered_discounts |= discount
-                elif discount.customer_type == 'first_timer' and customer_partner.is_first_timer:
-                    filtered_discounts |= discount
-                elif discount.customer_type == 'existing' and not customer_partner.is_first_timer:
-                    filtered_discounts |= discount
-                elif discount.customer_type == 'new' and customer_partner.is_first_timer:
-                    filtered_discounts |= discount
-            all_discounts = filtered_discounts
-        
+            all_discounts = all_discounts.filtered(lambda d: d._customer_matches_types(customer_partner))
+
         return all_discounts
     
     def get_discounted_price(self, discount, customer_partner=None):
         """Calculate discounted price using a specific discount"""
         self.ensure_one()
         
-        if not discount or not discount.is_valid:
+        if not discount or not discount._is_currently_valid():
             return self.price_normal
         
         # Check if discount applies to this plan
@@ -373,14 +363,9 @@ class PopcornMembershipPlan(models.Model):
             return self.price_normal
         
         # Check customer type restrictions
-        if customer_partner and discount.customer_type != 'all':
-            if discount.customer_type == 'first_timer' and not customer_partner.is_first_timer:
-                return self.price_normal
-            elif discount.customer_type == 'existing' and customer_partner.is_first_timer:
-                return self.price_normal
-            elif discount.customer_type == 'new' and customer_partner.is_first_timer:
-                return self.price_normal
-        
+        if customer_partner and not discount._customer_matches_types(customer_partner):
+            return self.price_normal
+
         # Calculate discount
         if discount.discount_type == 'percentage':
             discount_amount = self.price_normal * (discount.discount_value / 100)

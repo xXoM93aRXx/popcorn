@@ -408,7 +408,7 @@ class PopcornMembershipController(http.Controller):
             if applied_discount_id:
                 try:
                     applied_discount = request.env['popcorn.discount'].browse(int(applied_discount_id))
-                    if not applied_discount.exists() or not applied_discount.is_valid:
+                    if not applied_discount.exists() or not applied_discount._is_currently_valid():
                         applied_discount = None
                 except (ValueError, TypeError):
                     applied_discount = None
@@ -1032,7 +1032,7 @@ class PopcornMembershipController(http.Controller):
                     if applied_discount_id:
                         try:
                             applied_discount = request.env['popcorn.discount'].browse(int(applied_discount_id))
-                            if not applied_discount.exists() or not applied_discount.is_valid:
+                            if not applied_discount.exists() or not applied_discount._is_currently_valid():
                                 applied_discount = None
                         except (ValueError, TypeError):
                             applied_discount = None
@@ -1073,7 +1073,7 @@ class PopcornMembershipController(http.Controller):
                     if applied_discount_id:
                         try:
                             applied_discount = request.env['popcorn.discount'].browse(int(applied_discount_id))
-                            if not applied_discount.exists() or not applied_discount.is_valid:
+                            if not applied_discount.exists() or not applied_discount._is_currently_valid():
                                 applied_discount = None
                         except (ValueError, TypeError):
                             applied_discount = None
@@ -1100,7 +1100,7 @@ class PopcornMembershipController(http.Controller):
                     if applied_discount_id:
                         try:
                             applied_discount = request.env['popcorn.discount'].browse(int(applied_discount_id))
-                            if not applied_discount.exists() or not applied_discount.is_valid:
+                            if not applied_discount.exists() or not applied_discount._is_currently_valid():
                                 applied_discount = None
                         except (ValueError, TypeError):
                             applied_discount = None

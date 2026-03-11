@@ -62,6 +62,10 @@
                             <field name="discount_value"/>
                             <field name="extra_days" invisible="discount_type != 'extra_days'"/>
                             <field name="customer_type"/>
+                            <field name="customer_type_ids" widget="many2many_tags"
+                                   options="{'no_create': True}"
+                                   invisible="customer_type != 'multiple'"
+                                   required="customer_type == 'multiple'"/>
                             <field name="partner_id"/>
                             <field name="event_type"/>
                             <field name="is_public"/>
@@ -138,7 +142,9 @@
                 <separator/>
                 <filter string="All Customers" name="all_customers" domain="[('customer_type', '=', 'all')]"/>
                 <filter string="First Timer Only" name="first_timer_only" domain="[('customer_type', '=', 'first_timer')]"/>
+                <filter string="Multiple Types" name="multiple_types" domain="[('customer_type', '=', 'multiple')]"/>
                 <filter string="Existing Customers" name="existing_customers" domain="[('customer_type', '=', 'existing')]"/>
+                <filter string="Old Customers" name="old_customers" domain="[('customer_type', '=', 'old')]"/>
                 <separator/>
                 <filter string="Partner Specific" name="partner_specific" domain="[('partner_id', '!=', False)]"/>
                 <filter string="Event Type Restricted" name="event_type_restricted" domain="[('event_type', '!=', False)]"/>

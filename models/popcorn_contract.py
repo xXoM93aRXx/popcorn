@@ -195,6 +195,24 @@ class PopcornContract(models.Model):
             body=_('Contract expired')
         )
     
+    def action_invalidate_signature(self):
+        """Remove the customer signature (after confirmation)"""
+        self.ensure_one()
+        if not self.customer_signature and not self.signed_by_customer:
+            raise UserError(_('This contract has no customer signature to invalidate.'))
+
+        self.write({
+            'customer_signature': False,
+            'customer_signature_date': False,
+            'signed_by_customer': False,
+            'state': 'approved' if self.state == 'signed' else self.state,
+        })
+
+        self.message_post(
+            body=_('Customer signature invalidated by %s') % self.env.user.name
+        )
+        return True
+
     def action_open_signature_dialog(self):
         """Open signature dialog for customer signing"""
         self.ensure_one()

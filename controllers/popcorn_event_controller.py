@@ -1086,7 +1086,7 @@ class PopcornEventController(http.Controller):
             if applied_discount_id:
                 try:
                     applied_discount = request.env['popcorn.discount'].browse(int(applied_discount_id))
-                    if not applied_discount.exists() or not applied_discount.is_valid:
+                    if not applied_discount.exists() or not applied_discount._is_currently_valid():
                         applied_discount = None
                     else:
                         # Validate event type restriction if discount has one
@@ -1797,6 +1797,8 @@ class PopcornPortalController(CustomerPortal):
             error_message = _('Failed to freeze membership. Please try again.')
         elif kwargs.get('error') == 'unfreeze_failed':
             error_message = _('Failed to unfreeze membership. Please try again.')
+        elif kwargs.get('error') == 'penalty_unfreeze_locked':
+            error_message = _('This membership is frozen due to attendance policy and cannot be unfrozen from portal.')
         elif kwargs.get('error') == 'clubs_booked_during_freeze':
             error_message = _('You cannot freeze your membership during this period because you have club(s) booked. Please cancel your bookings first or choose a different freeze period.')
         elif kwargs.get('error') == 'cancellation_failed':
@@ -1914,23 +1916,26 @@ class PopcornPortalController(CustomerPortal):
         return target_plan.price_first_timer
     
     def _calculate_bucket_upgrade_price(self, membership, target_plan):
-        """Calculate upgrade price for Experience/Online cards"""
+        """Calculate upgrade price for Experience/Online cards
+        
+        Credit is based on consumed sessions (booked clubs). Upgrade price =
+        new membership cost - (unit_value × consumed clubs)
+        """
         current_plan = membership.membership_plan_id
         
-        # Calculate remaining sessions
+        # Calculate consumed sessions (booked clubs - includes past and future)
         used_offline = membership._count_used_sessions('regular_offline')
         used_online = membership._count_used_sessions('regular_online')
         used_sp = membership._count_used_sessions('spclub')
         
-        total_used = used_offline + used_online + used_sp
+        total_consumed = used_offline + used_online + used_sp
         total_quota = (current_plan.quota_offline or 0) + (current_plan.quota_online or 0) + (current_plan.quota_sp or 0)
-        sessions_left = max(0, total_quota - total_used)
         
         # Calculate unit value
         unit_value = membership.purchase_price_paid / total_quota if total_quota > 0 else 0
         
-        # Calculate upgrade price
-        upgrade_price = target_plan.price_first_timer - (unit_value * sessions_left)
+        # Credit = consumed clubs - they pay new cost minus value of what they've used
+        upgrade_price = target_plan.price_first_timer - (unit_value * total_consumed)
         return round(max(0, upgrade_price), 2)
     
     def _calculate_freedom_upgrade_price(self, membership, target_plan):
@@ -2140,6 +2145,8 @@ class PopcornPortalController(CustomerPortal):
         # Check if membership is frozen
         if not membership.freeze_active:
             return request.redirect('/my/cards')
+        if membership.freeze_is_penalty:
+            return request.redirect('/my/cards?error=penalty_unfreeze_locked')
         
         try:
             # Unfreeze the membership

@@ -66,7 +66,7 @@ class PopcornDiscountController(http.Controller):
             )
 
         # Check if discount is currently valid
-        if not discount.is_valid:
+        if not discount._is_currently_valid():
             result = {
                 'success': False,
                 'message': _('This discount code has expired or reached its usage limit')
@@ -140,35 +140,17 @@ class PopcornDiscountController(http.Controller):
                 )
 
             # Check customer type restrictions
-            if discount.customer_type != 'all':
-                is_first_timer = partner.is_first_timer
-                if discount.customer_type == 'first_timer' and not is_first_timer:
-                    result = {
-                        'success': False,
-                        'message': _('This discount is only available for first-time customers')
-                    }
-                    return request.make_response(
-                        json.dumps(result),
-                        headers=[('Content-Type', 'application/json')]
-                    )
-                elif discount.customer_type == 'existing' and is_first_timer:
-                    result = {
-                        'success': False,
-                        'message': _('This discount is only available for existing customers')
-                    }
-                    return request.make_response(
-                        json.dumps(result),
-                        headers=[('Content-Type', 'application/json')]
-                    )
-                elif discount.customer_type == 'new' and is_first_timer:
-                    result = {
-                        'success': False,
-                        'message': _('This discount is only available for new customers')
-                    }
-                    return request.make_response(
-                        json.dumps(result),
-                        headers=[('Content-Type', 'application/json')]
-                    )
+            if not discount._customer_matches_types(partner):
+                if discount.customer_type == 'multiple' and discount.customer_type_ids:
+                    type_names = ', '.join(discount.customer_type_ids.mapped('name'))
+                    msg = _('This discount is only available for: %s') % type_names
+                else:
+                    msg = _('This discount is not available for your customer type')
+                result = {'success': False, 'message': msg}
+                return request.make_response(
+                    json.dumps(result),
+                    headers=[('Content-Type', 'application/json')]
+                )
 
             # Calculate discounted price
             original_price = plan.price_normal
@@ -232,35 +214,17 @@ class PopcornDiscountController(http.Controller):
                     )
 
             # Check customer type restrictions
-            if discount.customer_type != 'all':
-                is_first_timer = partner.is_first_timer
-                if discount.customer_type == 'first_timer' and not is_first_timer:
-                    result = {
-                        'success': False,
-                        'message': _('This discount is only available for first-time customers')
-                    }
-                    return request.make_response(
-                        json.dumps(result),
-                        headers=[('Content-Type', 'application/json')]
-                    )
-                elif discount.customer_type == 'existing' and is_first_timer:
-                    result = {
-                        'success': False,
-                        'message': _('This discount is only available for existing customers')
-                    }
-                    return request.make_response(
-                        json.dumps(result),
-                        headers=[('Content-Type', 'application/json')]
-                    )
-                elif discount.customer_type == 'new' and is_first_timer:
-                    result = {
-                        'success': False,
-                        'message': _('This discount is only available for new customers')
-                    }
-                    return request.make_response(
-                        json.dumps(result),
-                        headers=[('Content-Type', 'application/json')]
-                    )
+            if not discount._customer_matches_types(partner):
+                if discount.customer_type == 'multiple' and discount.customer_type_ids:
+                    type_names = ', '.join(discount.customer_type_ids.mapped('name'))
+                    msg = _('This discount is only available for: %s') % type_names
+                else:
+                    msg = _('This discount is not available for your customer type')
+                result = {'success': False, 'message': msg}
+                return request.make_response(
+                    json.dumps(result),
+                    headers=[('Content-Type', 'application/json')]
+                )
 
             # Calculate discounted price for event
             original_price = event.event_price or 0
