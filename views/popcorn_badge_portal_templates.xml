@@ -14,10 +14,41 @@
                                 <div class="row">
                                     <t t-foreach="partner.badge_ids" t-as="badge">
                                         <div class="col-md-3 col-sm-6 col-xs-12 mb-3">
-                                            <div class="badge-card" t-att-class="'badge-card ' + ('earned' if badge.earned else 'not-earned')">
+                                            <a t-if="badge.is_diversity_badge" href="/my/diversity" class="text-decoration-none">
+                                                <div class="badge-card" t-att-class="'badge-card ' + ('earned' if badge.earned else 'not-earned')">
+                                                    <div class="badge-image-container">
+                                                        <img t-if="badge.image"
+                                                             t-att-src="'/web/image/popcorn.badge/' + str(badge.id) + '/image'"
+                                                             class="badge-image"
+                                                             t-att-alt="badge.name"/>
+                                                        <div t-if="not badge.image" class="badge-placeholder">
+                                                            <i class="fa fa-trophy fa-3x"></i>
+                                                        </div>
+                                                    </div>
+                                                    <div class="badge-info">
+                                                        <h4 class="badge-name"><t t-esc="badge.name"/></h4>
+                                                        <p class="badge-description" t-if="badge.description">
+                                                            <t t-esc="badge.description"/>
+                                                        </p>
+                                                        <t t-set="remaining_text" t-value="badge.get_remaining_text_for_partner(partner)"/>
+                                                        <p t-if="remaining_text" class="badge-remaining-text">
+                                                            <t t-esc="remaining_text"/>
+                                                        </p>
+                                                        <div class="badge-status">
+                                                            <span t-if="badge.earned" class="status-earned">
+                                                                <i class="fa fa-check-circle"></i> Earned
+                                                            </span>
+                                                            <span t-else="" class="status-not-earned">
+                                                                <i class="fa fa-clock-o"></i> Not Earned
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                            <div t-else="" class="badge-card" t-att-class="'badge-card ' + ('earned' if badge.earned else 'not-earned')">
                                                 <div class="badge-image-container">
-                                                    <img t-if="badge.image" 
-                                                         t-att-src="'/web/image/popcorn.badge/' + str(badge.id) + '/image'" 
+                                                    <img t-if="badge.image"
+                                                         t-att-src="'/web/image/popcorn.badge/' + str(badge.id) + '/image'"
                                                          class="badge-image"
                                                          t-att-alt="badge.name"/>
                                                     <div t-if="not badge.image" class="badge-placeholder">
@@ -82,6 +113,130 @@
                 </div>
             </div>
         </xpath>
+    </template>
+
+    <!-- Diversity Badge Page -->
+    <template id="portal_diversity_page" name="Diversity Badge Page">
+        <t t-call="portal.portal_layout">
+            <div class="o_portal_diversity">
+
+                <!-- Progress header -->
+                <div class="diversity-page-header mb-3">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div>
+                            <h2 class="mb-1">Diversity Badge</h2>
+                            <p class="text-muted mb-0">Hover a host to preview them — attend their club to unlock</p>
+                        </div>
+                        <div class="diversity-counter-pill">
+                            <span class="counter-num" t-esc="unlocked_count"/>
+                            <span class="counter-sep">/</span>
+                            <span class="counter-num text-muted" t-esc="total_count"/>
+                            <span class="counter-label ms-1">Unlocked</span>
+                        </div>
+                    </div>
+                    <div class="diversity-progress-wrap mt-2">
+                        <div class="progress diversity-progress">
+                            <div class="progress-bar"
+                                 t-attf-style="width: {{ (unlocked_count / total_count * 100) if total_count else 0 }}%"/>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stage: big background image + grid on top -->
+                <div class="diversity-stage" t-if="hosts_data">
+
+                    <!-- Background image layer -->
+                    <img id="diversity-bg-img" class="diversity-bg-img" src="" alt=""/>
+                    <div class="diversity-bg-no-img" id="diversity-bg-placeholder">
+                        <i class="fa fa-user"/>
+                    </div>
+
+                    <!-- Gradient overlay so grid is always readable -->
+                    <div class="diversity-stage-overlay"/>
+
+                    <!-- Host name label (top-left, like MK) -->
+                    <div class="diversity-host-label">
+                        <div class="diversity-host-name" id="diversity-host-name">—</div>
+                        <div class="diversity-host-status" id="diversity-host-status"></div>
+                    </div>
+
+                    <!-- Thumbnail grid anchored at the bottom -->
+                    <div class="diversity-grid-panel">
+                        <div class="diversity-thumb-grid">
+                            <t t-foreach="hosts_data" t-as="entry">
+                                <div t-attf-class="diversity-thumb {{ 'thumb-unlocked' if entry['unlocked'] else 'thumb-locked' }}"
+                                     t-att-data-img="entry['img_src'] or ''"
+                                     t-att-data-name="entry['host'].name"
+                                     t-att-data-unlocked="'1' if entry['unlocked'] else '0'">
+                                    <div class="diversity-thumb-inner">
+                                        <t t-if="entry['img_src']">
+                                            <img t-att-src="entry['img_src']"
+                                                 class="diversity-thumb-img"
+                                                 t-att-alt="entry['host'].name"/>
+                                        </t>
+                                        <t t-else="">
+                                            <div class="diversity-thumb-no-img">
+                                                <i class="fa fa-user"/>
+                                            </div>
+                                        </t>
+                                        <div t-if="not entry['unlocked']" class="diversity-thumb-lock">
+                                            <i class="fa fa-lock"/>
+                                        </div>
+                                    </div>
+                                    <div class="diversity-thumb-label" t-esc="entry['host'].name"/>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+                </div>
+
+                <div t-if="not hosts_data" class="alert alert-info mt-3">
+                    <i class="fa fa-info-circle me-1"/> No hosts available yet.
+                </div>
+
+            </div>
+
+            <script type="text/javascript">
+                (function () {
+                    var thumbs = document.querySelectorAll('.diversity-thumb');
+                    var bgImg = document.getElementById('diversity-bg-img');
+                    var bgPlaceholder = document.getElementById('diversity-bg-placeholder');
+                    var hostName = document.getElementById('diversity-host-name');
+                    var hostStatus = document.getElementById('diversity-host-status');
+
+                    function showHost(thumb) {
+                        var imgSrc = thumb.dataset.img;
+                        var name = thumb.dataset.name;
+                        var unlocked = thumb.dataset.unlocked === '1';
+
+                        if (imgSrc) {
+                            bgImg.src = imgSrc;
+                            bgImg.style.filter = unlocked ? '' : 'brightness(0)';
+                            bgImg.style.display = 'block';
+                            bgPlaceholder.style.display = 'none';
+                        } else {
+                            bgImg.style.display = 'none';
+                            bgPlaceholder.style.display = 'flex';
+                        }
+
+                        hostName.textContent = name;
+                        hostStatus.textContent = unlocked ? '✓ Unlocked' : 'Attend their club to unlock';
+
+                        hostStatus.className = 'diversity-host-status ' + (unlocked ? 'status-unlocked' : 'status-locked');
+
+                        thumbs.forEach(function (t) { t.classList.remove('thumb-active'); });
+                        thumb.classList.add('thumb-active');
+                    }
+
+                    thumbs.forEach(function (thumb) {
+                        thumb.addEventListener('mouseenter', function () { showHost(thumb); });
+                        thumb.addEventListener('click', function () { showHost(thumb); });
+                    });
+
+                    if (thumbs.length > 0) { showHost(thumbs[0]); }
+                })();
+            </script>
+        </t>
     </template>
 
     <!-- Badge Detail Modal -->

@@ -26,13 +26,18 @@
             
             <!-- Add button to generate first-timer discount in button box -->
             <xpath expr="//div[@name='button_box']" position="inside">
-                <button name="action_generate_first_timer_discount" 
-                        string="Generate Discount Code" 
-                        type="object" 
+                <button name="action_generate_first_timer_discount"
+                        string="Generate Discount Code"
+                        type="object"
                         class="oe_stat_button"
                         icon="fa-gift"
                         invisible="not is_first_timer or first_timer_discount_code"
                         help="Generate a unique discount code for this first-timer customer"/>
+                <field name="permanently_earned_badge_ids" widget="statinfo"
+                       string="Badges"
+                       class="oe_stat_button"
+                       icon="fa-trophy"
+                       readonly="1"/>
             </xpath>
             
             <!-- Host Profile Customization Fields -->

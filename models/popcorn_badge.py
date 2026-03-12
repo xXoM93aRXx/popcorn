@@ -35,10 +35,14 @@ class Badge(models.Model):
                 badge.earned = False
     
     def _evaluate_badge_for_partner(self, partner):
-        """Evaluate if a partner has earned this badge based on all rules"""
+        """Evaluate if a partner has earned this badge based on all rules.
+        Once a badge is in permanently_earned_badge_ids it is always considered earned."""
+        if self in partner.permanently_earned_badge_ids:
+            return True
+
         if not self.badge_rule_ids.filtered('active'):
             return False
-            
+
         for rule in self.badge_rule_ids.filtered('active'):
             if not rule._evaluate_rule_for_partner(partner):
                 return False
@@ -201,22 +205,18 @@ class BadgeRule(models.Model):
             import logging
             _logger = logging.getLogger(__name__)
             
-            # Calculate the cutoff date based on anchor date or rolling window
+            # Rolling window ending today, optionally capped by anchor date as earliest start
+            cutoff_end = datetime.now()
+            cutoff_start = cutoff_end - timedelta(days=self.time_filter_months * 30)
             if self.time_filter_anchor_date:
-                # Fixed window: from anchor date to anchor date + months
-                cutoff_start = datetime.combine(self.time_filter_anchor_date, datetime.min.time())
-                cutoff_end = cutoff_start + timedelta(days=self.time_filter_months * 30)
-                _logger.info(f"Badge Rule {self.name} for partner {partner.id}: Using fixed window {cutoff_start} to {cutoff_end}")
-            else:
-                # Rolling window: count backwards from today
-                cutoff_end = datetime.now()
-                cutoff_start = cutoff_end - timedelta(days=self.time_filter_months * 30)
-                _logger.info(f"Badge Rule {self.name} for partner {partner.id}: Using rolling window {cutoff_start} to {cutoff_end}")
+                anchor = datetime.combine(self.time_filter_anchor_date, datetime.min.time())
+                cutoff_start = max(cutoff_start, anchor)
+            _logger.info(f"Badge Rule {self.name} for partner {partner.id}: Using rolling window {cutoff_start} to {cutoff_end}")
             
-            # Get all registrations for this partner where state is 'done' (attended) and within time period
+            # Get all non-cancelled registrations for this partner within time period
             attended_registrations = self.env['event.registration'].search([
                 ('partner_id', '=', partner.id),
-                ('state', '=', 'done'),
+                ('state', '!=', 'cancel'),
                 ('create_date', '>=', cutoff_start.strftime('%Y-%m-%d %H:%M:%S')),
                 ('create_date', '<=', cutoff_end.strftime('%Y-%m-%d %H:%M:%S'))
             ])
@@ -253,13 +253,17 @@ class BadgeRule(models.Model):
         
         # Try common partner relationship fields
         partner_fields = ['partner_id', 'user_id', 'contact_id', 'customer_id']
-        
+
         for field in partner_fields:
             if hasattr(model, field):
                 # Check if the field is a Many2one to res.partner
                 field_info = model._fields.get(field)
                 if field_info and field_info.comodel_name == 'res.partner':
-                    return model.search([(field, '=', partner.id)])
+                    domain = [(field, '=', partner.id)]
+                    # Never count cancelled registrations toward any badge
+                    if model_name == 'event.registration':
+                        domain.append(('state', '!=', 'cancel'))
+                    return model.search(domain)
         
         # Try reverse relationships (One2many/Many2many from partner)
         partner_field_name = model_name.replace('.', '_')
@@ -293,17 +297,13 @@ class BadgeRule(models.Model):
             import logging
             _logger = logging.getLogger(__name__)
             
-            # Calculate the cutoff date based on anchor date or rolling window
+            # Rolling window ending today, optionally capped by anchor date as earliest start
+            cutoff_end = datetime.now()
+            cutoff_start = cutoff_end - timedelta(days=self.time_filter_months * 30)
             if self.time_filter_anchor_date:
-                # Fixed window: from anchor date to anchor date + months
-                cutoff_start = datetime.combine(self.time_filter_anchor_date, datetime.min.time())
-                cutoff_end = cutoff_start + timedelta(days=self.time_filter_months * 30)
-                _logger.info(f"Badge Rule {self.name}: Using fixed window {cutoff_start} to {cutoff_end}")
-            else:
-                # Rolling window: count backwards from today
-                cutoff_end = datetime.now()
-                cutoff_start = cutoff_end - timedelta(days=self.time_filter_months * 30)
-                _logger.info(f"Badge Rule {self.name}: Using rolling window {cutoff_start} to {cutoff_end}")
+                anchor = datetime.combine(self.time_filter_anchor_date, datetime.min.time())
+                cutoff_start = max(cutoff_start, anchor)
+            _logger.info(f"Badge Rule {self.name}: Using rolling window {cutoff_start} to {cutoff_end}")
             
             # Get the date field to filter on
             date_field = self.time_filter_field or 'create_date'
@@ -475,6 +475,9 @@ class ResPartner(models.Model):
     notified_badge_ids = fields.Many2many('popcorn.badge', 'partner_notified_badge_rel', 'partner_id', 'badge_id',
                                          string='Notified Badges',
                                          help='Badges whose earn animation has already been shown to this partner')
+    permanently_earned_badge_ids = fields.Many2many('popcorn.badge', 'partner_permanent_badge_rel', 'partner_id', 'badge_id',
+                                                    string='Permanently Earned Badges',
+                                                    help='Badges permanently awarded to this partner — once earned, never lost')
     
     def _compute_badge_ids(self):
         """Compute all available badges for this partner"""

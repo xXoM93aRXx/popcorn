@@ -114,6 +114,7 @@ class PopcornBadgeController(http.Controller):
         if new_badges:
             partner.sudo().write({
                 'notified_badge_ids': [(4, b.id) for b in new_badges],
+                'permanently_earned_badge_ids': [(4, b.id) for b in new_badges],
             })
 
         return request.make_response(

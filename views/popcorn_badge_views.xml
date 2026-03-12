@@ -42,6 +42,7 @@
                         <group>
                             <field name="description" placeholder="Badge Description"/>
                             <field name="active"/>
+                            <field name="is_diversity_badge"/>
                         </group>
                     </group>
                     <notebook>
@@ -56,6 +57,7 @@
                                     <field name="value"/>
                                     <field name="use_time_filter"/>
                                     <field name="time_filter_months"/>
+                                    <field name="time_filter_anchor_date"/>
                                     <field name="active"/>
                                 </list>
                             </field>
@@ -101,6 +103,7 @@
                 <field name="remaining_text_template"/>
                 <field name="use_time_filter"/>
                 <field name="time_filter_months"/>
+                <field name="time_filter_anchor_date"/>
                 <field name="active"/>
             </list>
         </field>
@@ -153,8 +156,8 @@
                     <group invisible="not use_time_filter">
                         <p class="o_row">
                             <i class="fa fa-info-circle"/> 
-                            If <b>Start Date</b> is set, the time window is fixed from that date. 
-                            If not set, it uses a rolling window counting backwards from today.
+                            The window always rolls backwards <b>N months from today</b>.
+                            If <b>Start Date</b> is set, it acts as the earliest date records can count from (program launch date) — the window never expires past it.
                         </p>
                     </group>
                     <group>
