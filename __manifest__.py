@@ -42,6 +42,7 @@
         'data/popcorn_membership_expiry_followup_data.xml',
         'data/popcorn_membership_auto_expiry_data.xml',
         'data/popcorn_discount_auto_expiry_data.xml',
+        'data/popcorn_badge_prize_expiry_data.xml',
         'data/popcorn_first_timer_coupon_reminder_data.xml',
         'views/popcorn_event_tag_category_views.xml',
         'views/popcorn_activity_sport_views.xml',

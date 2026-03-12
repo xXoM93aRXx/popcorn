@@ -15,6 +15,17 @@ class Badge(models.Model):
     image_filename = fields.Char("Image Filename")
     badge_rule_ids = fields.One2many('popcorn.badge.rule', 'badge_id', string='Badge Rules')
     active = fields.Boolean('Active', default=True)
+    prize_popcorn_money = fields.Float(
+        'Prize (Popcorn Money)',
+        default=0.0,
+        digits=(16, 2),
+        help='Amount of Popcorn Money awarded to the partner when this badge is first earned'
+    )
+    prize_expiry_days = fields.Integer(
+        'Prize Expiry (Days)',
+        default=0,
+        help='Number of days before the prize Popcorn Money expires. 0 = never expires.'
+    )
     is_diversity_badge = fields.Boolean(
         'Diversity Badge',
         default=False,
@@ -140,6 +151,14 @@ class BadgeRule(models.Model):
             # Special case: distinct hosts count evaluation
             if field_name == 'distinct_hosts_count_in_period':
                 return self._evaluate_distinct_hosts_rule(partner)
+
+            # Special case: penalty count in period (for punctuality badge)
+            if field_name == 'penalty_count_in_period':
+                return self._evaluate_penalty_count_rule(partner)
+
+            # Special case: minimum perfect attendances per calendar month
+            if field_name == 'min_perfect_attendance_per_month':
+                return self._evaluate_min_perfect_per_month_rule(partner)
             
             # Universal approach: Find records related to this partner
             records = self._find_records_for_partner(model_name, partner)
@@ -243,6 +262,94 @@ class BadgeRule(models.Model):
             _logger.warning(f"Error evaluating distinct hosts rule {self.name}: {str(e)}")
             return False
     
+    def _evaluate_penalty_count_rule(self, partner):
+        """Count quota penalty violations in the rolling time window.
+        Set rule operator '=' value '0' to require zero penalties."""
+        try:
+            from datetime import datetime, timedelta
+            import logging
+            _logger = logging.getLogger(__name__)
+
+            cutoff_end = datetime.now()
+            cutoff_start = cutoff_end - timedelta(days=self.time_filter_months * 30)
+            if self.time_filter_anchor_date:
+                anchor = datetime.combine(self.time_filter_anchor_date, datetime.min.time())
+                cutoff_start = max(cutoff_start, anchor)
+
+            penalty_count = self.env['event.registration'].search_count([
+                ('partner_id', '=', partner.id),
+                ('quota_penalty_violation', '=', True),
+                ('create_date', '>=', cutoff_start.strftime('%Y-%m-%d %H:%M:%S')),
+                ('create_date', '<=', cutoff_end.strftime('%Y-%m-%d %H:%M:%S')),
+            ])
+
+            comparison_value = int(self.value) if self.value.lstrip('-').isdigit() else 0
+            result = self._evaluate_condition(penalty_count, self.operator, comparison_value)
+            _logger.info('Badge Rule %s for partner %s: penalty_count=%s, needed %s %s, result=%s',
+                         self.name, partner.id, penalty_count, self.operator, comparison_value, result)
+            return result
+
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning('Error evaluating penalty_count_in_period: %s', e)
+            return False
+
+    def _evaluate_min_perfect_per_month_rule(self, partner):
+        """Compute the minimum number of perfect attendances (done, not late, not no-show)
+        across all calendar months in the rolling window.
+        Set rule operator '>=' value '5' to require at least 5 per month."""
+        try:
+            from datetime import datetime, timedelta
+            from collections import defaultdict
+            import logging
+            _logger = logging.getLogger(__name__)
+
+            cutoff_end = datetime.now()
+            cutoff_start = cutoff_end - timedelta(days=self.time_filter_months * 30)
+            if self.time_filter_anchor_date:
+                anchor = datetime.combine(self.time_filter_anchor_date, datetime.min.time())
+                cutoff_start = max(cutoff_start, anchor)
+
+            perfect_regs = self.env['event.registration'].search([
+                ('partner_id', '=', partner.id),
+                ('state', '!=', 'cancel'),
+                ('is_late_attendance', '=', False),
+                ('is_no_show_attendance', '=', False),
+                ('create_date', '>=', cutoff_start.strftime('%Y-%m-%d %H:%M:%S')),
+                ('create_date', '<=', cutoff_end.strftime('%Y-%m-%d %H:%M:%S')),
+            ])
+
+            # Build a dict of {(year, month): count}
+            monthly = defaultdict(int)
+            for reg in perfect_regs:
+                if reg.create_date:
+                    monthly[(reg.create_date.year, reg.create_date.month)] += 1
+
+            # Build the full set of calendar months in the window
+            required_months = set()
+            cursor = cutoff_start.replace(day=1)
+            while cursor <= cutoff_end:
+                required_months.add((cursor.year, cursor.month))
+                # Advance to next month
+                if cursor.month == 12:
+                    cursor = cursor.replace(year=cursor.year + 1, month=1)
+                else:
+                    cursor = cursor.replace(month=cursor.month + 1)
+
+            # Minimum across all required months (0 if a month has no perfect attendances)
+            min_per_month = min(monthly.get(m, 0) for m in required_months) if required_months else 0
+
+            comparison_value = int(self.value) if self.value.lstrip('-').isdigit() else 0
+            result = self._evaluate_condition(min_per_month, self.operator, comparison_value)
+            _logger.info('Badge Rule %s for partner %s: min_perfect_per_month=%s across months %s, needed %s %s, result=%s',
+                         self.name, partner.id, min_per_month, sorted(required_months), self.operator, comparison_value, result)
+            return result
+
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning('Error evaluating min_perfect_attendance_per_month: %s', e)
+            return False
+
     def _find_records_for_partner(self, model_name, partner):
         """Find records related to the partner in any model"""
         model = self.env[model_name]
@@ -467,6 +574,28 @@ class BadgeRule(models.Model):
 
 class ResPartner(models.Model):
     _inherit = 'res.partner'
+
+    # Placeholder fields used as badge rule field references for special-case evaluators
+    penalty_count_in_period = fields.Integer(
+        string='Penalty Count (Period)',
+        compute='_compute_penalty_count_in_period',
+        store=False,
+        help='Number of quota penalty violations in a time period (used by badge rules)'
+    )
+    min_perfect_attendance_per_month = fields.Integer(
+        string='Min Perfect Attendance per Month',
+        compute='_compute_min_perfect_attendance_per_month',
+        store=False,
+        help='Minimum perfect (non-cancelled, not late, not no-show) attendances in any calendar month within a period (used by badge rules)'
+    )
+
+    def _compute_penalty_count_in_period(self):
+        for partner in self:
+            partner.penalty_count_in_period = 0
+
+    def _compute_min_perfect_attendance_per_month(self):
+        for partner in self:
+            partner.min_perfect_attendance_per_month = 0
 
     badge_ids = fields.Many2many('popcorn.badge', 'partner_badge_rel', 'partner_id', 'badge_id',
                                  string='Available Badges', compute='_compute_badge_ids', store=False)

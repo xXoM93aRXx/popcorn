@@ -269,11 +269,11 @@ class ResPartner(models.Model):
                 partner.distinct_hosts_count = 0
     
     def get_attended_host_ids(self):
-        """Return a set of host partner IDs this partner has attended (state=done)"""
+        """Return a set of host partner IDs this partner has a non-cancelled registration for"""
         self.ensure_one()
         attended_registrations = self.env['event.registration'].sudo().search([
             ('partner_id', '=', self.id),
-            ('state', '=', 'done'),
+            ('state', '!=', 'cancel'),
         ])
         host_partners = attended_registrations.mapped('event_id.host_id').filtered('id')
         return set(host_partners.mapped('id'))

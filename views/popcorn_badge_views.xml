@@ -43,6 +43,8 @@
                             <field name="description" placeholder="Badge Description"/>
                             <field name="active"/>
                             <field name="is_diversity_badge"/>
+                            <field name="prize_popcorn_money"/>
+                            <field name="prize_expiry_days"/>
                         </group>
                     </group>
                     <notebook>
@@ -190,6 +192,69 @@
         </field>
     </record>
 
+    <!-- Badge Prize List View -->
+    <record id="view_popcorn_badge_prize_list" model="ir.ui.view">
+        <field name="name">popcorn.badge.prize.list</field>
+        <field name="model">popcorn.badge.prize</field>
+        <field name="type">list</field>
+        <field name="arch" type="xml">
+            <list string="Badge Prizes"
+                  decoration-muted="expired == True"
+                  default_order="earned_date desc"
+                  editable="bottom">
+                <field name="partner_id"/>
+                <field name="badge_id"/>
+                <field name="amount"/>
+                <field name="earned_date"/>
+                <field name="expiry_date"/>
+                <field name="expired"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Badge Prize Search View -->
+    <record id="view_popcorn_badge_prize_search" model="ir.ui.view">
+        <field name="name">popcorn.badge.prize.search</field>
+        <field name="model">popcorn.badge.prize</field>
+        <field name="type">search</field>
+        <field name="arch" type="xml">
+            <search string="Search Badge Prizes">
+                <field name="partner_id"/>
+                <field name="badge_id"/>
+                <separator/>
+                <filter string="Active" name="active" domain="[('expired', '=', False)]"/>
+                <filter string="Expired" name="expired" domain="[('expired', '=', True)]"/>
+                <filter string="Expiring Soon" name="expiring_soon"
+                        domain="[('expired', '=', False), ('expiry_date', '!=', False), ('expiry_date', '&lt;=', (context_today() + datetime.timedelta(days=7)))]"/>
+                <filter string="No Expiry" name="no_expiry" domain="[('expiry_date', '=', False)]"/>
+                <separator/>
+                <group expand="0" string="Group By">
+                    <filter string="Partner" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Badge" name="group_badge" context="{'group_by': 'badge_id'}"/>
+                    <filter string="Earned Date" name="group_earned_date" context="{'group_by': 'earned_date:month'}"/>
+                    <filter string="Status" name="group_expired" context="{'group_by': 'expired'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Badge Prize Action -->
+    <record id="action_popcorn_badge_prize" model="ir.actions.act_window">
+        <field name="name">Badge Prizes</field>
+        <field name="res_model">popcorn.badge.prize</field>
+        <field name="view_mode">list</field>
+        <field name="search_view_id" ref="view_popcorn_badge_prize_search"/>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No badge prizes awarded yet!
+            </p>
+            <p>
+                Prize records are created automatically when a partner earns a badge with a Popcorn Money prize.
+            </p>
+        </field>
+    </record>
+
     <!-- Badge Actions -->
     <record id="action_popcorn_badge" model="ir.actions.act_window">
         <field name="name">Badges</field>
@@ -241,7 +306,13 @@
               sequence="10"
               action="action_popcorn_badge_rule"/>
 
-    <menuitem id="menu_popcorn_activity_sport" 
+    <menuitem id="menu_popcorn_badge_prizes"
+              name="Badge Prizes"
+              parent="menu_popcorn_badges"
+              sequence="55"
+              action="action_popcorn_badge_prize"/>
+
+    <menuitem id="menu_popcorn_activity_sport"
               name="Activities &amp; Sports" 
               parent="menu_popcorn_badges" 
               sequence="60"

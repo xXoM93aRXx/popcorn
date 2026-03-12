@@ -116,6 +116,26 @@ class PopcornBadgeController(http.Controller):
                 'notified_badge_ids': [(4, b.id) for b in new_badges],
                 'permanently_earned_badge_ids': [(4, b.id) for b in new_badges],
             })
+            for badge in new_badges:
+                if badge.prize_popcorn_money > 0:
+                    from odoo import fields as odoo_fields
+                    from datetime import timedelta
+                    expiry_date = None
+                    if badge.prize_expiry_days > 0:
+                        expiry_date = odoo_fields.Date.today() + timedelta(days=badge.prize_expiry_days)
+                    partner.sudo().add_popcorn_money(
+                        badge.prize_popcorn_money,
+                        notes='Badge earned: %s%s' % (
+                            badge.name,
+                            ' (expires %s)' % expiry_date if expiry_date else '',
+                        )
+                    )
+                    request.env['popcorn.badge.prize'].sudo().create({
+                        'partner_id': partner.id,
+                        'badge_id': badge.id,
+                        'amount': badge.prize_popcorn_money,
+                        'expiry_date': expiry_date,
+                    })
 
         return request.make_response(
             json.dumps({'badges': result}),

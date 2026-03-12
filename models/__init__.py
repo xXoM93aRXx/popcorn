@@ -6,6 +6,7 @@ from . import popcorn_membership_plan
 from . import popcorn_partner
 from . import popcorn_website_menu
 from . import popcorn_badge
+from . import popcorn_badge_prize
 from . import popcorn_contract
 from . import popcorn_discount_customer_type
 from . import popcorn_discount
