@@ -991,6 +991,16 @@ class PopcornEventRegistration(models.Model):
         # Note: Club registrations do NOT affect first-timer status
         # Only memberships affect is_first_timer (for membership pricing eligibility)
         # First-timer coupon usage for clubs is completely independent from membership pricing
+
+        # PDB (Pitched Didn't Buy) logic: mark partner as PDB on their first offline registration
+        if not is_import and registration.partner_id and not registration.partner_id.pdb:
+            if registration.club_type == 'regular_offline':
+                non_cancelled_count = self.env['event.registration'].search_count([
+                    ('partner_id', '=', registration.partner_id.id),
+                    ('state', '!=', 'cancel'),
+                ])
+                if non_cancelled_count == 1:
+                    registration.partner_id.pdb = True
         
         # Clear UI caches to ensure fresh data
         registration.env['ir.ui.view'].clear_caches()

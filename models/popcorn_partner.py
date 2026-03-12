@@ -36,10 +36,20 @@ class ResPartner(models.Model):
         string='Host Poster Image',
         help='Specific image for host poster display (separate from regular poster image)'
     )
-    
+
     host_poster_image_filename = fields.Char(
         string='Host Poster Image Filename',
         help='Filename of the host poster image'
+    )
+
+    diversity_badge_image = fields.Binary(
+        string='Diversity Badge Image',
+        attachment=True,
+        help='Image shown on the Diversity Badge character select screen (silhouetted until the member attends this host)'
+    )
+
+    diversity_badge_image_filename = fields.Char(
+        string='Diversity Badge Image Filename',
     )
     
     banner_image = fields.Binary(
@@ -121,9 +131,15 @@ class ResPartner(models.Model):
         string='Has Expired Membership',
         compute='_compute_has_expired_membership',
         store=False,
-        help='True if this partner has expired membership(s) and NO active/frozen memberships (Old Customer)'
+        help='True if this partner has expired membership(s) and NO active, frozen, or pending memberships (Old Customer)'
     )
     
+    pdb = fields.Boolean(
+        string='PDB',
+        default=False,
+        help='Pitched Didn\'t Buy'
+    )
+
     # Staff member field
     book_club_automatically = fields.Boolean(
         string='Book Club Automatically',
@@ -252,6 +268,16 @@ class ResPartner(models.Model):
                 _logger.warning(f"Error computing distinct_hosts_count for partner {partner.id}: {e}")
                 partner.distinct_hosts_count = 0
     
+    def get_attended_host_ids(self):
+        """Return a set of host partner IDs this partner has attended (state=done)"""
+        self.ensure_one()
+        attended_registrations = self.env['event.registration'].sudo().search([
+            ('partner_id', '=', self.id),
+            ('state', '=', 'done'),
+        ])
+        host_partners = attended_registrations.mapped('event_id.host_id').filtered('id')
+        return set(host_partners.mapped('id'))
+
     @api.model
     def recompute_distinct_hosts_count(self, partner_ids=None):
         """Manually recompute distinct hosts count for specified partners or all partners"""
@@ -293,9 +319,8 @@ class ResPartner(models.Model):
                 partner.first_timer_discount_is_expired = True
                 partner.first_timer_discount_remaining_hours = 0
     
-    @api.depends('first_timer_discount_code')
     def _compute_has_expired_membership(self):
-        """Compute if partner is an Old Customer: has expired membership(s) and NO active/frozen memberships"""
+        """Compute if partner is an Old Customer: has expired membership(s) and NO active/frozen/pending memberships"""
         for partner in self:
             has_expired = bool(
                 self.env['popcorn.membership'].search([
@@ -306,7 +331,7 @@ class ResPartner(models.Model):
             has_active = bool(
                 self.env['popcorn.membership'].search([
                     ('partner_id', '=', partner.id),
-                    ('state', 'in', ['active', 'frozen'])
+                    ('state', 'in', ['active', 'frozen', 'pending', 'pending_payment', 'pending_buy_together'])
                 ], limit=1)
             )
             partner.has_expired_membership = has_expired and not has_active

@@ -46,12 +46,6 @@ class PopcornMembership(models.Model):
         ('pitch_day', 'Pitch Day'),
         ('other', 'Other')
     ], string='Purchase Channel', required=True, default='online')
-    pdb = fields.Boolean(
-        string='PDB',
-        default=False,
-        help='Pitch Day purchase'
-    )
-    
     # Dates
     activation_date = fields.Date(string='Activation Date')
     end_date_base = fields.Date(string='Base End Date', compute='_compute_end_date_base', store=True)
@@ -362,11 +356,17 @@ class PopcornMembership(models.Model):
             vals['upgrade_discount_allowed'] = False
         
         membership = super().create(vals)
-        
+
         # Update partner's first timer status after creating membership
         if partner_id:
             self.env['res.partner']._update_first_timer_status(partner_id)
-        
+
+        # PDB (Pitched Didn't Buy) logic: clear PDB flag when partner purchases a membership
+        if partner_id:
+            partner = self.env['res.partner'].browse(partner_id)
+            if partner.pdb:
+                partner.pdb = False
+
         return membership
     
     # Note: Automatic expiration is now handled by cron job for reliability
@@ -1033,7 +1033,8 @@ class PopcornMembership(models.Model):
             raise UserError(_('This discount does not apply to the selected membership plan'))
         
         # Check customer type restrictions
-        if not discount._customer_matches_types(self.partner_id):
+        event_type = 'regular_online' if not self.membership_plan_id.allowed_regular_offline else None
+        if not discount._customer_matches_types(self.partner_id, event_type=event_type):
             if discount.customer_type == 'multiple' and discount.customer_type_ids:
                 type_names = ', '.join(discount.customer_type_ids.mapped('name'))
                 raise UserError(_('This discount is only available for: %s') % type_names)

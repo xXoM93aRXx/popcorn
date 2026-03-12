@@ -145,8 +145,11 @@ class PopcornDiscount(models.Model):
             else:
                 discount.remaining_usage = max(0, discount.usage_limit - discount.usage_count)
 
-    def _customer_matches_types(self, customer_partner):
-        """Check if customer matches the discount's customer type restrictions."""
+    def _customer_matches_types(self, customer_partner, event_type=None):
+        """Check if customer matches the discount's customer type restrictions.
+
+        event_type: if 'regular_online', old/PDB discounts are not applicable.
+        """
         self.ensure_one()
         if not customer_partner:
             return True
@@ -162,8 +165,9 @@ class PopcornDiscount(models.Model):
                     return True
                 if ct.code == 'new' and customer_partner.is_first_timer:
                     return True
-                if ct.code == 'old' and customer_partner.has_expired_membership:
-                    return True
+                if ct.code == 'old' and event_type != 'regular_online':
+                    if customer_partner.has_expired_membership or customer_partner.pdb:
+                        return True
             return False
         # Single selection (existing behavior)
         if self.customer_type == 'first_timer':
@@ -173,7 +177,9 @@ class PopcornDiscount(models.Model):
         if self.customer_type == 'new':
             return customer_partner.is_first_timer
         if self.customer_type == 'old':
-            return customer_partner.has_expired_membership
+            if event_type == 'regular_online':
+                return False
+            return customer_partner.has_expired_membership or customer_partner.pdb
         return True
 
     def _compute_days_until_expiry(self):
@@ -306,7 +312,8 @@ class PopcornDiscount(models.Model):
             return original_price
         
         # Check customer type restrictions
-        if customer_partner and not self._customer_matches_types(customer_partner):
+        event_type = 'regular_online' if (membership_plan and not membership_plan.allowed_regular_offline) else None
+        if customer_partner and not self._customer_matches_types(customer_partner, event_type=event_type):
             return original_price
 
         # Check if plan is applicable
@@ -349,7 +356,8 @@ class PopcornDiscount(models.Model):
             return 0
         
         # Check customer type restrictions
-        if customer_partner and not self._customer_matches_types(customer_partner):
+        event_type = 'regular_online' if (membership_plan and not membership_plan.allowed_regular_offline) else None
+        if customer_partner and not self._customer_matches_types(customer_partner, event_type=event_type):
             return 0
 
         # Check if plan is applicable
@@ -377,7 +385,8 @@ class PopcornDiscount(models.Model):
         
         # Filter by customer type
         if customer_partner:
-            discounts = discounts.filtered(lambda d: d._customer_matches_types(customer_partner))
+            event_type = 'regular_online' if (membership_plan and not membership_plan.allowed_regular_offline) else None
+            discounts = discounts.filtered(lambda d: d._customer_matches_types(customer_partner, event_type=event_type))
 
         return discounts
     

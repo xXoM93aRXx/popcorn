@@ -140,7 +140,8 @@ class PopcornDiscountController(http.Controller):
                 )
 
             # Check customer type restrictions
-            if not discount._customer_matches_types(partner):
+            plan_event_type = 'regular_online' if not plan.allowed_regular_offline else None
+            if not discount._customer_matches_types(partner, event_type=plan_event_type):
                 if discount.customer_type == 'multiple' and discount.customer_type_ids:
                     type_names = ', '.join(discount.customer_type_ids.mapped('name'))
                     msg = _('This discount is only available for: %s') % type_names
@@ -214,7 +215,7 @@ class PopcornDiscountController(http.Controller):
                     )
 
             # Check customer type restrictions
-            if not discount._customer_matches_types(partner):
+            if not discount._customer_matches_types(partner, event_type=event.club_type):
                 if discount.customer_type == 'multiple' and discount.customer_type_ids:
                     type_names = ', '.join(discount.customer_type_ids.mapped('name'))
                     msg = _('This discount is only available for: %s') % type_names

@@ -347,7 +347,8 @@ class PopcornMembershipPlan(models.Model):
         
         # Filter by customer type if customer is provided
         if customer_partner:
-            all_discounts = all_discounts.filtered(lambda d: d._customer_matches_types(customer_partner))
+            event_type = 'regular_online' if not self.allowed_regular_offline else None
+            all_discounts = all_discounts.filtered(lambda d: d._customer_matches_types(customer_partner, event_type=event_type))
 
         return all_discounts
     
@@ -363,7 +364,8 @@ class PopcornMembershipPlan(models.Model):
             return self.price_normal
         
         # Check customer type restrictions
-        if customer_partner and not discount._customer_matches_types(customer_partner):
+        event_type = 'regular_online' if not self.allowed_regular_offline else None
+        if customer_partner and not discount._customer_matches_types(customer_partner, event_type=event_type):
             return self.price_normal
 
         # Calculate discount
