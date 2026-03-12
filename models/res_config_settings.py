@@ -27,6 +27,14 @@ class ResConfigSettings(models.TransientModel):
         help='Notification to send when a user is promoted from waitlist to confirmed registration. Configure WeChat template and field mappings in the notification record. Note: Enable "Send WeChat Notification" on the notification record if WeChat integration is installed.'
     )
 
+    badges_evaluation_enabled = fields.Boolean(
+        string='Enable Badge Evaluation',
+        config_parameter='popcorn.badges_evaluation_enabled',
+        default=False,
+        help='When enabled, the system will evaluate and award badges to members on every portal page visit. '
+             'Disable this before a module update so you can configure badge prizes before evaluation begins.'
+    )
+
 
 
 

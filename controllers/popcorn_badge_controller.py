@@ -92,6 +92,13 @@ class PopcornBadgeController(http.Controller):
     @http.route(['/popcorn/badges/check-new'], type='http', auth='user', website=True, csrf=False)
     def check_new_badges(self, **kw):
         """Return badges earned since the last check and mark them as notified."""
+        enabled = request.env['ir.config_parameter'].sudo().get_param('popcorn.badges_evaluation_enabled', 'False')
+        if enabled not in ('True', '1', 'true'):
+            return request.make_response(
+                json.dumps({'badges': []}),
+                headers=[('Content-Type', 'application/json')],
+            )
+
         partner = request.env.user.partner_id
 
         all_active = request.env['popcorn.badge'].search([('active', '=', True)])

@@ -9,6 +9,12 @@
             <field name="arch" type="xml">
                 <xpath expr="//form" position="inside">
                     <app string="Popcorn Discounts" name="popcorn">
+                        <block title="Badge Settings">
+                            <setting string="Enable Badge Evaluation"
+                                     help="Turn this on when you are ready for the system to start evaluating and awarding badges. Keep it off after a module update until you have finished configuring badge prizes.">
+                                <field name="badges_evaluation_enabled"/>
+                            </setting>
+                        </block>
                         <block title="First Timer Coupon Settings">
                             <setting string="First Timer Discount Amount" 
                                      help="Set the discount amount for first-timer customers. This amount will be used when auto-generating first-timer discount codes.">
