@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import json
 from odoo import http, fields
 from odoo.http import request
 from odoo.addons.portal.controllers.portal import CustomerPortal
@@ -45,6 +46,110 @@ class PopcornBadgeController(http.Controller):
         }
         
         return request.render('popcorn.portal_badge_detail_page', values)
+
+
+    @http.route(['/my/diversity'], type='http', auth="user", website=True)
+    def portal_diversity(self, **kw):
+        """Display Mortal Kombat style diversity badge — all hosts, locked/unlocked"""
+        partner = request.env.user.partner_id
+
+        # All active hosts
+        hosts = request.env['res.partner'].sudo().search([
+            ('is_host', '=', True),
+            ('active', '=', True),
+        ], order='name')
+
+        # Which hosts has this partner actually attended?
+        attended_host_ids = partner.get_attended_host_ids()
+
+        hosts_data = []
+        for host in hosts:
+            # Build image URL via our sudo route to bypass portal access restrictions
+            if host.diversity_badge_image:
+                img_src = '/popcorn/host-image/%d' % host.id
+            elif host.host_poster_image:
+                img_src = '/popcorn/host-image/%d' % host.id
+            else:
+                img_src = None
+            hosts_data.append({
+                'host': host,
+                'unlocked': host.id in attended_host_ids,
+                'img_src': img_src,
+            })
+
+        unlocked_count = len(attended_host_ids & set(hosts.ids))
+
+        values = {
+            'partner': partner,
+            'hosts_data': hosts_data,
+            'unlocked_count': unlocked_count,
+            'total_count': len(hosts),
+            'page_name': 'diversity',
+        }
+
+        return request.render('popcorn.portal_diversity_page', values)
+
+    @http.route(['/popcorn/badges/check-new'], type='http', auth='user', website=True, csrf=False)
+    def check_new_badges(self, **kw):
+        """Return badges earned since the last check and mark them as notified."""
+        partner = request.env.user.partner_id
+
+        all_active = request.env['popcorn.badge'].search([('active', '=', True)])
+        earned = request.env['popcorn.badge']
+        for badge in all_active:
+            if badge._evaluate_badge_for_partner(partner):
+                earned |= badge
+
+        new_badges = earned - partner.notified_badge_ids
+
+        result = []
+        for badge in new_badges:
+            image_url = '/web/image/popcorn.badge/%d/image' % badge.id if badge.image else ''
+            result.append({
+                'id': badge.id,
+                'name': badge.name,
+                'image_url': image_url,
+            })
+
+        if new_badges:
+            partner.sudo().write({
+                'notified_badge_ids': [(4, b.id) for b in new_badges],
+            })
+
+        return request.make_response(
+            json.dumps({'badges': result}),
+            headers=[('Content-Type', 'application/json')],
+        )
+
+    @http.route(['/popcorn/badges/reset-notifications'], type='http', auth='user', website=True, csrf=False)
+    def reset_badge_notifications(self, **kw):
+        """Dev helper: clear all badge notifications for the current partner."""
+        partner = request.env.user.partner_id
+        partner.sudo().write({'notified_badge_ids': [(5,)]})
+        return request.make_response(
+            json.dumps({'ok': True}),
+            headers=[('Content-Type', 'application/json')],
+        )
+
+    @http.route(['/popcorn/host-image/<int:host_id>'], type='http', auth='public', website=True)
+    def host_diversity_image(self, host_id, **kw):
+        """Serve host diversity badge image with sudo to bypass portal access restrictions"""
+        import base64
+        host = request.env['res.partner'].sudo().browse(host_id)
+        if not host.exists() or not host.is_host:
+            return request.not_found()
+
+        img_data = host.diversity_badge_image or host.host_poster_image
+        if not img_data:
+            return request.not_found()
+
+        img_bytes = base64.b64decode(img_data)
+        content_type = 'image/png' if img_bytes[:4] == b'\x89PNG' else 'image/jpeg'
+        headers = [
+            ('Content-Type', content_type),
+            ('Cache-Control', 'public, max-age=86400'),
+        ]
+        return request.make_response(img_bytes, headers=headers)
 
 
 class PopcornCustomerPortal(CustomerPortal):

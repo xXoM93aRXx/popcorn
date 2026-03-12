@@ -114,6 +114,7 @@
             'popcorn/static/src/css/popcorn_frontend_signature_styles.css',
             'popcorn/static/src/css/popcorn_toast_styles.css',
             'popcorn/static/src/js/popcorn_product_buy_now.js',
+            'popcorn/static/src/js/popcorn_badge_animation.js',
         ],
         'web.report_assets_common': [
             'popcorn/static/src/css/popcorn_contract_report.css',

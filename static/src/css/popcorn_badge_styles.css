@@ -215,6 +215,271 @@
     animation: badgeEarned 0.6s ease-in-out;
 }
 
+/* ============================================================
+   Diversity Badge
+   ============================================================ */
+
+/* Header */
+.diversity-page-header {
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 16px;
+}
+
+.diversity-counter-pill {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+    white-space: nowrap;
+}
+
+.diversity-counter-pill .counter-num {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #28a745;
+}
+
+.diversity-counter-pill .counter-sep {
+    color: #ccc;
+    margin: 0 4px;
+}
+
+.diversity-counter-pill .counter-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #6c757d;
+}
+
+.diversity-progress-wrap .diversity-progress {
+    height: 6px;
+    border-radius: 3px;
+    background-color: #e9ecef;
+}
+
+.diversity-progress-wrap .progress-bar {
+    background-color: #28a745;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+}
+
+/* ---- Stage: full-width container with bg image ---- */
+.diversity-stage {
+    position: relative;
+    width: 100%;
+    min-height: 520px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f0f0f0;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* Background image — fills the entire stage */
+.diversity-bg-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    transition: filter 0.35s ease, opacity 0.3s ease;
+    display: block;
+}
+
+/* Placeholder when no image */
+.diversity-bg-no-img {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 5rem;
+    color: #dee2e6;
+    background: #f8f9fa;
+}
+
+/* Gradient overlay — transparent at top, dark at bottom so grid is readable */
+.diversity-stage-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,0.0)  0%,
+        rgba(0,0,0,0.0)  35%,
+        rgba(0,0,0,0.55) 65%,
+        rgba(0,0,0,0.82) 100%
+    );
+    pointer-events: none;
+}
+
+/* Host name label — top-left of the stage */
+.diversity-host-label {
+    position: absolute;
+    top: 20px;
+    left: 24px;
+    z-index: 3;
+}
+
+.diversity-host-name {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+}
+
+.diversity-host-status {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 4px;
+}
+
+.diversity-host-status.status-unlocked {
+    color: #5dca6e;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+
+.diversity-host-status.status-locked {
+    color: rgba(255,255,255,0.5);
+    text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+
+/* Thumbnail grid panel — anchored at the bottom of the stage */
+.diversity-grid-panel {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 3;
+    padding: 16px 20px 20px;
+}
+
+.diversity-thumb-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* ---- Individual thumbnail ---- */
+.diversity-thumb {
+    cursor: pointer;
+    transition: transform 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.diversity-thumb:hover {
+    transform: translateY(-3px);
+}
+
+.diversity-thumb-inner {
+    position: relative;
+    width: 76px;
+    height: 96px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 2px solid rgba(255,255,255,0.25);
+    background: #222;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.thumb-unlocked .diversity-thumb-inner {
+    border-color: rgba(255,255,255,0.6);
+}
+
+.thumb-active .diversity-thumb-inner {
+    border-color: #fff;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.4);
+}
+
+.diversity-thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+    transition: filter 0.3s ease;
+}
+
+.thumb-locked .diversity-thumb-img {
+    filter: brightness(0);
+}
+
+.diversity-thumb-no-img {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: #444;
+}
+
+.diversity-thumb-lock {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.4);
+    pointer-events: none;
+}
+
+.diversity-thumb-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.75);
+    text-align: center;
+    width: 76px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+
+.thumb-locked .diversity-thumb-label {
+    color: rgba(255,255,255,0.35);
+}
+
+.thumb-active .diversity-thumb-label {
+    color: #fff;
+}
+
+/* Desktop: contain so the full image is visible without cropping */
+@media (min-width: 768px) {
+    .diversity-bg-img {
+        object-fit: contain;
+    }
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+    .diversity-stage {
+        min-height: 420px;
+    }
+
+    .diversity-thumb-inner {
+        width: 58px;
+        height: 74px;
+    }
+
+    .diversity-thumb-label {
+        width: 58px;
+        font-size: 9px;
+    }
+
+    .diversity-host-name {
+        font-size: 1.2rem;
+    }
+}
+
 /* Progress indicator for partial completion */
 .badge-progress {
     margin-top: 10px;
@@ -261,4 +526,210 @@
     font-size: 14px;
     color: #666;
     margin-top: 5px;
+}
+
+/* =============================================
+   Badge Earn Animation Overlay
+   ============================================= */
+
+/* Physics-based spin: blazing fast → dangling deceleration */
+@keyframes badgeSpinReveal {
+    0%   { transform: perspective(800px) rotateY(0deg)    scale(0);    opacity: 0; }
+    5%   { transform: perspective(800px) rotateY(360deg)  scale(0.55); opacity: 1; }
+    13%  { transform: perspective(800px) rotateY(720deg)  scale(0.88); }
+    23%  { transform: perspective(800px) rotateY(1080deg) scale(1.06); }
+    35%  { transform: perspective(800px) rotateY(1260deg) scale(1.01); }
+    50%  { transform: perspective(800px) rotateY(1350deg) scale(1.0);  }
+    62%  { transform: perspective(800px) rotateY(1400deg) scale(1.0);  }
+    71%  { transform: perspective(800px) rotateY(1428deg) scale(1.0);  }
+    78%  { transform: perspective(800px) rotateY(1447deg) scale(1.0);  }
+    84%  { transform: perspective(800px) rotateY(1437deg) scale(1.0);  }
+    89%  { transform: perspective(800px) rotateY(1443deg) scale(1.0);  }
+    93%  { transform: perspective(800px) rotateY(1439deg) scale(1.0);  }
+    96%  { transform: perspective(800px) rotateY(1441deg) scale(1.0);  }
+    100% { transform: perspective(800px) rotateY(1440deg) scale(1.0);  opacity: 1; }
+}
+
+/* Gentle breathe after spin settles */
+@keyframes badgeBreathe {
+    0%, 100% { transform: scale(1.0); }
+    50%       { transform: scale(1.07); }
+}
+
+/* Golden glow builds as spin slows, holds after */
+@keyframes badgeGlowSettle {
+    0%, 60% {
+        filter: drop-shadow(0 0 0px rgba(230, 57, 70, 0));
+    }
+    80% {
+        filter: drop-shadow(0 0 22px rgba(230, 57, 70, 0.95))
+                drop-shadow(0 0 50px rgba(230, 57, 70, 0.5));
+    }
+    100% {
+        filter: drop-shadow(0 0 14px rgba(230, 57, 70, 0.7))
+                drop-shadow(0 0 30px rgba(230, 57, 70, 0.25));
+    }
+}
+
+/* Shimmer light sweep across badge */
+@keyframes badgeShimmerSweep {
+    from { left: -80%; opacity: 1; }
+    to   { left: 130%; opacity: 0; }
+}
+
+/* Expanding ring pulse on settle */
+@keyframes badgeRingExpand {
+    0%   { transform: translate(-50%, -50%) scale(0.7); opacity: 0.9; }
+    100% { transform: translate(-50%, -50%) scale(2.8); opacity: 0;   }
+}
+
+/* Sparkle particles fly outward */
+@keyframes badgeSparkleOut {
+    0%   { transform: translate(0, 0) scale(1.2); opacity: 1; }
+    100% { transform: translate(var(--sx), var(--sy)) scale(0); opacity: 0; }
+}
+
+@keyframes badgeOverlayFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes badgeTextFadeIn {
+    from { transform: translateY(12px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── Layout ── */
+
+.popcorn-badge-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.82);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: badgeOverlayFadeIn 0.35s ease forwards;
+}
+
+.popcorn-badge-popup {
+    background: none;
+    border: none;
+    padding: 40px 48px;
+    text-align: center;
+    max-width: 380px;
+    width: 90%;
+    position: relative;
+}
+
+.popcorn-badge-popup-label {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #e63946;
+    margin-bottom: 20px;
+    animation: badgeTextFadeIn 0.4s ease 0.2s both;
+}
+
+/* Image wrap — perspective container */
+.popcorn-badge-popup-img-wrap {
+    width: 180px;
+    height: 180px;
+    margin: 0 auto 24px;
+    position: relative;
+}
+
+.popcorn-badge-popup-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    animation: badgeSpinReveal 2.2s linear forwards,
+               badgeGlowSettle 2.2s linear forwards;
+}
+
+/* Shimmer sweep element (JS-created) */
+.popcorn-badge-shimmer {
+    position: absolute;
+    top: -20%;
+    left: -80%;
+    width: 45%;
+    height: 140%;
+    background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0)   0%,
+        rgba(255, 255, 255, 0.7) 50%,
+        rgba(255, 255, 255, 0)   100%
+    );
+    transform: rotateZ(-20deg);
+    pointer-events: none;
+    animation: badgeShimmerSweep 0.45s ease-in 0.25s forwards;
+}
+
+/* Ring pulse elements (JS-created, children of popup) */
+.popcorn-badge-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    border: 2px solid rgba(230, 57, 70, 0.9);
+    pointer-events: none;
+    opacity: 0;
+    animation: badgeRingExpand 0.7s ease-out forwards;
+}
+
+/* Sparkle particles (JS-created, children of popup) */
+.popcorn-badge-sparkle {
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: badgeSparkleOut 0.65s ease-out forwards;
+}
+
+/* ── Text & button ── */
+
+.popcorn-badge-popup-name {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+    animation: badgeTextFadeIn 0.4s ease 0.3s both;
+}
+
+.popcorn-badge-popup-sub {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 32px;
+    animation: badgeTextFadeIn 0.4s ease 0.4s both;
+}
+
+.popcorn-badge-popup-btn {
+    background: #e63946;
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    padding: 13px 44px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+    animation: badgeTextFadeIn 0.4s ease 0.5s both;
+}
+
+.popcorn-badge-popup-btn:hover {
+    background: #c1121f;
+    transform: scale(1.04);
+}
+
+.popcorn-badge-confetti-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 100000;
 }

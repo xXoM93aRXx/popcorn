@@ -15,7 +15,12 @@ class Badge(models.Model):
     image_filename = fields.Char("Image Filename")
     badge_rule_ids = fields.One2many('popcorn.badge.rule', 'badge_id', string='Badge Rules')
     active = fields.Boolean('Active', default=True)
-    
+    is_diversity_badge = fields.Boolean(
+        'Diversity Badge',
+        default=False,
+        help='If enabled, clicking this badge in the portal shows the Mortal Kombat style host unlock screen'
+    )
+
     # Computed field to show if user has earned this badge
     earned = fields.Boolean('Earned', compute='_compute_earned', store=False)
     
@@ -462,11 +467,14 @@ class BadgeRule(models.Model):
 
 class ResPartner(models.Model):
     _inherit = 'res.partner'
-    
-    badge_ids = fields.Many2many('popcorn.badge', 'partner_badge_rel', 'partner_id', 'badge_id', 
+
+    badge_ids = fields.Many2many('popcorn.badge', 'partner_badge_rel', 'partner_id', 'badge_id',
                                  string='Available Badges', compute='_compute_badge_ids', store=False)
     earned_badge_ids = fields.Many2many('popcorn.badge', 'partner_earned_badge_rel', 'partner_id', 'badge_id',
                                        string='Earned Badges', compute='_compute_earned_badge_ids', store=False)
+    notified_badge_ids = fields.Many2many('popcorn.badge', 'partner_notified_badge_rel', 'partner_id', 'badge_id',
+                                         string='Notified Badges',
+                                         help='Badges whose earn animation has already been shown to this partner')
     
     def _compute_badge_ids(self):
         """Compute all available badges for this partner"""
