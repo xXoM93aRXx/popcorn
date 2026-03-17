@@ -1138,7 +1138,12 @@ class PopcornEventController(http.Controller):
                 remaining_amount = event_price - popcorn_money_to_use
             
             _logger.info(f"Calculated: popcorn_money_to_use={popcorn_money_to_use}, remaining_amount={remaining_amount}")
-            
+
+            # Mutual exclusivity: first-timer coupon and Popcorn Money cannot be combined
+            if use_popcorn_money and applied_discount and applied_discount.partner_id:
+                _logger.warning(f"Blocked: first-timer coupon {applied_discount.code} used together with Popcorn Money by partner {partner.id}")
+                return request.redirect(f'/popcorn/event/{event.id}/checkout?error=first_timer_popcorn_conflict')
+
             # Validate form data
             if not kwargs.get('payment_method_id') and remaining_amount > 0:
                 return request.redirect(f'/popcorn/event/{event.id}/checkout?error=missing_payment_method')

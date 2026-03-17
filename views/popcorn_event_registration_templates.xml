@@ -402,6 +402,7 @@
                                                 <t t-elif="request.params.get('error') == 'payment_access_denied'">Payment access denied. Please try again.</t>
                                                 <t t-elif="request.params.get('error') == 'gateway_unavailable'">Payment gateway is currently unavailable. Please try again later.</t>
                                                 <t t-elif="request.params.get('error') == 'processing_failed'">Payment processing failed. Please try again.</t>
+                                                <t t-elif="request.params.get('error') == 'first_timer_popcorn_conflict'">You cannot use Popcorn Money together with a first-timer coupon. Please choose one.</t>
                                                 <t t-else="">An error occurred during checkout. Please try again.</t>
                                             </span>
                                             <button type="button" class="popcorn-error-close">

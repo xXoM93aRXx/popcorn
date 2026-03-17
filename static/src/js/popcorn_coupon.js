@@ -89,16 +89,41 @@ function wireCouponPage() {
                 if (discountIdInput) {
                     discountIdInput.value = result.discount.id;
                 }
-                
+
                 // Update UI
                 showMessage(result.message, 'success');
                 updateTotalPrice(result.pricing);
-                
+
                 // Update UI state
                 applyBtn.style.display = 'none';
                 if (removeBtn) removeBtn.style.display = 'inline-block';
                 couponInput.disabled = true;
-                
+
+                // First-timer coupon: disable Popcorn Money (mutually exclusive)
+                if (result.discount.is_first_timer_coupon) {
+                    window.firstTimerCouponApplied = true;
+                    const popcornMoneyCheckbox = document.getElementById('use_popcorn_money');
+                    if (popcornMoneyCheckbox) {
+                        if (popcornMoneyCheckbox.checked) {
+                            popcornMoneyCheckbox.checked = false;
+                            popcornMoneyCheckbox.dispatchEvent(new Event('change'));
+                        }
+                        popcornMoneyCheckbox.disabled = true;
+                        const popcornMoneySection = popcornMoneyCheckbox.closest('.popcorn-form-section');
+                        if (popcornMoneySection) {
+                            let note = popcornMoneySection.querySelector('.popcorn-first-timer-money-note');
+                            if (!note) {
+                                note = document.createElement('p');
+                                note.className = 'popcorn-first-timer-money-note text-muted';
+                                note.style.fontSize = '0.85em';
+                                note.style.marginTop = '4px';
+                                note.textContent = 'Popcorn Money cannot be combined with a first-timer coupon.';
+                                popcornMoneySection.appendChild(note);
+                            }
+                        }
+                    }
+                }
+
                 // Update first-timer discount button if applicable
                 if (window.firstTimerDiscountButton) {
                     window.firstTimerDiscountButton.innerHTML = '<i class="fa fa-check-circle"></i> Discount Applied!';
@@ -129,22 +154,36 @@ function wireCouponPage() {
     if (removeBtn) {
         removeBtn.addEventListener('click', function(evt) {
             evt.preventDefault();
-            
+
             // Clear the applied_discount_id
             const discountIdInput = document.getElementById('applied_discount_id');
             if (discountIdInput) {
                 discountIdInput.value = '';
             }
-            
+
             // Reset UI
             couponInput.value = '';
             couponInput.disabled = false;
             applyBtn.style.display = 'inline-block';
             removeBtn.style.display = 'none';
-            
+
             // Update total price
             updateTotalPrice();
-            
+
+            // Re-enable Popcorn Money if it was disabled by a first-timer coupon
+            if (window.firstTimerCouponApplied) {
+                window.firstTimerCouponApplied = false;
+                const popcornMoneyCheckbox = document.getElementById('use_popcorn_money');
+                if (popcornMoneyCheckbox) {
+                    popcornMoneyCheckbox.disabled = false;
+                    const popcornMoneySection = popcornMoneyCheckbox.closest('.popcorn-form-section');
+                    if (popcornMoneySection) {
+                        const note = popcornMoneySection.querySelector('.popcorn-first-timer-money-note');
+                        if (note) note.remove();
+                    }
+                }
+            }
+
             // Reset first-timer discount button if applicable
             if (window.firstTimerDiscountButton) {
                 window.firstTimerDiscountButton.innerHTML = '<i class="fa fa-check"></i> Use My Discount';
@@ -155,7 +194,7 @@ function wireCouponPage() {
                     window.firstTimerDiscountNotification.style.display = 'block';
                 }
             }
-            
+
             showMessage('Coupon removed', 'success');
         });
     }

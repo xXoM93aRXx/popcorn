@@ -250,6 +250,7 @@ class PopcornDiscountController(http.Controller):
                     'code': discount.code,
                     'discount_type': discount.discount_type,
                     'discount_value': discount.discount_value,
+                    'is_first_timer_coupon': bool(discount.partner_id),
                 },
                 'pricing': {
                     'original_price': original_price,

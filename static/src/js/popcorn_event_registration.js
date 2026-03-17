@@ -86,6 +86,13 @@ odoo.define('@popcorn/js/popcorn_event_registration', ['@web/legacy/js/public/pu
             var self = this;
             var $checkbox = $(ev.currentTarget);
             var isChecked = $checkbox.is(':checked');
+
+            // Block Popcorn Money if a first-timer coupon is active (mutually exclusive)
+            if (isChecked && window.firstTimerCouponApplied) {
+                $checkbox.prop('checked', false);
+                self._showError('Popcorn Money cannot be used together with a first-timer coupon. Please remove the coupon first.');
+                return;
+            }
             var $popcornMoneyRow = $('#popcorn-money-row');
             var $popcornMoneyUsed = $('#popcorn-money-used');
             var $totalPrice = $('#popcorn-total-price');
