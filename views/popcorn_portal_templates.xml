@@ -88,7 +88,8 @@
                                 <img t-if="pbadge.image"
                                      t-att-src="'/web/image/popcorn.badge/' + str(pbadge.id) + '/image'"
                                      t-att-alt="pbadge.name"
-                                     class="portal-badge-img"/>
+                                     class="portal-badge-img"
+                                     width="48" height="48"/>
                                 <i t-if="not pbadge.image" class="fa fa-trophy fa-lg text-muted"/>
                             </div>
                         </t>
@@ -195,7 +196,8 @@
                                     <img t-if="mbadge.image"
                                          t-att-src="'/web/image/popcorn.badge/' + str(mbadge.id) + '/image'"
                                          t-att-alt="mbadge.name"
-                                         class="portal-badge-img"/>
+                                         class="portal-badge-img"
+                                         width="48" height="48"/>
                                     <i t-if="not mbadge.image" class="fa fa-trophy fa-lg text-muted"/>
                                 </div>
                             </t>
