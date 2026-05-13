@@ -262,9 +262,14 @@ class PopcornEventController(http.Controller):
             return False, None, _('User profile not found')
         
         # Check if user has any active memberships or pending memberships with first_attendance policy
+        # Only include memberships that are still valid on the event date
+        event_date = event.date_begin.date() if event.date_begin else fields.Date.today()
         active_memberships = request.env['popcorn.membership'].sudo().search([
             ('partner_id', '=', partner.id),
-            ('state', 'in', ['active', 'frozen'])
+            ('state', 'in', ['active', 'frozen']),
+            '|',
+            ('effective_end_date', '=', False),
+            ('effective_end_date', '>=', event_date),
         ])
         
         # Also include pending memberships with first_attendance activation policy
@@ -285,13 +290,15 @@ class PopcornEventController(http.Controller):
         if not event_club_type:
             return True, None, None  # No club type restriction, allow access
         
-        # For Social Experience events, check if any membership plan is in second_price list
+        # For Social Experience events, check if any membership plan is in second_price or third_price list
         # If yes, allow access (they'll pay instead of using quota)
-        if event_club_type == 'social_experience' and event.membership_plans_second_price_ids:
+        if event_club_type == 'social_experience':
             for membership in all_usable_memberships:
                 if membership.membership_plan_id in event.membership_plans_second_price_ids:
                     return True, None, None  # Allow access - will redirect to payment
-        
+                if membership.membership_plan_id in event.membership_plans_third_price_ids:
+                    return True, None, None  # Allow access - will redirect to payment
+
         # Check if any membership allows this club type
         for membership in all_usable_memberships:
             if self._can_membership_attend_event(membership, event_club_type):
@@ -330,7 +337,7 @@ class PopcornEventController(http.Controller):
         """Check if a membership can attend a specific club type event"""
         if not membership or not club_type:
             return False
-        
+
         # Pending memberships with activation policy first_attendance or immediate should be
         # eligible regardless of current quota counters; they will activate on first use.
         is_pending_auto_eligible = (
@@ -363,7 +370,7 @@ class PopcornEventController(http.Controller):
                 points_needed = plan.points_per_social_experience
             else:
                 points_needed = 0
-            
+
             if membership.points_remaining < points_needed:
                 return False
         
@@ -390,16 +397,24 @@ class PopcornEventController(http.Controller):
         
         # Strategy: always prefer currently active/frozen memberships. Only if none are
         # compatible do we fall back to pending memberships with first_attendance policy.
+        # Only include memberships that are still valid on the event date.
+        event_date = event.date_begin.date() if event.date_begin else fields.Date.today()
         active_memberships = request.env['popcorn.membership'].sudo().search([
             ('partner_id', '=', partner.id),
-            ('state', 'in', ['active', 'frozen'])
+            ('state', 'in', ['active', 'frozen']),
+            '|',
+            ('effective_end_date', '=', False),
+            ('effective_end_date', '>=', event_date),
         ])
 
         # Filter active/frozen memberships first
         compatible_memberships = []
         for membership in active_memberships:
-            # For Social Experience events, if membership plan is in second_price list, skip quota check
-            if event_club_type == 'social_experience' and membership.membership_plan_id in event.membership_plans_second_price_ids:
+            # For Social Experience events, if membership plan is in second_price or third_price list, skip quota check
+            if event_club_type == 'social_experience' and (
+                membership.membership_plan_id in event.membership_plans_second_price_ids
+                or membership.membership_plan_id in event.membership_plans_third_price_ids
+            ):
                 # Include membership without quota check - will redirect to payment
                 compatible_memberships.append(membership)
             elif self._can_membership_attend_event(membership, event_club_type):
@@ -414,8 +429,11 @@ class PopcornEventController(http.Controller):
             ])
 
             for membership in pending_auto:
-                # For Social Experience events, if membership plan is in second_price list, skip quota check
-                if event_club_type == 'social_experience' and membership.membership_plan_id in event.membership_plans_second_price_ids:
+                # For Social Experience events, if membership plan is in second_price or third_price list, skip quota check
+                if event_club_type == 'social_experience' and (
+                    membership.membership_plan_id in event.membership_plans_second_price_ids
+                    or membership.membership_plan_id in event.membership_plans_third_price_ids
+                ):
                     # Include membership without quota check - will redirect to payment
                     compatible_memberships.append(membership)
                 elif self._can_membership_attend_event(membership, event_club_type):
@@ -573,13 +591,13 @@ class PopcornEventController(http.Controller):
         should_pay_second_price = False
         needs_signature = False
         contract_id = None
-        
+
         if has_access:
             partner = request.env.user.sudo().partner_id
             if partner:
                 # Find user's best membership for this event
                 best_membership = self._get_best_membership_for_event(partner, event)
-                
+
                 # Check if membership has a contract that needs signature
                 if best_membership and best_membership.contract_id:
                     contract = best_membership.contract_id
@@ -587,19 +605,28 @@ class PopcornEventController(http.Controller):
                     if not contract.customer_signature:
                         needs_signature = True
                         contract_id = contract.id
-                
+
                 # If user's membership plan is in the second_price list, show options page with second_price
                 if best_membership and best_membership.membership_plan_id in event.membership_plans_second_price_ids:
                     should_pay_second_price = True
                     has_access = False  # Force to show options page instead of direct registration
                     needs_signature = False  # Reset since we're not using membership directly
-        
+                # If user's membership plan is in the third_price list, show options page with third_price
+                elif best_membership and best_membership.membership_plan_id in event.membership_plans_third_price_ids:
+                    should_pay_second_price = True
+                    has_access = False
+                    needs_signature = False
+
         values = {
             'event': event,
             'has_membership_access': has_access,
             'membership_error': error_message,
             'should_pay_second_price': should_pay_second_price,
-            'second_price': event.second_price if should_pay_second_price else 0,
+            'second_price': (
+                event.third_price
+                if (should_pay_second_price and best_membership and best_membership.membership_plan_id in event.membership_plans_third_price_ids)
+                else (event.second_price if should_pay_second_price else 0)
+            ),
             'needs_contract_signature': needs_signature,
             'contract_id': contract_id,
         }
@@ -664,12 +691,12 @@ class PopcornEventController(http.Controller):
         # Find the best membership for this event
         best_membership = self._get_best_membership_for_event(partner, event)
         
-        # Check if this is a Social Experience event and user's membership should pay second_price
+        # Check if this is a Social Experience event and user's membership should pay second_price or third_price
         if event_club_type == 'social_experience' and best_membership:
-            # If user's membership plan is in the second_price list, redirect to payment
             if best_membership.membership_plan_id in event.membership_plans_second_price_ids:
-                # Redirect to direct payment flow with second_price
                 return request.redirect(f'/popcorn/event/{event.id}/checkout?second_price={event.second_price}')
+            elif best_membership.membership_plan_id in event.membership_plans_third_price_ids:
+                return request.redirect(f'/popcorn/event/{event.id}/checkout?second_price={event.third_price}')
         
         if not best_membership:
             # Check if user has memberships but they don't have sufficient quota
@@ -953,21 +980,22 @@ class PopcornEventController(http.Controller):
         if request.env.user.id == request.env.ref('base.public_user').id:
             return redirect('/web/login?redirect=' + request.httprequest.url)
         
-        # Check if event has a price set (or second_price for Social Experience)
+        # Check if event has a price set (or second_price/third_price for Social Experience)
         event_club_type = self._get_event_club_type(event)
         should_use_second_price = False
         second_price = None
-        
-        if event_club_type == 'social_experience' and event.membership_plans_second_price_ids:
+
+        if event_club_type == 'social_experience':
             partner = request.env.user.sudo().partner_id
             if partner:
-                # Find user's best membership for this event
                 best_membership = self._get_best_membership_for_event(partner, event)
-                # If user's membership plan is in the second_price list, use second_price
                 if best_membership and best_membership.membership_plan_id in event.membership_plans_second_price_ids:
                     should_use_second_price = True
                     second_price = event.second_price
-        
+                elif best_membership and best_membership.membership_plan_id in event.membership_plans_third_price_ids:
+                    should_use_second_price = True
+                    second_price = event.third_price
+
         # Check if event has a price set
         if not should_use_second_price and (not event.event_price or event.event_price <= 0):
             return request.not_found()
@@ -992,7 +1020,7 @@ class PopcornEventController(http.Controller):
             'phone_verification_required': not partner.phone,
             'second_price': second_price if should_use_second_price else None,
         }
-        
+
         return request.render('popcorn.event_checkout_page', values)
     
     @http.route(['/popcorn/event/<model("event.event"):event>/process_checkout'], type='http', auth="user", website=True, methods=['POST'])
@@ -1009,14 +1037,14 @@ class PopcornEventController(http.Controller):
         # Check if event has a price set
         if not event.event_price or event.event_price <= 0:
             return request.not_found()
-        
+
         partner = request.env.user.sudo().partner_id
-        
+
         # Ensure partner exists (important for internal users)
         if not partner or not partner.exists():
             _logger.error(f"User {request.env.user.login} does not have a partner record")
             return request.redirect(f'/popcorn/event/{event.id}/checkout?error=no_partner')
-        
+
         # Check if user is already registered for this event
         existing_registration = request.env['event.registration'].sudo().search([
             ('event_id', '=', event.id),
@@ -1103,19 +1131,19 @@ class PopcornEventController(http.Controller):
             use_popcorn_money = kwargs.get('use_popcorn_money') == 'on'
             popcorn_money_balance = partner.popcorn_money_balance
             
-            # Check if using second_price (from Social Experience special pricing)
+            # Check if using second_price or third_price (from Social Experience special pricing)
             event_club_type = self._get_event_club_type(event)
             should_use_second_price = False
-            if event_club_type == 'social_experience' and event.membership_plans_second_price_ids:
-                # Find user's best membership for this event
+            if event_club_type == 'social_experience':
                 best_membership = self._get_best_membership_for_event(partner, event)
-                # If user's membership plan is in the second_price list, use second_price
                 if best_membership and best_membership.membership_plan_id in event.membership_plans_second_price_ids:
                     should_use_second_price = True
-            
-            if should_use_second_price:
-                event_price = event.second_price
-            else:
+                    event_price = event.second_price
+                elif best_membership and best_membership.membership_plan_id in event.membership_plans_third_price_ids:
+                    should_use_second_price = True
+                    event_price = event.third_price
+
+            if not should_use_second_price:
                 # Calculate event price with discount if applied
                 event_price = event.event_price
             
@@ -1181,11 +1209,15 @@ class PopcornEventController(http.Controller):
                     'email': partner.email,
                     'phone': partner.phone,
                     'state': registration_state,
-                    'payment_amount': event.event_price,
+                    'payment_amount': event_price,
                 }
-                
+
                 registration = request.env['event.registration'].sudo().create(registration_vals)
                 _logger.info(f"Registration created: {registration.id} with state: {registration_state}")
+
+                # Deduct popcorn money if used
+                if use_popcorn_money and popcorn_money_to_use > 0:
+                    partner.deduct_popcorn_money(popcorn_money_to_use, f'Event registration: {event.name}')
                 
                 # Process referral if present
                 referral_code = request.session.get('referral_code')
@@ -1295,11 +1327,11 @@ class PopcornEventController(http.Controller):
                     'email': partner.email,
                     'phone': partner.phone,
                     'state': 'draft',
-                    'payment_amount': event.event_price,
+                    'payment_amount': event_price,
                 }
-                
+
                 registration = request.env['event.registration'].sudo().create(registration_vals)
-                
+
                 # Process referral if present
                 referral_code = request.session.get('referral_code')
                 if referral_code:
@@ -1421,6 +1453,14 @@ class PopcornEventController(http.Controller):
                 # Get Alipay payment URL using the same method as other payment providers
                 # This ensures consistency and proper redirect handling
                 try:
+                    # WeChat browser blocks Alipay URLs — detect early and show copy-link page
+                    _wechat_ua = request.httprequest.headers.get('User-Agent', '')
+                    _is_wechat = 'MicroMessenger' in _wechat_ua
+
+                    if _is_wechat:
+                        _logger.info(f"WeChat browser detected — redirecting to Alipay copy-link page for event: {payment_transaction.reference}")
+                        return request.redirect(f'/payment/alipay/wechat_redirect?ref={payment_transaction.reference}')
+
                     payment_link = payment_transaction._get_specific_rendering_values(None)
                     if payment_link and 'action_url' in payment_link:
                         alipay_payment_url = payment_link['action_url']
@@ -1922,25 +1962,27 @@ class PopcornPortalController(CustomerPortal):
     
     def _calculate_bucket_upgrade_price(self, membership, target_plan):
         """Calculate upgrade price for Experience/Online cards
-        
-        Credit is based on consumed sessions (booked clubs). Upgrade price =
-        new membership cost - (unit_value × consumed clubs)
+
+        Credit is the remaining value on the card:
+        Upgrade price = new membership cost - (unit_value × remaining clubs)
+        where remaining = total quota - past-attended clubs (future bookings excluded).
         """
         current_plan = membership.membership_plan_id
-        
-        # Calculate consumed sessions (booked clubs - includes past and future)
-        used_offline = membership._count_used_sessions('regular_offline')
-        used_online = membership._count_used_sessions('regular_online')
-        used_sp = membership._count_used_sessions('spclub')
-        
-        total_consumed = used_offline + used_online + used_sp
+
+        # Count only past-attended sessions (future bookings excluded)
+        past_offline = membership._count_used_sessions('regular_offline', past_only=True)
+        past_online = membership._count_used_sessions('regular_online', past_only=True)
+        past_sp = membership._count_used_sessions('spclub', past_only=True)
+
+        total_past = past_offline + past_online + past_sp
         total_quota = (current_plan.quota_offline or 0) + (current_plan.quota_online or 0) + (current_plan.quota_sp or 0)
-        
+        total_remaining = max(0, total_quota - total_past)
+
         # Calculate unit value
         unit_value = membership.purchase_price_paid / total_quota if total_quota > 0 else 0
-        
-        # Credit = consumed clubs - they pay new cost minus value of what they've used
-        upgrade_price = target_plan.price_first_timer - (unit_value * total_consumed)
+
+        # Credit = remaining value on the card
+        upgrade_price = target_plan.price_first_timer - (unit_value * total_remaining)
         return round(max(0, upgrade_price), 2)
     
     def _calculate_freedom_upgrade_price(self, membership, target_plan):
@@ -2017,8 +2059,8 @@ class PopcornPortalController(CustomerPortal):
         if membership.partner_id.id != request.env.user.partner_id.id:
             return request.redirect('/my/cards')
         
-        # Check if eligible for renewal discount
-        if not membership.is_eligible_for_renewal_discount():
+        # Check if eligible for renewal (with or without discount)
+        if not membership.can_renew:
             return request.redirect('/my/cards?error=not_eligible_for_renewal')
         
         # Redirect to memberships page where they can see renewal banner and choose their plan

@@ -104,11 +104,15 @@ class PopcornMembership(models.Model):
     # Computed fields for duration
     total_duration_days = fields.Integer(string='Total Duration (Days)', compute='_compute_total_duration_days', store=True)
     days_until_expiry = fields.Integer(string='Days Until Expiry', compute='_compute_days_until_expiry', store=False)
+    days_since_activation = fields.Integer(string='Days Since Activation', compute='_compute_days_since_activation', store=False)
+    upgrade_deadline = fields.Date(string='Upgrade Deadline', compute='_compute_upgrade_deadline', store=False)
     hours_until_expiry = fields.Integer(string='Hours Until Expiry', compute='_compute_hours_until_expiry', store=False)
     total_clubs_remaining = fields.Integer(string='Total Clubs Remaining', compute='_compute_total_clubs_remaining', store=False)
     
     # Computed fields for eligibility
+    plan_has_upgrade_paths = fields.Boolean(string='Plan Has Upgrade Paths', compute='_compute_plan_has_upgrade_paths', store=False)
     can_renew_discount = fields.Boolean(string='Can Renew with Discount', compute='_compute_can_renew_discount', store=False)
+    can_renew = fields.Boolean(string='Can Renew', compute='_compute_can_renew', store=False)
     attendance_policy_freeze_count = fields.Integer(
         string='Attendance Policy Freeze Count',
         default=0,
@@ -136,6 +140,25 @@ class PopcornMembership(models.Model):
                 membership.days_until_expiry = delta.days
             else:
                 membership.days_until_expiry = 0
+
+    def _compute_days_since_activation(self):
+        """Compute days elapsed since membership activation date"""
+        today = fields.Date.today()
+        for membership in self:
+            if membership.activation_date:
+                membership.days_since_activation = (today - membership.activation_date).days
+            else:
+                membership.days_since_activation = 0
+
+    def _compute_upgrade_deadline(self):
+        """Compute the last date the member can use their upgrade discount (activation + upgrade_window_days)"""
+        for membership in self:
+            if membership.activation_date and membership.membership_plan_id.upgrade_window_days:
+                membership.upgrade_deadline = membership.activation_date + timedelta(
+                    days=membership.membership_plan_id.upgrade_window_days
+                )
+            else:
+                membership.upgrade_deadline = False
 
     @api.depends('effective_end_date', 'state')
     def _compute_hours_until_expiry(self):
@@ -177,10 +200,28 @@ class PopcornMembership(models.Model):
                 # Unlimited plans
                 membership.total_clubs_remaining = -1
     
+    def _compute_plan_has_upgrade_paths(self):
+        """Compute if the membership's plan has any configured upgrade paths"""
+        for membership in self:
+            membership.plan_has_upgrade_paths = bool(
+                membership.membership_plan_id and membership.membership_plan_id.can_upgrade_to_ids
+            )
+
     def _compute_can_renew_discount(self):
         """Compute if membership is eligible for renewal discount"""
         for membership in self:
             membership.can_renew_discount = membership.is_eligible_for_renewal_discount()
+
+    def _compute_can_renew(self):
+        """Compute if membership is eligible to show the renew button (with or without discount)"""
+        for membership in self:
+            if membership.state not in ['active', 'frozen']:
+                membership.can_renew = False
+            elif membership.membership_plan_id.quota_mode == 'bucket_counts':
+                # Experience cards: renew button always available while active/frozen
+                membership.can_renew = True
+            else:
+                membership.can_renew = membership.is_eligible_for_renewal()
     
     @api.depends('activation_date', 'total_duration_days')
     def _compute_end_date_base(self):
@@ -259,26 +300,34 @@ class PopcornMembership(models.Model):
             plan_name = membership.membership_plan_id.name if membership.membership_plan_id else 'Unknown Plan'
             membership.display_name = f"{partner_name} - {plan_name}"
     
-    def _count_used_sessions(self, club_type):
+    def _count_used_sessions(self, club_type, past_only=False):
         """Count used sessions of a specific club type using event tags - robust approach"""
         # If this is a new record, return 0
         if not self.id or self.id < 0:
             return 0
-        
+
         try:
             # Only count registrations that went through proper consumption flow
             # Exclude imported registrations and registrations without proper state
             domain = [
                 ('membership_id', '=', self.id),
                 ('consumption_state', '=', 'consumed'),
-                ('state', 'in', ['open', 'confirmed', 'done']),
                 ('is_imported', '=', False),
+                # Count confirmed registrations AND waitlisted registrations that
+                # have already had their quota consumed (quota is consumed on
+                # waitlist join to prevent stacking unlimited waitlists).
+                '|',
+                ('state', 'in', ['open', 'confirmed', 'done']),
+                '&', ('state', '=', 'draft'), ('is_on_waitlist', '=', True),
             ]
             # Bucket: no-show does not count as consumed unless penalty was applied
             if self.plan_quota_mode == 'bucket_counts':
                 domain.append('|')
                 domain.append(('is_no_show_attendance', '=', False))
                 domain.append(('quota_penalty_applied', '=', True))
+            # Upgrade credit only considers events that have already ended
+            if past_only:
+                domain.append(('event_id.date_end', '<', fields.Datetime.now()))
             registrations = self.env['event.registration'].sudo().search(domain)
             
             count = 0
@@ -303,8 +352,13 @@ class PopcornMembership(models.Model):
             domain = [
                 ('membership_id', '=', self.id),
                 ('consumption_state', '=', 'consumed'),
-                ('state', 'in', ['open', 'confirmed', 'done']),
                 ('is_imported', '=', False),
+                # Count confirmed registrations AND waitlisted registrations that
+                # have already had their quota consumed (quota is consumed on
+                # waitlist join to prevent stacking unlimited waitlists).
+                '|',
+                ('state', 'in', ['open', 'confirmed', 'done']),
+                '&', ('state', '=', 'draft'), ('is_on_waitlist', '=', True),
             ]
             # Points: no-show does not count as consumed unless penalty was applied
             if self.plan_quota_mode == 'points':
@@ -468,8 +522,8 @@ class PopcornMembership(models.Model):
     def _evaluate_unlimited_late_no_show_policy(self):
         """
         Unlimited memberships:
-        - if 3+ incidents in rolling 30 days => freeze 3 days
-        - apply at most once per rolling 30 days
+        - if 3+ incidents in the current calendar month => freeze 3 days
+        - apply at most once per calendar month
         """
         Registration = self.env['event.registration'].sudo()
         for membership in self:
@@ -479,18 +533,18 @@ class PopcornMembership(models.Model):
                 continue
 
             now = fields.Datetime.now()
-            window_start = now - timedelta(days=30)
+            month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
             incident_count = Registration.search_count([
                 ('membership_id', '=', membership.id),
                 ('late_no_show_incident', '=', True),
-                ('late_no_show_incident_date', '>=', window_start),
+                ('late_no_show_incident_date', '>=', month_start),
             ])
             if incident_count < 3:
                 continue
 
             if (
                 membership.attendance_policy_last_penalty_date
-                and membership.attendance_policy_last_penalty_date >= window_start
+                and membership.attendance_policy_last_penalty_date >= month_start
             ):
                 continue
 
@@ -502,8 +556,8 @@ class PopcornMembership(models.Model):
             })
             membership.message_post(
                 body=_(
-                    'Attendance policy applied: %s incidents detected in last 30 days. '
-                    'Membership frozen for %s days. (Max once per 30 days)'
+                    'Attendance policy applied: %s incidents detected this month. '
+                    'Membership frozen for %s days. (Max once per calendar month)'
                 ) % (incident_count, freeze_days)
             )
     
@@ -671,30 +725,32 @@ class PopcornMembership(models.Model):
     
     def _calculate_bucket_upgrade_price(self, target_plan):
         """Calculate upgrade price for bucket-based plans (Experience, Online)
-        
-        Credit is based on consumed sessions (booked clubs). Booking = consumed,
-        so past + future booked clubs all count toward the upgrade discount.
-        Upgrade price = new membership cost - (unit_value × consumed clubs)
+
+        Credit is the remaining value on the card:
+        Upgrade price = new membership cost - (unit_value × remaining clubs)
+        where remaining clubs = total clubs - past-attended clubs (future bookings
+        are not deducted so they retain their full credit value).
         """
         plan = self.membership_plan_id
         if not plan.unit_base_count:
             return target_plan.price_first_timer
-        
-        # Calculate consumed sessions (booked clubs - includes past and future)
-        used_offline = self._count_used_sessions('regular_offline')
-        used_online = self._count_used_sessions('regular_online')
-        used_sp = self._count_used_sessions('spclub')
-        
-        total_consumed = used_offline + used_online + used_sp
-        
+
+        # Count only past-attended sessions (exclude future bookings)
+        past_offline = self._count_used_sessions('regular_offline', past_only=True)
+        past_online = self._count_used_sessions('regular_online', past_only=True)
+        past_sp = self._count_used_sessions('spclub', past_only=True)
+
+        total_past = past_offline + past_online + past_sp
+        total_remaining = max(0, plan.unit_base_count - total_past)
+
         # Calculate unit value
         if plan.unit_value_fixed > 0:
             unit_value = plan.unit_value_fixed
         else:
             unit_value = self.purchase_price_paid / plan.unit_base_count
-        
-        # Credit = consumed clubs - they pay new cost minus value of what they've used
-        upgrade_price = target_plan.price_first_timer - (unit_value * total_consumed)
+
+        # Credit = remaining value on the card
+        upgrade_price = target_plan.price_first_timer - (unit_value * total_remaining)
         return max(0, upgrade_price)
     
     def _calculate_points_upgrade_price(self, target_plan):
@@ -793,31 +849,22 @@ class PopcornMembership(models.Model):
         if plan.early_renew_window_days == 0:
             return False
         
+        # Experience cards (bucket_counts) do not get renewal discount
+        if plan.quota_mode == 'bucket_counts':
+            return False
+
         # Points-based plans (Freedom): Discount available until points drop below threshold
         if plan.quota_mode == 'points':
             # Discount available from purchase → closes at 15 points
             min_threshold = plan.renewal_points_threshold or 15
             return self.points_remaining >= min_threshold
-        
-        # Time-based plans (Gold, Experience): Discount available until lower bound
-        else:
-            if not self.effective_end_date:
-                return False
-            
-            # Experience card: discount available until end of window (30 days from activation)
-            if plan.quota_mode == 'bucket_counts' and plan.renewal_window_end_days > 0:
-                if not self.activation_date:
-                    return False
-                days_since_activation = (fields.Date.today() - self.activation_date).days
-                # Discount available from activation → closes at renewal_window_end_days
-                return days_since_activation <= plan.renewal_window_end_days
-            
-            # Gold cards: discount available until lower bound (30 days before expiry)
-            else:
-                days_until_expiry = (self.effective_end_date - fields.Date.today()).days
-                min_days = plan.early_renew_window_days or 30
-                # Discount available from purchase → closes at min_days
-                return days_until_expiry >= min_days
+
+        # Gold cards: discount available until lower bound (30 days before expiry)
+        if not self.effective_end_date:
+            return False
+        days_until_expiry = (self.effective_end_date - fields.Date.today()).days
+        min_days = plan.early_renew_window_days or 30
+        return days_until_expiry >= min_days
         
         return False
     

@@ -79,23 +79,20 @@ class PopcornMembershipController(http.Controller):
                     banner_text = plan.renewal_banner_text or ''
                     banner_text = banner_text.replace('{points_left}', str(points_left))
                     banner_text = banner_text.replace('{name}', user_name)
+                elif plan.quota_mode == 'bucket_counts':
+                    # Experience card - no renewal discount, use no-discount banner text
+                    if membership.activation_date and plan.renewal_window_end_days > 0:
+                        days_since_activation = (fields.Date.today() - membership.activation_date).days
+                        days_left = plan.renewal_window_end_days - days_since_activation
+                    banner_text = plan.renewal_banner_text_no_discount or plan.renewal_banner_text or ''
+                    banner_text = banner_text.replace('{days_left}', str(max(0, days_left)))
+                    banner_text = banner_text.replace('{name}', user_name)
                 else:
-                    # Gold/Experience - show days left until discounted price expires
+                    # Gold cards: days left until early_renew_window_days before expiry
                     if membership.effective_end_date:
-                        # Calculate days left until discounted price expires
-                        if plan.quota_mode == 'bucket_counts' and plan.renewal_window_end_days > 0:
-                            # Experience card: days left until renewal_window_end_days from activation
-                            if membership.activation_date:
-                                days_since_activation = (fields.Date.today() - membership.activation_date).days
-                                days_left = plan.renewal_window_end_days - days_since_activation
-                            else:
-                                days_left = 0
-                        else:
-                            # Gold cards: days left until early_renew_window_days before expiry
-                            days_until_expiry = (membership.effective_end_date - fields.Date.today()).days
-                            min_days = plan.early_renew_window_days or 30
-                            days_left = days_until_expiry - min_days
-                        
+                        days_until_expiry = (membership.effective_end_date - fields.Date.today()).days
+                        min_days = plan.early_renew_window_days or 30
+                        days_left = days_until_expiry - min_days
                         banner_text = plan.renewal_banner_text or ''
                         banner_text = banner_text.replace('{days_left}', str(max(0, days_left)))
                         banner_text = banner_text.replace('{name}', user_name)
@@ -839,7 +836,13 @@ class PopcornMembershipController(http.Controller):
                                     alipay_payment_url = f"{gateway_base}/gateway.do?{query_params}"
                                 else:
                                     alipay_payment_url = f"{gateway_base}/gateway.do"
-                        
+
+                        # WeChat browser blocks Alipay URLs — show copy-link page instead
+                        user_agent = request.httprequest.headers.get('User-Agent', '')
+                        if 'MicroMessenger' in user_agent:
+                            _logger.info(f"WeChat browser detected — redirecting to Alipay copy-link page for: {payment_transaction.reference}")
+                            return request.redirect(f'/payment/alipay/wechat_redirect?ref={payment_transaction.reference}')
+
                         _logger.info(f"Redirecting to Alipay payment URL: {alipay_payment_url[:100]}...")
                         return redirect(alipay_payment_url, code=302)
                 except Exception as e:

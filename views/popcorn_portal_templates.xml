@@ -70,7 +70,32 @@
                     </span>
                 </div>
             </div>
-            
+
+            <!-- Badges Section -->
+            <t t-set="portal_partner" t-value="request.env.user.partner_id"/>
+            <t t-set="portal_all_badges" t-value="request.env['popcorn.badge'].sudo().search([('active', '=', True)])"/>
+            <t t-set="portal_earned_ids" t-value="portal_partner.earned_badge_ids.ids"/>
+            <t t-if="portal_all_badges">
+                <div class="mt-3">
+                    <h6 class="text-muted mb-2">
+                        <i class="fa fa-trophy me-2"></i>Badges
+                    </h6>
+                    <div class="portal-badges-scroll">
+                        <t t-foreach="portal_all_badges" t-as="pbadge">
+                            <t t-set="is_earned" t-value="pbadge.id in portal_earned_ids"/>
+                            <div t-att-title="pbadge.name"
+                                 t-att-class="'portal-badge-icon ' + ('earned' if is_earned else 'not-earned')">
+                                <img t-if="pbadge.image"
+                                     t-att-src="'/web/image/popcorn.badge/' + str(pbadge.id) + '/image'"
+                                     t-att-alt="pbadge.name"
+                                     class="portal-badge-img"/>
+                                <i t-if="not pbadge.image" class="fa fa-trophy fa-lg text-muted"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </t>
+
             <!-- Personal Information Section -->
             <div class="mt-4">
                 <h6 class="text-muted mb-3">
@@ -152,7 +177,32 @@
                         <span t-esc="request.env.user.partner_id.currency_id.symbol"/><span t-esc="request.env.user.partner_id.popcorn_money_balance"/>
                     </span>
                 </div>
-                
+
+                <!-- Badges Section (Mobile) -->
+                <t t-set="mob_partner" t-value="request.env.user.partner_id"/>
+                <t t-set="mob_all_badges" t-value="request.env['popcorn.badge'].sudo().search([('active', '=', True)])"/>
+                <t t-set="mob_earned_ids" t-value="mob_partner.earned_badge_ids.ids"/>
+                <t t-if="mob_all_badges">
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">
+                            <i class="fa fa-trophy me-2"></i>Badges
+                        </h6>
+                        <div class="portal-badges-scroll">
+                            <t t-foreach="mob_all_badges" t-as="mbadge">
+                                <t t-set="is_earned" t-value="mbadge.id in mob_earned_ids"/>
+                                <div t-att-title="mbadge.name"
+                                     t-att-class="'portal-badge-icon ' + ('earned' if is_earned else 'not-earned')">
+                                    <img t-if="mbadge.image"
+                                         t-att-src="'/web/image/popcorn.badge/' + str(mbadge.id) + '/image'"
+                                         t-att-alt="mbadge.name"
+                                         class="portal-badge-img"/>
+                                    <i t-if="not mbadge.image" class="fa fa-trophy fa-lg text-muted"/>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+                </t>
+
                 <!-- Personal Information Section (Mobile) -->
                 <t t-if="request.env.user.partner_id.mbti or request.env.user.partner_id.gender or request.env.user.partner_id.zodiac or request.env.user.partner_id.preferred_topics or request.env.user.partner_id.activities_sports">
                     <div class="border-top pt-3">
@@ -556,8 +606,8 @@
                                                                          <i class="fa fa-arrow-up"></i> <span t-translation="on">Upgrade</span>
                                                                      </a>
                                                                  </t>
-                                                                 <t t-if="membership.can_renew_discount">
-                                                                     <a t-attf-href="/my/cards/#{membership.id}/renew" 
+                                                                 <t t-if="membership.can_renew">
+                                                                     <a t-attf-href="/my/cards/#{membership.id}/renew"
                                                                         class="btn btn-outline-primary btn-sm">
                                                                          <i class="fa fa-refresh"></i> <span t-translation="on">Renew</span>
                                                                      </a>

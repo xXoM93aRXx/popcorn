@@ -129,6 +129,7 @@
                         <group>
                             <group string="Renewal Banner Configuration">
                                 <field name="renewal_banner_text" placeholder="e.g., You have {days_left} days left to renew with first-timer discount!" widget="text"/>
+                                <field name="renewal_banner_text_no_discount" placeholder="e.g., Your membership expires in {days_left} days — renew now!" widget="text"/>
                             </group>
                         </group>
                         

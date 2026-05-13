@@ -107,6 +107,11 @@ class PopcornMembershipPlan(models.Model):
         translate=True,
         help='Message to display on memberships page when user is eligible for renewal. Use {days_left}, {points_left}, or {name} as placeholders.'
     )
+    renewal_banner_text_no_discount = fields.Text(
+        string='Renewal Banner Message (No Discount)',
+        translate=True,
+        help='Alternative banner message used when no renewal discount applies (e.g. Experience cards). Use {days_left} or {name} as placeholders.'
+    )
     
     # Discount Relationships
     discount_ids = fields.Many2many('popcorn.discount', 
