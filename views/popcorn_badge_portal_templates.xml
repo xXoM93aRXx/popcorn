@@ -12,10 +12,10 @@
                             <h2 class="mb-4"><span t-translation="on">My Badges</span></h2>
                             <div class="my-badges-container">
                                 <div class="row">
-                                    <t t-foreach="partner.badge_ids" t-as="badge">
+                                    <t t-foreach="badges" t-as="badge">
                                         <div class="col-md-3 col-sm-6 col-xs-12 mb-3">
                                             <a t-if="badge.is_diversity_badge" href="/my/diversity" class="text-decoration-none">
-                                                <div class="badge-card" t-att-class="'badge-card ' + ('earned' if badge.earned else 'not-earned')">
+                                                <div class="badge-card" t-att-class="'badge-card ' + ('earned' if badge.id in earned_badge_ids else 'not-earned')">
                                                     <div class="badge-image-container">
                                                         <img t-if="badge.image"
                                                              t-att-src="'/web/image/popcorn.badge/' + str(badge.id) + '/image'"
@@ -35,7 +35,7 @@
                                                             <t t-esc="remaining_text"/>
                                                         </p>
                                                         <div class="badge-status">
-                                                            <span t-if="badge.earned" class="status-earned">
+                                                            <span t-if="badge.id in earned_badge_ids" class="status-earned">
                                                                 <i class="fa fa-check-circle"></i> Earned
                                                             </span>
                                                             <span t-else="" class="status-not-earned">
@@ -45,7 +45,38 @@
                                                     </div>
                                                 </div>
                                             </a>
-                                            <div t-else="" class="badge-card" t-att-class="'badge-card ' + ('earned' if badge.earned else 'not-earned')">
+                                            <a t-elif="badge.is_variety_badge" href="/my/variety" class="text-decoration-none">
+                                                <div class="badge-card" t-att-class="'badge-card ' + ('earned' if badge.id in earned_badge_ids else 'not-earned')">
+                                                    <div class="badge-image-container">
+                                                        <img t-if="badge.image"
+                                                             t-att-src="'/web/image/popcorn.badge/' + str(badge.id) + '/image'"
+                                                             class="badge-image"
+                                                             t-att-alt="badge.name"/>
+                                                        <div t-if="not badge.image" class="badge-placeholder">
+                                                            <i class="fa fa-trophy fa-3x"></i>
+                                                        </div>
+                                                    </div>
+                                                    <div class="badge-info">
+                                                        <h4 class="badge-name"><t t-esc="badge.name"/></h4>
+                                                        <p class="badge-description" t-if="badge.description">
+                                                            <t t-esc="badge.description"/>
+                                                        </p>
+                                                        <t t-set="remaining_text" t-value="badge.get_remaining_text_for_partner(partner)"/>
+                                                        <p t-if="remaining_text" class="badge-remaining-text">
+                                                            <t t-esc="remaining_text"/>
+                                                        </p>
+                                                        <div class="badge-status">
+                                                            <span t-if="badge.id in earned_badge_ids" class="status-earned">
+                                                                <i class="fa fa-check-circle"></i> Earned
+                                                            </span>
+                                                            <span t-else="" class="status-not-earned">
+                                                                <i class="fa fa-clock-o"></i> Not Earned
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                            <div t-else="" class="badge-card" t-att-class="'badge-card ' + ('earned' if badge.id in earned_badge_ids else 'not-earned')">
                                                 <div class="badge-image-container">
                                                     <img t-if="badge.image"
                                                          t-att-src="'/web/image/popcorn.badge/' + str(badge.id) + '/image'"
@@ -65,7 +96,7 @@
                                                         <t t-esc="remaining_text"/>
                                                     </p>
                                                     <div class="badge-status">
-                                                        <span t-if="badge.earned" class="status-earned">
+                                                        <span t-if="badge.id in earned_badge_ids" class="status-earned">
                                                             <i class="fa fa-check-circle"></i> Earned
                                                         </span>
                                                         <span t-else="" class="status-not-earned">
@@ -77,7 +108,7 @@
                                         </div>
                                     </t>
                                 </div>
-                                <div t-if="not partner.badge_ids" class="no-badges">
+                                <div t-if="not badges" class="no-badges">
                                     <div class="alert alert-info">
                                         <i class="fa fa-info-circle"></i>
                                         No badges available at the moment.
@@ -93,7 +124,7 @@
 
     <!-- Portal Menu Item for Badges -->
     <template id="portal_my_badges_menu" name="Portal My Badges Menu" inherit_id="portal.portal_my_home">
-        <xpath expr="//div[@id='portal_common_category']" position="after">
+        <xpath expr="//div[@id='portal_common_category']" position="before">
             <div class="o_portal_category row g-2 mt-3" id="portal_badges_category">
                 <div class="o_portal_index_card col-md-6 order-2">
                     <a href="/my/badges" title="My Badges"
@@ -166,18 +197,33 @@
                             <t t-foreach="hosts_data" t-as="entry">
                                 <div t-attf-class="diversity-thumb {{ 'thumb-unlocked' if entry['unlocked'] else 'thumb-locked' }}"
                                      t-att-data-img="entry['img_src'] or ''"
+                                     t-att-data-locked-img="entry['locked_img_src'] or ''"
                                      t-att-data-name="entry['host'].name"
                                      t-att-data-unlocked="'1' if entry['unlocked'] else '0'">
                                     <div class="diversity-thumb-inner">
-                                        <t t-if="entry['img_src']">
-                                            <img t-att-src="entry['img_src']"
-                                                 class="diversity-thumb-img"
-                                                 t-att-alt="entry['host'].name"/>
+                                        <t t-if="not entry['unlocked']">
+                                            <t t-if="entry['locked_img_src']">
+                                                <img t-att-src="entry['locked_img_src']"
+                                                     class="diversity-thumb-img"
+                                                     alt="Locked"/>
+                                            </t>
+                                            <t t-else="">
+                                                <div class="diversity-thumb-no-img">
+                                                    <i class="fa fa-lock"/>
+                                                </div>
+                                            </t>
                                         </t>
                                         <t t-else="">
-                                            <div class="diversity-thumb-no-img">
-                                                <i class="fa fa-user"/>
-                                            </div>
+                                            <t t-if="entry['img_src']">
+                                                <img t-att-src="entry['img_src']"
+                                                     class="diversity-thumb-img"
+                                                     t-att-alt="entry['host'].name"/>
+                                            </t>
+                                            <t t-else="">
+                                                <div class="diversity-thumb-no-img">
+                                                    <i class="fa fa-user"/>
+                                                </div>
+                                            </t>
                                         </t>
                                         <div t-if="not entry['unlocked']" class="diversity-thumb-lock">
                                             <i class="fa fa-lock"/>
@@ -206,12 +252,13 @@
 
                     function showHost(thumb) {
                         var imgSrc = thumb.dataset.img;
+                        var lockedImgSrc = thumb.dataset.lockedImg;
                         var name = thumb.dataset.name;
                         var unlocked = thumb.dataset.unlocked === '1';
 
-                        if (imgSrc) {
-                            bgImg.src = imgSrc;
-                            bgImg.style.filter = unlocked ? '' : 'brightness(0)';
+                        var activeSrc = unlocked ? imgSrc : lockedImgSrc;
+                        if (activeSrc) {
+                            bgImg.src = activeSrc;
                             bgImg.style.display = 'block';
                             bgPlaceholder.style.display = 'none';
                         } else {
@@ -232,8 +279,188 @@
                         thumb.addEventListener('mouseenter', function () { showHost(thumb); });
                         thumb.addEventListener('click', function () { showHost(thumb); });
                     });
+                })();
+            </script>
+        </t>
+    </template>
 
-                    if (thumbs.length > 0) { showHost(thumbs[0]); }
+    <!-- Variety Badge Page -->
+    <template id="portal_variety_page" name="Variety Badge Page">
+        <t t-call="portal.portal_layout">
+
+            <!-- Full-screen override: hide portal chrome, zero out all spacing -->
+            <style>
+                header.o_main_navbar,
+                header#top,
+                .o_header_standard,
+                footer,
+                .o_footer,
+                .o_portal_breadcrumbs,
+                .o_portal_navbar { display: none !important; }
+
+                #wrapwrap,
+                main,
+                .o_portal,
+                .container,
+                .container-fluid { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+
+                body { overflow: hidden; }
+            </style>
+
+            <div class="o_portal_variety">
+
+                <!-- Full-screen sky stage -->
+                <div class="variety-stage" t-att-data-locked-teaser="variety_locked_teaser">
+
+                    <!-- Static sky background (only when badge not earned) -->
+                    <img t-if="not badge_earned"
+                         class="variety-bg-static"
+                         src="/popcorn/static/src/images/variety-background.jpg"
+                         alt=""/>
+
+                    <!-- Animated background when badge earned -->
+                    <video t-if="badge_earned"
+                           class="variety-bg-video"
+                           autoplay="autoplay" muted="muted" loop="loop"
+                           playsinline="playsinline"
+                           webkit-playsinline="webkit-playsinline"
+                           x5-playsinline="x5-playsinline"
+                           x5-video-player-type="h5"
+                           preload="auto">
+                        <source src="/popcorn/static/src/images/variety-background-active.mp4"
+                                type="video/mp4"/>
+                    </video>
+
+                    <!-- Top overlay: back button + counter + progress -->
+                    <div class="variety-top-overlay">
+                        <a href="/my/badges" class="variety-back-btn">
+                            <i class="fa fa-arrow-left"/>
+                        </a>
+                        <div class="variety-top-center">
+                            <div class="variety-top-title">Variety Badge</div>
+                            <div class="variety-progress-wrap">
+                                <div class="progress variety-progress">
+                                    <div class="progress-bar"
+                                         t-attf-style="width: {{ (unlocked_count / total_count * 100) if total_count else 0 }}%"/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="variety-counter-pill">
+                            <span class="counter-num" t-esc="unlocked_count"/>
+                            <span class="counter-sep">/</span>
+                            <span class="counter-num" t-esc="total_count"/>
+                        </div>
+                    </div>
+
+                    <!-- Centered info card -->
+                    <div class="variety-info-card" id="variety-info-card">
+                        <div class="variety-info-title" id="variety-info-title"/>
+                        <div class="variety-info-desc" id="variety-info-desc"/>
+                        <div class="variety-info-status" id="variety-info-status"/>
+                    </div>
+
+                    <!-- Constellations -->
+                    <t t-foreach="tags_data" t-as="entry">
+                        <div t-attf-class="constellation {{ 'constellation-unlocked' if entry['unlocked'] else 'constellation-locked' }}"
+                             t-attf-style="top: {{ entry['top'] }}%; left: {{ entry['left'] }}%;"
+                             t-att-data-name="entry['tag'].name"
+                             t-att-data-constellation="entry['tag'].constellation_name or ''"
+                             t-att-data-description="entry['tag'].constellation_description or ''"
+                             t-att-data-unlocked="'1' if entry['unlocked'] else '0'">
+                            <t t-if="entry['img_src']">
+                                <img t-att-src="entry['img_src']"
+                                     class="constellation-img"
+                                     t-att-alt="entry['tag'].name"/>
+                            </t>
+                            <t t-else="">
+                                <i class="fa fa-star constellation-star-placeholder"/>
+                            </t>
+                        </div>
+                    </t>
+
+                    <!-- No topics fallback -->
+                    <div t-if="not tags_data"
+                         style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+                        <div class="alert alert-info">
+                            <i class="fa fa-info-circle me-1"/> No topics available yet.
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <script type="text/javascript">
+                (function () {
+                    var constellations = document.querySelectorAll('.constellation');
+                    var card = document.getElementById('variety-info-card');
+                    var cardTitle = document.getElementById('variety-info-title');
+                    var cardDesc = document.getElementById('variety-info-desc');
+                    var cardStatus = document.getElementById('variety-info-status');
+                    var lockedTeaser = document.querySelector('.variety-stage').dataset.lockedTeaser || '';
+
+                    function showCard(el) {
+                        var topic = el.dataset.name;
+                        var constName = el.dataset.constellation;
+                        var desc = el.dataset.description;
+                        var unlocked = el.dataset.unlocked === '1';
+
+                        cardTitle.textContent = constName ? topic + ' → ' + constName : topic;
+                        if (unlocked) {
+                            cardDesc.textContent = desc || '';
+                            cardDesc.style.display = desc ? '' : 'none';
+                        } else {
+                            cardDesc.textContent = lockedTeaser;
+                            cardDesc.style.display = lockedTeaser ? '' : 'none';
+                        }
+                        cardStatus.textContent = unlocked
+                            ? '✓ Unlocked'
+                            : 'Attend a club on this topic to unlock';
+                        cardStatus.className = 'variety-info-status ' +
+                            (unlocked ? 'info-status-unlocked' : 'info-status-locked');
+                        card.classList.add('variety-info-card-visible');
+
+                        constellations.forEach(function (c) { c.classList.remove('constellation-active'); });
+                        el.classList.add('constellation-active');
+                    }
+
+                    function hideCard() {
+                        card.classList.remove('variety-info-card-visible');
+                        constellations.forEach(function (c) { c.classList.remove('constellation-active'); });
+                    }
+
+                    constellations.forEach(function (el) {
+                        el.addEventListener('mouseenter', function () { showCard(el); });
+                        el.addEventListener('click', function (e) { e.stopPropagation(); showCard(el); });
+                    });
+
+                    document.querySelector('.variety-stage').addEventListener('click', hideCard);
+
+                    // WeChat browser video autoplay (X5/WKWebView block the autoplay attribute)
+                    var bgVideo = document.querySelector('.variety-bg-video');
+                    if (bgVideo) {
+                        bgVideo.muted = true;
+
+                        function playVideo() {
+                            bgVideo.play().catch(function () {});
+                        }
+
+                        // Standard browsers: try immediately
+                        playVideo();
+
+                        // WeChat: WeixinJSBridge invoke grants media permission synchronously
+                        // (no setTimeout between invoke and play — breaks the permission chain)
+                        if (typeof WeixinJSBridge !== 'undefined') {
+                            WeixinJSBridge.invoke('getNetworkType', {}, playVideo);
+                        } else {
+                            document.addEventListener('WeixinJSBridgeReady', function () {
+                                WeixinJSBridge.invoke('getNetworkType', {}, playVideo);
+                            }, false);
+                        }
+
+                        // Android X5 hard-blocks autoplay — first user touch is the reliable fallback
+                        document.addEventListener('touchstart', playVideo, { once: true });
+                        document.addEventListener('click', playVideo, { once: true });
+                    }
                 })();
             </script>
         </t>

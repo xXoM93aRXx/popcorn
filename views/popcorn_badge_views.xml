@@ -43,6 +43,8 @@
                             <field name="description" placeholder="Badge Description"/>
                             <field name="active"/>
                             <field name="is_diversity_badge"/>
+                            <field name="is_variety_badge"/>
+                            <field name="variety_locked_teaser" invisible="not is_variety_badge"/>
                             <field name="prize_popcorn_money"/>
                             <field name="prize_expiry_days"/>
                         </group>

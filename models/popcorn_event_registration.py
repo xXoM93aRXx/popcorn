@@ -477,7 +477,7 @@ class PopcornEventRegistration(models.Model):
         elif membership.plan_quota_mode == 'points':
             if membership.points_remaining < self.points_consumed:
                 return False
-        
+
         return True
 
     def _is_membership_frozen_during_event(self, membership):
@@ -598,48 +598,26 @@ class PopcornEventRegistration(models.Model):
         
         # Handle waitlist registrations (draft state) differently - just delete them
         if self.state == 'draft' and self.is_on_waitlist:
-            # Store event info before deletion for waitlist promotion
             event_id = self.event_id
-            seats_limited = event_id.seats_limited
-            
+
+            # Quota is consumed at waitlist-join time, so restore it on cancellation.
+            # _restore_membership_quota posts a log message to the membership record.
+            if self.membership_id and self.consumption_state == 'consumed':
+                self._restore_membership_quota()
+
             # Log the cancellation before deletion
             self.message_post(
                 body=_('Waitlist registration cancelled by portal user')
             )
-            
-            # Delete the waitlist registration
+
+            # Delete the waitlist registration, then renumber remaining positions
+            # (positions must be renumbered after unlink so self is excluded).
             self.unlink()
-            
-            # Promote next person from waitlist if event has limited seats
-            if seats_limited:
-                # Find the next person on the waitlist (lowest position number)
-                next_waitlist_reg = self.env['event.registration'].search([
-                    ('event_id', '=', event_id.id),
-                    ('is_on_waitlist', '=', True),
-                    ('state', '=', 'draft')
-                ], order='waitlist_position asc', limit=1)
-                
-                if next_waitlist_reg:
-                    # Promote this registration
-                    next_waitlist_reg.write({
-                        'is_on_waitlist': False,
-                        'waitlist_position': 0,
-                        'state': 'open',
-                        'pending_wechat_notification': True,
-                    })
-                    
-                    # Consume membership quota for the promoted registration
-                    if next_waitlist_reg.membership_id and next_waitlist_reg.consumption_state == 'pending':
-                        next_waitlist_reg._consume_membership_quota()
-                    
-                    # Log the promotion
-                    next_waitlist_reg.message_post(
-                        body=_('Promoted from waitlist to confirmed registration')
-                    )
-                    
-                    # Update waitlist positions for remaining waitlist registrations
-                    self._update_waitlist_positions_after_deletion(event_id)
-            
+            self._update_waitlist_positions_after_deletion(event_id)
+
+            # No confirmed seat was freed — do NOT promote anyone from the waitlist.
+            # Promotion only happens when an open/confirmed registration is cancelled.
+
             return True
         
         # Handle regular registrations (open/confirmed state)
@@ -911,6 +889,17 @@ class PopcornEventRegistration(models.Model):
         should_lock = False
         if 'event_id' in vals:
             event = self.env['event.event'].browse(vals['event_id'])
+            # Prevent duplicate bookings: block if an active (non-cancelled) registration already exists
+            if event.exists() and not is_import and 'partner_id' in vals:
+                duplicate = self.env['event.registration'].search([
+                    ('event_id', '=', event.id),
+                    ('partner_id', '=', vals['partner_id']),
+                    ('state', '!=', 'cancel'),
+                ], limit=1)
+                if duplicate:
+                    raise ValidationError(_(
+                        'You are already registered for this event.'
+                    ))
             if event.exists() and event.seats_limited and not is_import:
                 should_lock = True
                 # Lock the event FIRST before creating registration to prevent deadlocks
@@ -922,7 +911,7 @@ class PopcornEventRegistration(models.Model):
                 )
                 # Refresh event to get latest data while holding lock
                 event.invalidate_recordset(['seats_max'])
-                
+
                 # Check availability BEFORE creating registration
                 confirmed_registrations = self.env['event.registration'].search([
                     ('event_id', '=', event.id),
@@ -970,9 +959,15 @@ class PopcornEventRegistration(models.Model):
             _logger.info(f"Available seats: {available_seats}")
             
             if available_seats <= 0 and registration.state == 'draft':
-                # No seats available - add to waitlist
+                # No seats available - add to waitlist and consume quota immediately.
+                # Consuming on join (rather than on promotion) means the quota is
+                # actually reserved, preventing a user from stacking unlimited
+                # waitlist entries against the same pool of points/sessions.
                 _logger.info(f"No seats available - adding to waitlist")
                 registration._add_to_waitlist()
+                if registration.membership_id and registration.consumption_state == 'pending':
+                    _logger.info(f"Consuming membership quota for waitlist registration")
+                    registration._consume_membership_quota()
             elif registration.state == 'open':
                 # Seats available - consume quota if membership exists
                 if registration.membership_id and registration.consumption_state == 'pending':
@@ -1323,7 +1318,7 @@ class PopcornEventRegistration(models.Model):
         """
         Unified attendance penalty engine.
         - unlimited: every 3 incidents => 3-day penalty freeze
-        - bucket/points: 2 incidents in rolling 30 days => cancel-window refund blocked
+        - bucket/points: 2 incidents in the current calendar month => cancel-window refund blocked
         """
         self.ensure_one()
         membership = self.membership_id
@@ -1349,7 +1344,7 @@ class PopcornEventRegistration(models.Model):
             membership._evaluate_unlimited_late_no_show_policy()
             return True
 
-        # Bucket/points memberships use rolling 30-day violation policy.
+        # Bucket/points memberships use calendar-month violation policy.
         if membership.plan_quota_mode in ['bucket_counts', 'points'] and self._is_quota_penalty_incident_type(incident_type):
             if self.quota_penalty_violation:
                 return False
@@ -1362,7 +1357,7 @@ class PopcornEventRegistration(models.Model):
             membership.message_post(
                 body=_(
                     'Attendance policy violation recorded for event "%s" (%s). '
-                    'Current count in last 30 days: %s.'
+                    'Current count this month: %s.'
                 ) % (self.event_id.name, incident_type, violation_count_30d)
             )
             if violation_count_30d == 2:
@@ -1402,8 +1397,8 @@ class PopcornEventRegistration(models.Model):
     def _should_block_quota_refund_for_cancel_window(self):
         """
         Bucket/points rule:
-        - 1st violation in last 30 days: normal refund
-        - 2nd violation in last 30 days: refund blocked
+        - 1st violation this calendar month: normal refund
+        - 2nd violation this calendar month: refund blocked
         """
         self.ensure_one()
         if not self._is_cancel_window_violation_for_quota_policy():
@@ -1476,16 +1471,16 @@ class PopcornEventRegistration(models.Model):
         return False
 
     def _get_recent_quota_policy_violation_count(self, include_current=False):
-        """Count quota policy violations for this membership in rolling 30 days."""
+        """Count quota policy violations for this membership in the current calendar month."""
         self.ensure_one()
         if not self.membership_id:
             return 0
         now = fields.Datetime.now()
-        window_start = now - timedelta(days=30)
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         domain = [
             ('membership_id', '=', self.membership_id.id),
             ('quota_penalty_violation', '=', True),
-            ('quota_penalty_violation_date', '>=', window_start),
+            ('quota_penalty_violation_date', '>=', month_start),
         ]
         if not include_current:
             domain.append(('id', '!=', self.id))

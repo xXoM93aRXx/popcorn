@@ -12,19 +12,19 @@ class PopcornBadgeController(http.Controller):
     def portal_my_badges(self, **kw):
         """Display user's badges in portal"""
         partner = request.env.user.partner_id
-        
-        # Get all badges and evaluate them for the current user
-        badges = request.env['popcorn.badge'].search([('active', '=', True)])
-        
-        # Add context to compute earned status
-        badges = badges.with_context(uid=request.env.user.id)
-        
+
+        badges = request.env['popcorn.badge'].sudo().search([('active', '=', True)])
+
+        # Light up only badges already stored on the partner — once earned, always lit.
+        earned_badge_ids = set(partner.sudo().permanently_earned_badge_ids.ids)
+
         values = {
             'partner': partner,
             'badges': badges,
+            'earned_badge_ids': earned_badge_ids,
             'page_name': 'badges',
         }
-        
+
         return request.render('popcorn.portal_my_badges_page', values)
 
     @http.route(['/my/badge/<int:badge_id>'], type='http', auth="user", website=True)
@@ -53,14 +53,30 @@ class PopcornBadgeController(http.Controller):
         """Display Mortal Kombat style diversity badge — all hosts, locked/unlocked"""
         partner = request.env.user.partner_id
 
-        # All active hosts
+        # Only published hosts appear on the diversity screen
         hosts = request.env['res.partner'].sudo().search([
             ('is_host', '=', True),
             ('active', '=', True),
+            ('website_published', '=', True),
         ], order='name')
 
-        # Which hosts has this partner actually attended?
-        attended_host_ids = partner.get_attended_host_ids()
+        # Get the diversity badge anchor date so unlocked status only counts from that point
+        diversity_badge = request.env['popcorn.badge'].sudo().search(
+            [('is_diversity_badge', '=', True), ('active', '=', True)], limit=1
+        )
+        anchor_date = None
+        if diversity_badge:
+            anchor_rule = diversity_badge.badge_rule_ids.filtered(
+                lambda r: r.active and r.time_filter_anchor_date
+            )[:1]
+            if anchor_rule:
+                from datetime import datetime
+                anchor_date = datetime.combine(
+                    anchor_rule.time_filter_anchor_date, datetime.min.time()
+                ).strftime('%Y-%m-%d %H:%M:%S')
+
+        # Which hosts has this partner actually attended (from anchor date onwards)?
+        attended_host_ids = partner.get_attended_host_ids(from_date=anchor_date)
 
         hosts_data = []
         for host in hosts:
@@ -71,10 +87,14 @@ class PopcornBadgeController(http.Controller):
                 img_src = '/popcorn/host-image/%d' % host.id
             else:
                 img_src = None
+
+            locked_img_src = '/popcorn/host-locked-image/%d' % host.id if host.diversity_badge_locked_image else None
+
             hosts_data.append({
                 'host': host,
                 'unlocked': host.id in attended_host_ids,
                 'img_src': img_src,
+                'locked_img_src': locked_img_src,
             })
 
         unlocked_count = len(attended_host_ids & set(hosts.ids))
@@ -88,6 +108,100 @@ class PopcornBadgeController(http.Controller):
         }
 
         return request.render('popcorn.portal_diversity_page', values)
+
+    _VARIETY_POSITIONS = [
+        (18, 8),  (18, 25), (18, 43), (18, 62), (18, 82),
+        (33, 5),  (33, 20), (33, 38), (33, 56), (33, 74), (33, 90),
+        (49, 12), (49, 28), (49, 47), (49, 65), (49, 83),
+        (64, 7),  (64, 22), (64, 42), (64, 60), (64, 78), (64, 93),
+        (79, 15), (79, 33), (79, 52), (79, 70), (79, 88),
+    ]
+
+    @http.route(['/my/variety'], type='http', auth="user", website=True)
+    def portal_variety(self, **kw):
+        """Display constellation sky variety badge — all topic tags, locked/unlocked"""
+        partner = request.env.user.partner_id
+
+        topic_category = request.env['event.tag.category'].sudo().search(
+            [('name', '=', 'Topics')], limit=1
+        )
+        topic_tags = request.env['event.tag'].sudo().search(
+            [('category_id', '=', topic_category.id)] if topic_category else [('id', '=', False)],
+            order='name'
+        )
+
+        try:
+            variety_badge = request.env.ref('popcorn.badge_variety').sudo()
+            if not variety_badge.active:
+                variety_badge = request.env['popcorn.badge']
+        except Exception:
+            variety_badge = request.env['popcorn.badge'].sudo().search(
+                [('is_variety_badge', '=', True), ('active', '=', True)], limit=1
+            )
+        anchor_date = None
+        if variety_badge:
+            anchor_rule = variety_badge.badge_rule_ids.filtered(
+                lambda r: r.active and r.time_filter_anchor_date
+            )[:1]
+            if anchor_rule:
+                from datetime import datetime
+                anchor_date = datetime.combine(
+                    anchor_rule.time_filter_anchor_date, datetime.min.time()
+                ).strftime('%Y-%m-%d %H:%M:%S')
+
+        attended_topic_ids = partner.get_attended_topic_ids(from_date=anchor_date)
+        badge_earned = bool(
+            variety_badge and (
+                variety_badge in partner.sudo().permanently_earned_badge_ids
+                or variety_badge._evaluate_badge_for_partner(partner)
+            )
+        )
+
+        positions = self._VARIETY_POSITIONS
+        tags_data = []
+        for i, tag in enumerate(topic_tags):
+            pos = positions[i % len(positions)]
+            tags_data.append({
+                'tag': tag,
+                'unlocked': tag.id in attended_topic_ids,
+                'img_src': '/popcorn/tag-image/%d' % tag.id if tag.constellation_image else None,
+                'top': pos[0],
+                'left': pos[1],
+            })
+
+        unlocked_count = len(attended_topic_ids & set(topic_tags.ids))
+
+        locked_teaser = ''
+        if variety_badge:
+            locked_teaser = variety_badge.variety_locked_teaser or ''
+
+        values = {
+            'partner': partner,
+            'tags_data': tags_data,
+            'unlocked_count': unlocked_count,
+            'total_count': len(topic_tags),
+            'badge_earned': badge_earned,
+            'variety_locked_teaser': locked_teaser,
+            'page_name': 'variety',
+        }
+
+        return request.render('popcorn.portal_variety_page', values)
+
+    @http.route(['/popcorn/tag-image/<int:tag_id>'], type='http', auth='public', website=True)
+    def tag_constellation_image(self, tag_id, **kw):
+        """Serve topic tag constellation image"""
+        import base64
+        tag = request.env['event.tag'].sudo().browse(tag_id)
+        if not tag.exists() or not tag.constellation_image:
+            return request.not_found()
+
+        img_bytes = base64.b64decode(tag.constellation_image)
+        content_type = 'image/png' if img_bytes[:4] == b'\x89PNG' else 'image/jpeg'
+        headers = [
+            ('Content-Type', content_type),
+            ('Cache-Control', 'public, max-age=86400'),
+        ]
+        return request.make_response(img_bytes, headers=headers)
 
     @http.route(['/popcorn/badges/check-new'], type='http', auth='user', website=True, csrf=False)
     def check_new_badges(self, **kw):
@@ -168,6 +282,26 @@ class PopcornBadgeController(http.Controller):
             return request.not_found()
 
         img_data = host.diversity_badge_image or host.host_poster_image
+        if not img_data:
+            return request.not_found()
+
+        img_bytes = base64.b64decode(img_data)
+        content_type = 'image/png' if img_bytes[:4] == b'\x89PNG' else 'image/jpeg'
+        headers = [
+            ('Content-Type', content_type),
+            ('Cache-Control', 'public, max-age=86400'),
+        ]
+        return request.make_response(img_bytes, headers=headers)
+
+    @http.route(['/popcorn/host-locked-image/<int:host_id>'], type='http', auth='public', website=True)
+    def host_diversity_locked_image(self, host_id, **kw):
+        """Serve host diversity badge locked image"""
+        import base64
+        host = request.env['res.partner'].sudo().browse(host_id)
+        if not host.exists() or not host.is_host:
+            return request.not_found()
+
+        img_data = host.diversity_badge_locked_image
         if not img_data:
             return request.not_found()
 

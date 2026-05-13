@@ -33,13 +33,27 @@ class EventEvent(models.Model):
         digits='Product Price',
         help='Alternative price for memberships in the special pricing list (for Social Experience events)'
     )
-    
+
     membership_plans_second_price_ids = fields.Many2many(
         'popcorn.membership.plan',
         string='Membership Plans with Second Price',
         help='Membership plans that should pay second_price for Social Experience events (skips quota check)'
     )
-    
+
+    third_price = fields.Float(
+        string='Third Price',
+        digits='Product Price',
+        help='Alternative price for memberships in the third pricing list (for Social Experience events)'
+    )
+
+    membership_plans_third_price_ids = fields.Many2many(
+        'popcorn.membership.plan',
+        'event_event_membership_plan_third_price_rel',
+        'event_id', 'plan_id',
+        string='Membership Plans with Third Price',
+        help='Membership plans that should pay third_price for Social Experience events (skips quota check)'
+    )
+
     hide_after_minutes = fields.Integer(
         string='Hide After Minutes',
         default=15,
@@ -521,6 +535,13 @@ class EventEvent(models.Model):
         for event in self:
             if event.membership_plans_second_price_ids and (not event.second_price or event.second_price <= 0):
                 raise ValidationError(_('Second Price must be set when membership plans are selected for special pricing'))
+
+    @api.constrains('third_price', 'membership_plans_third_price_ids')
+    def _check_third_price_required(self):
+        """Ensure third_price is set when membership_plans_third_price_ids has entries"""
+        for event in self:
+            if event.membership_plans_third_price_ids and (not event.third_price or event.third_price <= 0):
+                raise ValidationError(_('Third Price must be set when membership plans are selected for third pricing'))
     
     def can_register_with_membership(self, membership):
         """Check if a specific membership can be used for this event"""
@@ -745,30 +766,30 @@ class EventEvent(models.Model):
             
             promotions_count = min(available_seats, len(waitlist_regs))
             _logger.info("Event %s: Found %s waitlist registrations, promoting %s" % (event.id, len(waitlist_regs), promotions_count))
-            
+
             if promotions_count <= 0:
                 _logger.info("Event %s: No promotions to perform" % event.id)
                 return
-            
+
             # Perform all promotions while still holding the lock
             for i in range(promotions_count):
                 reg = waitlist_regs[i]
                 _logger.info("Event %s: Promoting registration %s - Partner: %s (position: %s)" % (event.id, reg.id, reg.partner_id.name, reg.waitlist_position))
-                
+
                 reg.write({
                     'is_on_waitlist': False,
                     'waitlist_position': 0,
                     'state': 'open',
                     'pending_wechat_notification': True,
                 })
-                
+
                 if reg.membership_id and reg.consumption_state == 'pending':
                     reg._consume_membership_quota()
-            
+
             remaining_regs = waitlist_regs[promotions_count:]
             for i, reg in enumerate(remaining_regs, 1):
                 reg.write({'waitlist_position': i})
-            
+
             _logger.info("Event %s: Successfully promoted %s registrations from waitlist" % (event.id, promotions_count))
                 
         except Exception as e:
@@ -1209,33 +1230,52 @@ class EventEvent(models.Model):
                 
                 # Process referrals for ended events
                 referrals_processed = 0
+                waitlist_cancelled = 0
                 for event in events_to_end:
+                    # Cancel any remaining waitlist registrations and restore their quota
+                    waitlist_regs = self.env['event.registration'].search([
+                        ('event_id', '=', event.id),
+                        ('is_on_waitlist', '=', True),
+                        ('state', '=', 'draft'),
+                    ])
+                    for reg in waitlist_regs:
+                        if reg.membership_id and reg.consumption_state == 'consumed':
+                            reg._restore_membership_quota()
+                        reg.with_context(skip_waitlist_promotion=True).write({
+                            'state': 'cancel',
+                            'consumption_state': 'cancelled',
+                        })
+                        reg.message_post(
+                            body=_('Waitlist registration cancelled: event has ended.')
+                        )
+                    waitlist_cancelled += len(waitlist_regs)
+
                     # Mark referrals as attended for confirmed registrations
                     referrals = self.env['popcorn.referral'].search([
                         ('event_id', '=', event.id),
                         ('status', '=', 'registered')
                     ])
-                    
+
                     for referral in referrals:
                         if referral.registration_id and referral.registration_id.state in ['open', 'done']:
                             referral.mark_as_attended()
                             referrals_processed += 1
-                    
+
                     # Complete referrals that are attended
                     attended_referrals = self.env['popcorn.referral'].search([
                         ('event_id', '=', event.id),
                         ('status', '=', 'attended'),
                         ('prize_awarded', '=', False)
                     ])
-                    
+
                     for referral in attended_referrals:
                         referral.complete_referral()
-                    
+
                     event.message_post(
                         body=_('Event automatically marked as ended 15 minutes after completion')
                     )
-                
-                _logger.info(f'Automatically marked {len(events_to_end)} events as ended and processed {referrals_processed} referrals')
+
+                _logger.info(f'Automatically marked {len(events_to_end)} events as ended, cancelled {waitlist_cancelled} waitlist registrations, and processed {referrals_processed} referrals')
             else:
                 _logger.warning('Could not find "Ended" stage for events')
         

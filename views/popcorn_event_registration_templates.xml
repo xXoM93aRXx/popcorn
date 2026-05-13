@@ -100,7 +100,7 @@
                                             t-att-data-currency-symbol="event.currency_id.symbol">
                                         <i class="fa fa-share-alt"></i> 
                                         <span t-translation="on">Refer to a friend and win </span>
-                                        <strong><t t-esc="event.currency_id.symbol"/><t t-esc="'{:,.0f}'.format(event.referral_prize)"/></strong>
+                                        <strong><t t-esc="'{:,.0f}'.format(event.referral_prize)"/> <span t-translation="on">Popcorn Money</span></strong>
                                     </button>
                                 </t>
                             </t>
@@ -129,7 +129,7 @@
                                             <div class="popcorn-purchase-info">
                                                 <h4><span t-translation="on">Buy Club Ticket</span></h4>
                                                 <p class="popcorn-price">
-                                                    <span t-translation="on">Price:</span> 
+                                                    <span t-translation="on">Price:</span>
                                                     <strong>
                                                         <t t-esc="event.currency_id.symbol"/>
                                                         <t t-if="should_pay_second_price">
@@ -171,7 +171,7 @@
                                                             t-att-data-currency-symbol="event.currency_id.symbol">
                                                         <i class="fa fa-share-alt"></i> 
                                                         <span t-translation="on">Refer to a friend and win </span>
-                                                        <strong><t t-esc="event.currency_id.symbol"/><t t-esc="'{:,.0f}'.format(event.referral_prize)"/></strong>
+                                                        <strong><t t-esc="'{:,.0f}'.format(event.referral_prize)"/> <span t-translation="on">Popcorn Money</span></strong>
                                                     </button>
                                                 </t>
                                             </div>

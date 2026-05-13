@@ -31,6 +31,17 @@ class Badge(models.Model):
         default=False,
         help='If enabled, clicking this badge in the portal shows the Mortal Kombat style host unlock screen'
     )
+    is_variety_badge = fields.Boolean(
+        'Variety Badge',
+        default=False,
+        help='If enabled, clicking this badge in the portal shows the constellation sky topic unlock screen'
+    )
+    variety_locked_teaser = fields.Char(
+        'Locked Teaser',
+        translate=True,
+        default="Learn cool facts about me when I'm unlocked!",
+        help='Text shown in the info card instead of the description when a constellation is locked'
+    )
 
     # Computed field to show if user has earned this badge
     earned = fields.Boolean('Earned', compute='_compute_earned', store=False)
@@ -159,6 +170,10 @@ class BadgeRule(models.Model):
             # Special case: minimum perfect attendances per calendar month
             if field_name == 'min_perfect_attendance_per_month':
                 return self._evaluate_min_perfect_per_month_rule(partner)
+
+            # Special case: distinct topics count (event tags in the "Topic" category)
+            if field_name == 'distinct_topics_count_in_period':
+                return self._evaluate_distinct_topics_rule(partner)
             
             # Universal approach: Find records related to this partner
             records = self._find_records_for_partner(model_name, partner)
@@ -348,6 +363,44 @@ class BadgeRule(models.Model):
         except Exception as e:
             import logging
             logging.getLogger(__name__).warning('Error evaluating min_perfect_attendance_per_month: %s', e)
+            return False
+
+    def _evaluate_distinct_topics_rule(self, partner):
+        """Count distinct event tags in the 'Topic' category across non-cancelled registrations."""
+        try:
+            from datetime import datetime, timedelta
+            import logging
+            _logger = logging.getLogger(__name__)
+
+            domain = [
+                ('partner_id', '=', partner.id),
+                ('state', '!=', 'cancel'),
+            ]
+            if self.time_filter_anchor_date:
+                anchor = datetime.combine(self.time_filter_anchor_date, datetime.min.time())
+                domain.append(('create_date', '>=', anchor.strftime('%Y-%m-%d %H:%M:%S')))
+
+            registrations = self.env['event.registration'].search(domain)
+
+            topic_ids = set()
+            for reg in registrations:
+                for tag in reg.event_id.tag_ids:
+                    if tag.category_id.name == 'Topics':
+                        topic_ids.add(tag.id)
+
+            distinct_count = len(topic_ids)
+            comparison_value = int(self.value) if self.value.isdigit() else 0
+            result = self._evaluate_condition(distinct_count, self.operator, comparison_value)
+
+            _logger.info(
+                'Badge Rule %s for partner %s: distinct_topics=%s, needed %s %s, result=%s',
+                self.name, partner.id, distinct_count, self.operator, comparison_value, result,
+            )
+            return result
+
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning('Error evaluating distinct_topics_count_in_period: %s', e)
             return False
 
     def _find_records_for_partner(self, model_name, partner):
@@ -588,6 +641,12 @@ class ResPartner(models.Model):
         store=False,
         help='Minimum perfect (non-cancelled, not late, not no-show) attendances in any calendar month within a period (used by badge rules)'
     )
+    distinct_topics_count_in_period = fields.Integer(
+        string='Distinct Topics Count (Period)',
+        compute='_compute_distinct_topics_count_in_period',
+        store=False,
+        help='Number of distinct event topics (tags in the Topic category) attended (used by badge rules)'
+    )
 
     def _compute_penalty_count_in_period(self):
         for partner in self:
@@ -596,6 +655,10 @@ class ResPartner(models.Model):
     def _compute_min_perfect_attendance_per_month(self):
         for partner in self:
             partner.min_perfect_attendance_per_month = 0
+
+    def _compute_distinct_topics_count_in_period(self):
+        for partner in self:
+            partner.distinct_topics_count_in_period = 0
 
     badge_ids = fields.Many2many('popcorn.badge', 'partner_badge_rel', 'partner_id', 'badge_id',
                                  string='Available Badges', compute='_compute_badge_ids', store=False)

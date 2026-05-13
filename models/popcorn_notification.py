@@ -2,6 +2,7 @@
 
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
+from datetime import timedelta
 import re
 import logging
 
@@ -510,9 +511,13 @@ class PopcornNotification(models.Model):
         
         for placeholder in placeholders:
             value = None
-            
+
+            # Computed placeholders
+            if placeholder == 'last_renewal_date':
+                if active_membership and active_membership.effective_end_date:
+                    value = active_membership.effective_end_date - timedelta(days=30)
             # Try to get from partner first
-            if hasattr(partner, placeholder):
+            elif hasattr(partner, placeholder):
                 value = getattr(partner, placeholder, '')
             # Then try from active membership
             elif active_membership and hasattr(active_membership, placeholder):

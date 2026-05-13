@@ -70,6 +70,7 @@
                 <field name="online_status" invisible="not is_host"/>
                 <field name="host_poster_image" widget="image" filename="host_poster_image_filename" invisible="not is_host"/>
                 <field name="diversity_badge_image" widget="image" filename="diversity_badge_image_filename" invisible="not is_host"/>
+                <field name="diversity_badge_locked_image" widget="image" filename="diversity_badge_locked_image_filename" invisible="not is_host"/>
                 <field name="banner_image" widget="image" filename="banner_image_filename" invisible="not is_host"/>
             </xpath>
         </field>

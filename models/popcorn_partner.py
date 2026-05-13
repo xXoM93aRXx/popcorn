@@ -51,6 +51,16 @@ class ResPartner(models.Model):
     diversity_badge_image_filename = fields.Char(
         string='Diversity Badge Image Filename',
     )
+
+    diversity_badge_locked_image = fields.Binary(
+        string='Diversity Badge Locked Image',
+        attachment=True,
+        help='Image shown on the Diversity Badge character select screen when the host has not yet been attended'
+    )
+
+    diversity_badge_locked_image_filename = fields.Char(
+        string='Diversity Badge Locked Image Filename',
+    )
     
     banner_image = fields.Binary(
         string='Banner Image',
@@ -268,15 +278,47 @@ class ResPartner(models.Model):
                 _logger.warning(f"Error computing distinct_hosts_count for partner {partner.id}: {e}")
                 partner.distinct_hosts_count = 0
     
-    def get_attended_host_ids(self):
-        """Return a set of host partner IDs this partner has a non-cancelled registration for"""
+    def get_attended_host_ids(self, from_date=None):
+        """Return a set of host partner IDs this partner has a non-cancelled registration for.
+
+        Only events whose end time has already passed are counted.
+        If from_date is provided, only registrations created on or after that date are counted.
+        """
         self.ensure_one()
-        attended_registrations = self.env['event.registration'].sudo().search([
+        domain = [
             ('partner_id', '=', self.id),
             ('state', '!=', 'cancel'),
-        ])
+            ('is_no_show_attendance', '=', False),
+            ('event_id.date_end', '<=', fields.Datetime.now()),
+        ]
+        if from_date:
+            domain.append(('create_date', '>=', from_date))
+        attended_registrations = self.env['event.registration'].sudo().search(domain)
         host_partners = attended_registrations.mapped('event_id.host_id').filtered('id')
         return set(host_partners.mapped('id'))
+
+    def get_attended_topic_ids(self, from_date=None):
+        """Return a set of Topic tag IDs this partner has attended events for.
+
+        Only events whose end time has already passed are counted.
+        If from_date is provided, only registrations created on or after that date are counted.
+        """
+        self.ensure_one()
+        domain = [
+            ('partner_id', '=', self.id),
+            ('state', '!=', 'cancel'),
+            ('is_no_show_attendance', '=', False),
+            ('event_id.date_end', '<=', fields.Datetime.now()),
+        ]
+        if from_date:
+            domain.append(('create_date', '>=', from_date))
+        attended_registrations = self.env['event.registration'].sudo().search(domain)
+        topic_tag_ids = set()
+        for reg in attended_registrations:
+            for tag in reg.event_id.tag_ids:
+                if tag.category_id.name == 'Topics':
+                    topic_tag_ids.add(tag.id)
+        return topic_tag_ids
 
     @api.model
     def recompute_distinct_hosts_count(self, partner_ids=None):
@@ -600,6 +642,10 @@ class ResPartner(models.Model):
     
     def write(self, vals):
         """Override write to detect Popcorn money balance changes and auto-generate first-timer discounts"""
+        # When PDB is switched on, clear First Timer
+        if vals.get('pdb'):
+            vals['is_first_timer'] = False
+
         # Check if popcorn_money_balance is being changed
         if 'popcorn_money_balance' in vals:
             for record in self:
