@@ -150,6 +150,18 @@ class ResPartner(models.Model):
         help='Pitched Didn\'t Buy'
     )
 
+    pdb_date = fields.Date(
+        string='PDB Date',
+        help='Date when partner was first marked as PDB (Pitched Didn\'t Buy)'
+    )
+
+    is_pdb_today = fields.Boolean(
+        string='Is PDB Today',
+        compute='_compute_is_pdb_today',
+        store=False,
+        help='True if this partner was marked as PDB today — used to show same-day popup notification'
+    )
+
     # Staff member field
     book_club_automatically = fields.Boolean(
         string='Book Club Automatically',
@@ -393,6 +405,12 @@ class ResPartner(models.Model):
                     partner.first_timer_discount_is_used = False
             else:
                 partner.first_timer_discount_is_used = False
+
+    @api.depends('pdb', 'pdb_date')
+    def _compute_is_pdb_today(self):
+        today = fields.Date.today()
+        for partner in self:
+            partner.is_pdb_today = partner.pdb and partner.pdb_date == today
 
     def _get_first_timer_discount_record(self):
         """Get the live discount record linked to this partner's first-timer code."""
@@ -642,9 +660,10 @@ class ResPartner(models.Model):
     
     def write(self, vals):
         """Override write to detect Popcorn money balance changes and auto-generate first-timer discounts"""
-        # When PDB is switched on, clear First Timer
+        # When PDB is switched on, clear First Timer and stamp today's date
         if vals.get('pdb'):
             vals['is_first_timer'] = False
+            vals['pdb_date'] = fields.Date.today()
 
         # Check if popcorn_money_balance is being changed
         if 'popcorn_money_balance' in vals:
