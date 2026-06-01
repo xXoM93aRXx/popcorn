@@ -1,19 +1,14 @@
 /** @odoo-module **/
 
 /**
- * Student card upload handler for the membership checkout page.
+ * Student card and ID card upload handler for the membership checkout page.
  * Only activates when #student_card_file is present in the DOM
  * (i.e. plan.is_student_plan is True on the rendered checkout page).
  */
 
 function wireStudentCardUpload() {
-    const fileInput   = document.getElementById('student_card_file');
-    const hiddenInput = document.getElementById('student_card_attachment_id');
-    const statusDiv   = document.getElementById('student-card-status');
-    const form        = document.querySelector('.popcorn-membership-checkout-form');
-
-    // Only run on pages that have the student card upload section
-    if (!fileInput || !hiddenInput || !statusDiv) return;
+    const form = document.querySelector('.popcorn-membership-checkout-form');
+    if (!form) return;
 
     // Resolve CSRF token using the same fallback chain as popcorn_coupon.js
     function getCsrfToken() {
@@ -25,62 +20,94 @@ function wireStudentCardUpload() {
         );
     }
 
-    function setStatus(msg, type) {
-        statusDiv.style.display = 'block';
-        statusDiv.className = 'alert alert-' + (type || 'info');
-        statusDiv.textContent = msg;
+    function wireUpload(fileInputId, hiddenInputId, statusDivId, docType) {
+        const fileInput   = document.getElementById(fileInputId);
+        const hiddenInput = document.getElementById(hiddenInputId);
+        const statusDiv   = document.getElementById(statusDivId);
+        if (!fileInput || !hiddenInput || !statusDiv) return;
+
+        function setStatus(msg, type) {
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'alert alert-' + (type || 'info');
+            statusDiv.textContent = msg;
+        }
+
+        fileInput.addEventListener('change', function () {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            if (file.size > 5 * 1024 * 1024) {
+                setStatus('File too large. Maximum size is 5 MB.', 'danger');
+                fileInput.value = '';
+                hiddenInput.value = '';
+                return;
+            }
+
+            setStatus('Uploading…', 'info');
+
+            const formData = new FormData();
+            formData.append(docType, file);
+            formData.append('doc_type', docType);
+            formData.append('csrf_token', getCsrfToken());
+
+            fetch('/memberships/upload_document', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+            })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                if (data.error) {
+                    setStatus(data.error, 'danger');
+                    hiddenInput.value = '';
+                } else {
+                    hiddenInput.value = data.attachment_id;
+                    setStatus('✓ ' + data.filename + ' uploaded successfully.', 'success');
+                }
+            })
+            .catch(function () {
+                setStatus('Upload failed. Please try again.', 'danger');
+                hiddenInput.value = '';
+            });
+        });
     }
 
-    fileInput.addEventListener('change', function () {
-        const file = fileInput.files[0];
-        if (!file) return;
+    wireUpload('student_card_file', 'student_card_attachment_id', 'student-card-status', 'student_card');
+    wireUpload('id_card_file', 'id_card_attachment_id', 'id-card-status', 'id_card');
 
-        // Client-side size guard (5 MB)
-        if (file.size > 5 * 1024 * 1024) {
-            setStatus('File too large. Maximum size is 5 MB.', 'danger');
-            fileInput.value = '';
-            hiddenInput.value = '';
+    // Block form submission until both documents have been uploaded
+    form.addEventListener('submit', function (e) {
+        const studentCardInput = document.getElementById('student_card_attachment_id');
+        const idCardInput      = document.getElementById('id_card_attachment_id');
+
+        // Only validate if student card section is present on this page
+        if (!studentCardInput) return;
+
+        if (!studentCardInput.value) {
+            e.preventDefault();
+            const statusDiv = document.getElementById('student-card-status');
+            if (statusDiv) {
+                statusDiv.style.display = 'block';
+                statusDiv.className = 'alert alert-danger';
+                statusDiv.textContent = 'Please upload your student card before completing the purchase.';
+            }
+            const section = document.getElementById('student-card-section');
+            if (section) section.scrollIntoView({ behavior: 'smooth' });
             return;
         }
 
-        setStatus('Uploading…', 'info');
-
-        const formData = new FormData();
-        formData.append('student_card', file);
-        formData.append('csrf_token', getCsrfToken());
-
-        fetch('/memberships/upload_student_card', {
-            method: 'POST',
-            body: formData,
-            credentials: 'same-origin',
-        })
-        .then(function (response) { return response.json(); })
-        .then(function (data) {
-            if (data.error) {
-                setStatus(data.error, 'danger');
-                hiddenInput.value = '';
-            } else {
-                hiddenInput.value = data.attachment_id;
-                setStatus('✓ ' + data.filename + ' uploaded successfully.', 'success');
+        if (idCardInput && !idCardInput.value) {
+            e.preventDefault();
+            const statusDiv = document.getElementById('id-card-status');
+            if (statusDiv) {
+                statusDiv.style.display = 'block';
+                statusDiv.className = 'alert alert-danger';
+                statusDiv.textContent = 'Please upload your ID card before completing the purchase.';
             }
-        })
-        .catch(function () {
-            setStatus('Upload failed. Please try again.', 'danger');
-            hiddenInput.value = '';
-        });
+            const section = document.getElementById('student-card-section');
+            if (section) section.scrollIntoView({ behavior: 'smooth' });
+        }
     });
-
-    // Block form submission until a student card has been uploaded
-    if (form) {
-        form.addEventListener('submit', function (e) {
-            if (!hiddenInput.value) {
-                e.preventDefault();
-                setStatus('Please upload your student card before completing the purchase.', 'danger');
-                const section = document.getElementById('student-card-section');
-                if (section) section.scrollIntoView({ behavior: 'smooth' });
-            }
-        });
-    }
 }
 
 if (document.readyState === 'loading') {

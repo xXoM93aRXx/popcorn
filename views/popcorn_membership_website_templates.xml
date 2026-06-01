@@ -254,18 +254,26 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- Student Card Upload (student plans only) -->
+                                    <!-- Student Card + ID Card Upload (student plans only) -->
                                     <t t-if="plan.is_student_plan">
                                         <div class="popcorn-form-section" id="student-card-section">
                                             <h3 class="popcorn-section-title">
                                                 <i class="fa fa-id-card"></i> Student Verification
                                             </h3>
+                                            <p class="text-muted" style="font-size:0.9em; margin-bottom:12px;">Both documents are required. Your membership will be activated once staff verify them.</p>
                                             <div class="popcorn-form-group">
                                                 <label for="student_card_file" class="popcorn-form-label">Upload Student Card *</label>
-                                                <p class="text-muted" style="font-size:0.9em; margin-bottom:8px;">Please upload a photo or scan of your valid student ID (JPG, PNG or PDF, max 5MB). Your membership will be activated once staff verify your document.</p>
+                                                <p class="text-muted" style="font-size:0.85em; margin-bottom:6px;">Photo or scan of your valid student ID (JPG, PNG or PDF, max 5MB).</p>
                                                 <input type="file" id="student_card_file" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf" class="popcorn-form-input"/>
                                                 <input type="hidden" id="student_card_attachment_id" name="student_card_attachment_id" value=""/>
-                                                <div id="student-card-status" style="margin-top:8px; display:none;"/>
+                                                <div id="student-card-status" style="margin-top:6px; display:none;"/>
+                                            </div>
+                                            <div class="popcorn-form-group" style="margin-top:12px;">
+                                                <label for="id_card_file" class="popcorn-form-label">Upload ID Card *</label>
+                                                <p class="text-muted" style="font-size:0.85em; margin-bottom:6px;">Photo or scan of your government-issued ID (JPG, PNG or PDF, max 5MB).</p>
+                                                <input type="file" id="id_card_file" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf" class="popcorn-form-input"/>
+                                                <input type="hidden" id="id_card_attachment_id" name="id_card_attachment_id" value=""/>
+                                                <div id="id-card-status" style="margin-top:6px; display:none;"/>
                                             </div>
                                         </div>
                                     </t>

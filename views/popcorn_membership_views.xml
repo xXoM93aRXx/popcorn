@@ -105,11 +105,14 @@
                             <strong>Pending Student Verification:</strong> The member has uploaded a student card. Please review it and click <strong>Activate</strong> to confirm.
                         </div>
 
-                        <!-- Student Card -->
-                        <group string="Student Verification" invisible="not student_card_attachment_id">
-                            <field name="student_card_attachment_id" string="File"/>
+                        <!-- Student Verification Documents -->
+                        <group string="Student Verification" invisible="not student_card_attachment_id and not id_card_attachment_id">
+                            <field name="student_card_attachment_id" string="Student Card File"/>
                             <field name="student_card_image" widget="image" readonly="1"
                                    invisible="not student_card_image"/>
+                            <field name="id_card_attachment_id" string="ID Card File"/>
+                            <field name="id_card_image" widget="image" readonly="1"
+                                   invisible="not id_card_image"/>
                         </group>
                         
                         <notebook>

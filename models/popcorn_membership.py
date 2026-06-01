@@ -101,6 +101,11 @@ class PopcornMembership(models.Model):
     student_card_image = fields.Binary(string='Student Card Preview',
         compute='_compute_student_card_image', store=False,
         help='Image preview of the uploaded student card (images only).')
+    id_card_attachment_id = fields.Many2one('ir.attachment', string='ID Card', ondelete='set null',
+        help='Government ID card uploaded at checkout for verification by staff.')
+    id_card_image = fields.Binary(string='ID Card Preview',
+        compute='_compute_id_card_image', store=False,
+        help='Image preview of the uploaded ID card (images only).')
 
     @api.depends('student_card_attachment_id')
     def _compute_student_card_image(self):
@@ -110,6 +115,15 @@ class PopcornMembership(models.Model):
                 rec.student_card_image = att.datas
             else:
                 rec.student_card_image = False
+
+    @api.depends('id_card_attachment_id')
+    def _compute_id_card_image(self):
+        for rec in self:
+            att = rec.id_card_attachment_id
+            if att and att.mimetype and att.mimetype.startswith('image/'):
+                rec.id_card_image = att.datas
+            else:
+                rec.id_card_image = False
     
     # Related fields for convenience
     plan_duration_days = fields.Integer(string='Plan Duration (Days)', related='membership_plan_id.duration_days')

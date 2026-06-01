@@ -22,26 +22,29 @@ class PopcornMembershipController(http.Controller):
             _logger.warning('Failed to check SMS config status: %s', str(e))
             return False
     
-    @http.route(['/memberships/upload_student_card'], type='http', auth='user', website=True, methods=['POST'])
-    def upload_student_card(self, **post):
-        """AJAX endpoint: upload student card file, return attachment_id"""
+    @http.route(['/memberships/upload_document'], type='http', auth='user', website=True, methods=['POST'])
+    def upload_membership_document(self, **post):
+        """AJAX endpoint: upload student card or ID card, return attachment_id.
+        Expects multipart field name matching the doc_type param ('student_card' or 'id_card').
+        """
         import base64
         try:
-            student_card_file = request.httprequest.files.get('student_card')
-            if not student_card_file or not student_card_file.filename:
+            doc_type = post.get('doc_type', 'student_card')
+            uploaded_file = request.httprequest.files.get(doc_type)
+            if not uploaded_file or not uploaded_file.filename:
                 return request.make_response(
                     json.dumps({'error': 'No file provided'}),
                     headers=[('Content-Type', 'application/json')]
                 )
 
             allowed_mimetypes = {'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'}
-            if student_card_file.content_type not in allowed_mimetypes:
+            if uploaded_file.content_type not in allowed_mimetypes:
                 return request.make_response(
                     json.dumps({'error': 'Invalid file type. Please upload JPG, PNG, or PDF.'}),
                     headers=[('Content-Type', 'application/json')]
                 )
 
-            file_data = student_card_file.read()
+            file_data = uploaded_file.read()
             if len(file_data) > 5 * 1024 * 1024:
                 return request.make_response(
                     json.dumps({'error': 'File too large. Maximum size is 5MB.'}),
@@ -49,24 +52,30 @@ class PopcornMembershipController(http.Controller):
                 )
 
             attachment = request.env['ir.attachment'].sudo().create({
-                'name': student_card_file.filename,
+                'name': uploaded_file.filename,
                 'type': 'binary',
                 'datas': base64.b64encode(file_data).decode('utf-8'),
-                'mimetype': student_card_file.content_type,
+                'mimetype': uploaded_file.content_type,
                 'res_model': 'popcorn.membership',
                 'res_id': 0,
             })
 
             return request.make_response(
-                json.dumps({'attachment_id': attachment.id, 'filename': student_card_file.filename}),
+                json.dumps({'attachment_id': attachment.id, 'filename': uploaded_file.filename}),
                 headers=[('Content-Type', 'application/json')]
             )
         except Exception as e:
-            _logger.error(f"Student card upload failed: {str(e)}", exc_info=True)
+            _logger.error(f"Document upload failed: {str(e)}", exc_info=True)
             return request.make_response(
                 json.dumps({'error': 'Upload failed. Please try again.'}),
                 headers=[('Content-Type', 'application/json')]
             )
+
+    # Keep old route as alias for backwards compatibility
+    @http.route(['/memberships/upload_student_card'], type='http', auth='user', website=True, methods=['POST'])
+    def upload_student_card(self, **post):
+        post['doc_type'] = 'student_card'
+        return self.upload_membership_document(**post)
 
     @http.route(['/memberships'], type='http', auth="public", website=True)
     def memberships_list(self, **post):
@@ -521,19 +530,28 @@ class PopcornMembershipController(http.Controller):
             if not post.get('terms_accepted'):
                 return request.redirect('/memberships/%s/checkout?error=terms_not_accepted' % plan.id)
 
-            # Validate student card upload if this is a student plan
+            # Validate student card and ID card uploads if this is a student plan
             student_card_attachment_id = None
+            id_card_attachment_id = None
             if plan.is_student_plan:
-                raw_id = post.get('student_card_attachment_id', '').strip()
-                if not raw_id:
-                    return request.redirect('/memberships/%s/checkout?error=student_card_required' % plan.id)
-                try:
-                    student_card_attachment_id = int(raw_id)
-                    attachment = request.env['ir.attachment'].sudo().browse(student_card_attachment_id)
-                    if not attachment.exists():
-                        return request.redirect('/memberships/%s/checkout?error=student_card_invalid' % plan.id)
-                except (ValueError, TypeError):
-                    return request.redirect('/memberships/%s/checkout?error=student_card_invalid' % plan.id)
+                for field_name, error_code in [
+                    ('student_card_attachment_id', 'student_card_required'),
+                    ('id_card_attachment_id', 'id_card_required'),
+                ]:
+                    raw_id = post.get(field_name, '').strip()
+                    if not raw_id:
+                        return request.redirect('/memberships/%s/checkout?error=%s' % (plan.id, error_code))
+                    try:
+                        att_id = int(raw_id)
+                        attachment = request.env['ir.attachment'].sudo().browse(att_id)
+                        if not attachment.exists():
+                            return request.redirect('/memberships/%s/checkout?error=%s_invalid' % (plan.id, field_name))
+                        if field_name == 'student_card_attachment_id':
+                            student_card_attachment_id = att_id
+                        else:
+                            id_card_attachment_id = att_id
+                    except (ValueError, TypeError):
+                        return request.redirect('/memberships/%s/checkout?error=%s_invalid' % (plan.id, field_name))
 
             # Get payment method/provider ID
             payment_method_id = post.get('payment_method_id')
@@ -555,6 +573,7 @@ class PopcornMembershipController(http.Controller):
                         applied_discount=applied_discount,
                         is_renewal=is_renewal,
                         student_card_attachment_id=student_card_attachment_id,
+                        id_card_attachment_id=id_card_attachment_id,
                     )
                     _logger.info(f"Renewal membership created with ID: {membership.id}")
                     
@@ -620,6 +639,7 @@ class PopcornMembershipController(http.Controller):
                         applied_discount=applied_discount,
                         is_renewal=is_renewal,
                         student_card_attachment_id=student_card_attachment_id,
+                        id_card_attachment_id=id_card_attachment_id,
                     )
                     
                     # Pair activation by phone for buy-together enabled plans
@@ -721,7 +741,7 @@ class PopcornMembershipController(http.Controller):
             _logger.info(f"Payment provider name: '{payment_provider.name}', lowercase: '{payment_provider.name.lower()}'")
             if payment_provider.name.lower() in ['bank transfer', 'bank_transfer']:
                 # For bank transfer, create membership immediately but mark as pending payment
-                membership = self._create_membership_from_plan(plan, partner, customer_signature=customer_signature, applied_discount=applied_discount, is_renewal=is_renewal, student_card_attachment_id=student_card_attachment_id)
+                membership = self._create_membership_from_plan(plan, partner, customer_signature=customer_signature, applied_discount=applied_discount, is_renewal=is_renewal, student_card_attachment_id=student_card_attachment_id, id_card_attachment_id=id_card_attachment_id)
                 if not plan.is_student_plan:
                     membership.write({'state': 'pending_payment'})
                 
@@ -782,6 +802,7 @@ class PopcornMembershipController(http.Controller):
                     'applied_discount_id': applied_discount.id if applied_discount else False,
                     'customer_signature': customer_signature,
                     'student_card_attachment_id': student_card_attachment_id,
+                    'id_card_attachment_id': id_card_attachment_id,
                 })
 
                 _logger.info(f"WeChat payment transaction created with ID: {payment_transaction.id}, "
@@ -863,6 +884,7 @@ class PopcornMembershipController(http.Controller):
                     'customer_signature': customer_signature,
                     'landing_route': landing_route,
                     'student_card_attachment_id': student_card_attachment_id,
+                    'id_card_attachment_id': id_card_attachment_id,
                 })
                 
                 # Update landing route with access token for secure redirect
@@ -965,6 +987,7 @@ class PopcornMembershipController(http.Controller):
                     'applied_discount_id': applied_discount.id if applied_discount else False,
                     'customer_signature': customer_signature,
                     'student_card_attachment_id': student_card_attachment_id,
+                    'id_card_attachment_id': id_card_attachment_id,
                 })
 
                 _logger.info(f"Payment transaction created with ID: {payment_transaction.id}, "
@@ -1643,7 +1666,7 @@ class PopcornMembershipController(http.Controller):
         
         return upgraded_membership
     
-    def _create_membership_from_plan(self, plan, partner, purchase_channel='online', price_tier=None, upgrade_discount_allowed=False, first_timer_customer=False, payment_transaction_id=None, payment_reference=None, customer_signature=None, applied_discount=None, is_renewal=False, student_card_attachment_id=None):
+    def _create_membership_from_plan(self, plan, partner, purchase_channel='online', price_tier=None, upgrade_discount_allowed=False, first_timer_customer=False, payment_transaction_id=None, payment_reference=None, customer_signature=None, applied_discount=None, is_renewal=False, student_card_attachment_id=None, id_card_attachment_id=None):
         """Create a membership directly from a plan (bypassing sales orders)"""
         # Determine price tier if not provided
         if price_tier is None:
@@ -1761,16 +1784,22 @@ class PopcornMembershipController(http.Controller):
             membership.write({'contract_id': contract.id})
             membership.message_post(body=_('Contract created and signed by customer during checkout'))
 
-        # Link student card attachment if present
-        if plan.is_student_plan and student_card_attachment_id:
-            try:
-                attachment = request.env['ir.attachment'].sudo().browse(student_card_attachment_id)
-                if attachment.exists():
-                    attachment.write({'res_id': membership.id})
-                    membership.write({'student_card_attachment_id': attachment.id})
-                    membership.message_post(body=_('Student card uploaded. Awaiting staff verification before activation.'))
-            except Exception as e:
-                _logger.error(f"Failed to link student card attachment: {str(e)}")
+        # Link student card and ID card attachments if present
+        if plan.is_student_plan:
+            for att_id, field in [
+                (student_card_attachment_id, 'student_card_attachment_id'),
+                (id_card_attachment_id, 'id_card_attachment_id'),
+            ]:
+                if att_id:
+                    try:
+                        attachment = request.env['ir.attachment'].sudo().browse(att_id)
+                        if attachment.exists():
+                            attachment.write({'res_id': membership.id})
+                            membership.write({field: attachment.id})
+                    except Exception as e:
+                        _logger.error(f"Failed to link attachment {field}: {str(e)}")
+            if student_card_attachment_id or id_card_attachment_id:
+                membership.message_post(body=_('Student card and/or ID card uploaded. Awaiting staff verification before activation.'))
 
         # Log the creation
         membership.message_post(

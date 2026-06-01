@@ -46,6 +46,12 @@ class PaymentTransaction(models.Model):
         ondelete='set null',
         help='Student ID card uploaded during checkout, transferred to membership on creation'
     )
+    id_card_attachment_id = fields.Many2one(
+        'ir.attachment',
+        string='ID Card',
+        ondelete='set null',
+        help='Government ID card uploaded during checkout, transferred to membership on creation'
+    )
     
     # Event fields
     event_id = fields.Many2one(
@@ -469,11 +475,15 @@ class PaymentTransaction(models.Model):
             membership.write({'contract_id': contract.id})
             membership.message_post(body=_('Contract created and signed by customer during checkout'))
 
-        # Link student card attachment if present
+        # Link student card and ID card attachments if present
         if plan.is_student_plan and self.student_card_attachment_id:
             self.student_card_attachment_id.write({'res_id': membership.id})
             membership.write({'student_card_attachment_id': self.student_card_attachment_id.id})
-            membership.message_post(body=_('Student card uploaded. Awaiting staff verification before activation.'))
+        if plan.is_student_plan and self.id_card_attachment_id:
+            self.id_card_attachment_id.write({'res_id': membership.id})
+            membership.write({'id_card_attachment_id': self.id_card_attachment_id.id})
+        if plan.is_student_plan and (self.student_card_attachment_id or self.id_card_attachment_id):
+            membership.message_post(body=_('Student card and/or ID card uploaded. Awaiting staff verification before activation.'))
 
         # Log the creation
         membership.message_post(
