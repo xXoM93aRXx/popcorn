@@ -5,7 +5,8 @@
  * Only activates when #student_card_file is present in the DOM
  * (i.e. plan.is_student_plan is True on the rendered checkout page).
  */
-document.addEventListener('DOMContentLoaded', function () {
+
+function wireStudentCardUpload() {
     const fileInput   = document.getElementById('student_card_file');
     const hiddenInput = document.getElementById('student_card_attachment_id');
     const statusDiv   = document.getElementById('student-card-status');
@@ -13,6 +14,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Only run on pages that have the student card upload section
     if (!fileInput || !hiddenInput || !statusDiv) return;
+
+    // Resolve CSRF token using the same fallback chain as popcorn_coupon.js
+    function getCsrfToken() {
+        return (
+            document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+            document.querySelector('input[name="csrf_token"]')?.value ||
+            (typeof odoo !== 'undefined' && odoo.csrf_token) ||
+            ''
+        );
+    }
 
     function setStatus(msg, type) {
         statusDiv.style.display = 'block';
@@ -36,8 +47,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const formData = new FormData();
         formData.append('student_card', file);
-        // Odoo CSRF token is available on window.odoo.csrf_token
-        formData.append('csrf_token', odoo.csrf_token);
+        formData.append('csrf_token', getCsrfToken());
 
         fetch('/memberships/upload_student_card', {
             method: 'POST',
@@ -71,4 +81,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', wireStudentCardUpload);
+} else {
+    wireStudentCardUpload();
+}
