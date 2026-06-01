@@ -109,8 +109,7 @@
                         <group string="Student Verification" invisible="not student_card_attachment_id">
                             <field name="student_card_attachment_id" string="File"/>
                             <field name="student_card_image" widget="image" readonly="1"
-                                   invisible="not student_card_image"
-                                   options="{'size': [500, 350]}"/>
+                                   invisible="not student_card_image"/>
                         </group>
                         
                         <notebook>
