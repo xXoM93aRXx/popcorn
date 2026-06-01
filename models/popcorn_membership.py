@@ -24,6 +24,7 @@ class PopcornMembership(models.Model):
         ('pending', 'Pending'),
         ('pending_payment', 'Pending Payment'),
         ('pending_buy_together', 'Pending Buy-Together'),
+        ('pending_student_verification', 'Pending Student Verification'),
         ('active', 'Active'),
         ('frozen', 'Frozen'),
         ('expired', 'Expired')
@@ -93,6 +94,10 @@ class PopcornMembership(models.Model):
     
     # Contract relationship
     contract_id = fields.Many2one('popcorn.contract', string='Contract', ondelete='set null')
+
+    # Student verification
+    student_card_attachment_id = fields.Many2one('ir.attachment', string='Student Card', ondelete='set null',
+        help='Student ID card uploaded at checkout for verification by staff.')
     
     # Related fields for convenience
     plan_duration_days = fields.Integer(string='Plan Duration (Days)', related='membership_plan_id.duration_days')
@@ -433,8 +438,8 @@ class PopcornMembership(models.Model):
     def action_activate(self):
         """Activate a pending membership"""
         self.ensure_one()
-        if self.state not in ['pending', 'pending_payment']:
-            raise UserError(_('Only pending or pending payment memberships can be activated'))
+        if self.state not in ['pending', 'pending_payment', 'pending_student_verification']:
+            raise UserError(_('Only pending memberships can be activated'))
         
         self.write({
             'state': 'active',
@@ -584,7 +589,7 @@ class PopcornMembership(models.Model):
     def action_expire(self):
         """Mark membership as expired"""
         self.ensure_one()
-        if self.state not in ['active', 'frozen']:
+        if self.state not in ['active', 'frozen', 'pending_student_verification']:
             raise UserError(_('Only active or frozen memberships can be expired'))
         
         self.write({'state': 'expired'})

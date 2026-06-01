@@ -16,6 +16,8 @@ class PopcornMembershipPlan(models.Model):
     sequence = fields.Integer(string='Sequence', default=10, help='Order of display')
     active = fields.Boolean(string='Active', default=True, tracking=True)
     website_published = fields.Boolean(string='Published on Website', default=False, tracking=True)
+    is_student_plan = fields.Boolean(string='Student Membership', default=False, tracking=True,
+        help='Requires student card upload at checkout. Membership stays pending until staff verify and activate.')
     anchor_tag = fields.Char(string='Anchor Tag', help='Anchor tag for direct linking on the website (e.g., "premium-plan")')
     
     # Plan Configuration

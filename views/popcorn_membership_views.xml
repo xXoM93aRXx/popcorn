@@ -33,18 +33,18 @@
             <field name="arch" type="xml">
                 <form string="Membership">
                     <header>
-                        <button name="action_activate" string="Activate" type="object" 
-                                class="oe_highlight" 
-                                invisible="state != 'pending'"/>
-                        <button name="action_activate_pending_payment" string="Activate" type="object" 
-                                class="oe_highlight" 
+                        <button name="action_activate" string="Activate" type="object"
+                                class="oe_highlight"
+                                invisible="state not in ['pending', 'pending_student_verification']"/>
+                        <button name="action_activate_pending_payment" string="Activate" type="object"
+                                class="oe_highlight"
                                 invisible="state != 'pending_payment'"
                                 confirm="Are you sure you want to activate this membership? This will mark the payment as completed."/>
-                        <button name="action_expire" string="Expire" type="object" 
-                                class="btn-danger" 
+                        <button name="action_expire" string="Expire" type="object"
+                                class="btn-danger"
                                 invisible="state not in ['active', 'frozen']"/>
-                        <field name="state" widget="statusbar" 
-                               statusbar_visible="pending,pending_payment,active,frozen,expired"/>
+                        <field name="state" widget="statusbar"
+                               statusbar_visible="pending,pending_payment,pending_student_verification,active,frozen,expired"/>
                     </header>
                     <sheet>
                         <div class="oe_title">
@@ -94,13 +94,21 @@
                             </button>
                         </div>
                         
-                        <!-- Debug: Always visible button for testing -->
                         <div class="alert alert-info" invisible="state != 'pending_payment'">
                             <strong>Pending Payment:</strong> This membership is waiting for payment confirmation.
-                            <button name="action_activate_pending_payment" string="Activate Now" type="object" 
+                            <button name="action_activate_pending_payment" string="Activate Now" type="object"
                                     class="btn btn-primary btn-sm" style="margin-left: 10px;"
                                     confirm="Are you sure you want to activate this membership? This will mark the payment as completed."/>
                         </div>
+
+                        <div class="alert alert-warning" invisible="state != 'pending_student_verification'">
+                            <strong>Pending Student Verification:</strong> The member has uploaded a student card. Please review it and click <strong>Activate</strong> to confirm.
+                        </div>
+
+                        <!-- Student Card -->
+                        <group string="Student Verification" invisible="not student_card_attachment_id">
+                            <field name="student_card_attachment_id" string="Student Card" widget="many2one"/>
+                        </group>
                         
                         <notebook>
                             <page string="Usage &amp; Quota" name="usage">
@@ -251,6 +259,7 @@
                     <field name="purchase_channel"/>
                     <field name="price_tier"/>
                     <filter string="Pending" name="pending" domain="[('state', '=', 'pending')]"/>
+                    <filter string="Pending Student Verification" name="pending_student" domain="[('state', '=', 'pending_student_verification')]"/>
                     <filter string="Active" name="active" domain="[('state', '=', 'active')]"/>
                     <filter string="Frozen" name="frozen" domain="[('state', '=', 'frozen')]"/>
                     <filter string="Expired" name="expired" domain="[('state', '=', 'expired')]"/>

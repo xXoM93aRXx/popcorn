@@ -40,6 +40,12 @@ class PaymentTransaction(models.Model):
         attachment=True,
         help='Customer signature (base64 image) for membership contracts'
     )
+    student_card_attachment_id = fields.Many2one(
+        'ir.attachment',
+        string='Student Card',
+        ondelete='set null',
+        help='Student ID card uploaded during checkout, transferred to membership on creation'
+    )
     
     # Event fields
     event_id = fields.Many2one(
@@ -421,7 +427,12 @@ class PaymentTransaction(models.Model):
             membership_vals['state'] = 'pending'
         elif plan.activation_policy == 'manual':
             membership_vals['state'] = 'pending'
-        
+
+        # Student plans always stay pending verification regardless of activation policy
+        if plan.is_student_plan:
+            membership_vals.pop('activation_date', None)
+            membership_vals['state'] = 'pending_student_verification'
+
         # Create the membership
         membership = self.env['popcorn.membership'].create(membership_vals)
         
@@ -457,13 +468,23 @@ class PaymentTransaction(models.Model):
             contract = self.env['popcorn.contract'].create(contract_vals)
             membership.write({'contract_id': contract.id})
             membership.message_post(body=_('Contract created and signed by customer during checkout'))
-        
+
+        # Link student card attachment if present
+        if plan.is_student_plan and self.student_card_attachment_id:
+            self.student_card_attachment_id.write({'res_id': membership.id})
+            membership.write({'student_card_attachment_id': self.student_card_attachment_id.id})
+            membership.message_post(body=_('Student card uploaded. Awaiting staff verification before activation.'))
+
         # Log the creation
         membership.message_post(
             body=_('Membership created directly from plan %s') % plan.name
         )
-        
-        if plan.activation_policy == 'immediate':
+
+        if plan.is_student_plan:
+            membership.message_post(
+                body=_('Student membership requires staff verification. Please review the uploaded student card and activate manually.')
+            )
+        elif plan.activation_policy == 'immediate':
             membership.message_post(
                 body=_('Membership automatically activated upon purchase')
             )
@@ -471,7 +492,7 @@ class PaymentTransaction(models.Model):
             membership.message_post(
                 body=_('Membership will be activated upon first event attendance')
             )
-        
+
         return membership
     
     def _process_event_transaction(self):

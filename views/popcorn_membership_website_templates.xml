@@ -254,6 +254,22 @@
                                         </div>
                                     </div>
                                     
+                                    <!-- Student Card Upload (student plans only) -->
+                                    <t t-if="plan.is_student_plan">
+                                        <div class="popcorn-form-section" id="student-card-section">
+                                            <h3 class="popcorn-section-title">
+                                                <i class="fa fa-id-card"></i> Student Verification
+                                            </h3>
+                                            <div class="popcorn-form-group">
+                                                <label for="student_card_file" class="popcorn-form-label">Upload Student Card *</label>
+                                                <p class="text-muted" style="font-size:0.9em; margin-bottom:8px;">Please upload a photo or scan of your valid student ID (JPG, PNG or PDF, max 5MB). Your membership will be activated once staff verify your document.</p>
+                                                <input type="file" id="student_card_file" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf" class="popcorn-form-input"/>
+                                                <input type="hidden" id="student_card_attachment_id" name="student_card_attachment_id" value=""/>
+                                                <div id="student-card-status" style="margin-top:8px; display:none;"/>
+                                            </div>
+                                        </div>
+                                    </t>
+
                                     <!-- Popcorn Money Section -->
                                     <t t-if="request.env.user.partner_id.popcorn_money_balance > 0">
                                         <div class="popcorn-form-section">

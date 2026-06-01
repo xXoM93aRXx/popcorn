@@ -94,6 +94,7 @@
             'popcorn/static/src/css/popcorn_portal_styles.css',
             'popcorn/static/src/css/popcorn_notification_styles.css',
             'popcorn/static/src/js/popcorn_membership_popup.js',
+            'popcorn/static/src/js/popcorn_student_card_upload.js',
             'popcorn/static/src/js/popcorn_event_registration.js',
             'popcorn/static/src/js/popcorn_phone_otp.js',
             'popcorn/static/src/js/popcorn_membership_freeze.js',

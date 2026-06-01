@@ -22,6 +22,52 @@ class PopcornMembershipController(http.Controller):
             _logger.warning('Failed to check SMS config status: %s', str(e))
             return False
     
+    @http.route(['/memberships/upload_student_card'], type='http', auth='user', website=True, methods=['POST'])
+    def upload_student_card(self, **post):
+        """AJAX endpoint: upload student card file, return attachment_id"""
+        import base64
+        try:
+            student_card_file = request.httprequest.files.get('student_card')
+            if not student_card_file or not student_card_file.filename:
+                return request.make_response(
+                    json.dumps({'error': 'No file provided'}),
+                    headers=[('Content-Type', 'application/json')]
+                )
+
+            allowed_mimetypes = {'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'}
+            if student_card_file.content_type not in allowed_mimetypes:
+                return request.make_response(
+                    json.dumps({'error': 'Invalid file type. Please upload JPG, PNG, or PDF.'}),
+                    headers=[('Content-Type', 'application/json')]
+                )
+
+            file_data = student_card_file.read()
+            if len(file_data) > 5 * 1024 * 1024:
+                return request.make_response(
+                    json.dumps({'error': 'File too large. Maximum size is 5MB.'}),
+                    headers=[('Content-Type', 'application/json')]
+                )
+
+            attachment = request.env['ir.attachment'].sudo().create({
+                'name': student_card_file.filename,
+                'type': 'binary',
+                'datas': base64.b64encode(file_data).decode('utf-8'),
+                'mimetype': student_card_file.content_type,
+                'res_model': 'popcorn.membership',
+                'res_id': 0,
+            })
+
+            return request.make_response(
+                json.dumps({'attachment_id': attachment.id, 'filename': student_card_file.filename}),
+                headers=[('Content-Type', 'application/json')]
+            )
+        except Exception as e:
+            _logger.error(f"Student card upload failed: {str(e)}", exc_info=True)
+            return request.make_response(
+                json.dumps({'error': 'Upload failed. Please try again.'}),
+                headers=[('Content-Type', 'application/json')]
+            )
+
     @http.route(['/memberships'], type='http', auth="public", website=True)
     def memberships_list(self, **post):
         """Display all available membership plans"""
@@ -474,7 +520,21 @@ class PopcornMembershipController(http.Controller):
             
             if not post.get('terms_accepted'):
                 return request.redirect('/memberships/%s/checkout?error=terms_not_accepted' % plan.id)
-            
+
+            # Validate student card upload if this is a student plan
+            student_card_attachment_id = None
+            if plan.is_student_plan:
+                raw_id = post.get('student_card_attachment_id', '').strip()
+                if not raw_id:
+                    return request.redirect('/memberships/%s/checkout?error=student_card_required' % plan.id)
+                try:
+                    student_card_attachment_id = int(raw_id)
+                    attachment = request.env['ir.attachment'].sudo().browse(student_card_attachment_id)
+                    if not attachment.exists():
+                        return request.redirect('/memberships/%s/checkout?error=student_card_invalid' % plan.id)
+                except (ValueError, TypeError):
+                    return request.redirect('/memberships/%s/checkout?error=student_card_invalid' % plan.id)
+
             # Get payment method/provider ID
             payment_method_id = post.get('payment_method_id')
             
@@ -489,11 +549,12 @@ class PopcornMembershipController(http.Controller):
                 if is_renewal:
                     # Create new membership with renewal pricing (first-timer + discounts)
                     membership = self._create_membership_from_plan(
-                        plan, 
-                        partner, 
+                        plan,
+                        partner,
                         customer_signature=customer_signature,
                         applied_discount=applied_discount,
-                        is_renewal=is_renewal
+                        is_renewal=is_renewal,
+                        student_card_attachment_id=student_card_attachment_id,
                     )
                     _logger.info(f"Renewal membership created with ID: {membership.id}")
                     
@@ -553,11 +614,12 @@ class PopcornMembershipController(http.Controller):
                 else:
                     # Create new membership
                     membership = self._create_membership_from_plan(
-                        plan, 
-                        partner, 
+                        plan,
+                        partner,
                         customer_signature=customer_signature,
                         applied_discount=applied_discount,
-                        is_renewal=is_renewal
+                        is_renewal=is_renewal,
+                        student_card_attachment_id=student_card_attachment_id,
                     )
                     
                     # Pair activation by phone for buy-together enabled plans
@@ -659,8 +721,9 @@ class PopcornMembershipController(http.Controller):
             _logger.info(f"Payment provider name: '{payment_provider.name}', lowercase: '{payment_provider.name.lower()}'")
             if payment_provider.name.lower() in ['bank transfer', 'bank_transfer']:
                 # For bank transfer, create membership immediately but mark as pending payment
-                membership = self._create_membership_from_plan(plan, partner, customer_signature=customer_signature, applied_discount=applied_discount, is_renewal=is_renewal)
-                membership.write({'state': 'pending_payment'})
+                membership = self._create_membership_from_plan(plan, partner, customer_signature=customer_signature, applied_discount=applied_discount, is_renewal=is_renewal, student_card_attachment_id=student_card_attachment_id)
+                if not plan.is_student_plan:
+                    membership.write({'state': 'pending_payment'})
                 
                 # Log the bank transfer payment request
                 membership.message_post(
@@ -717,9 +780,10 @@ class PopcornMembershipController(http.Controller):
                     'popcorn_money_to_use': popcorn_money_to_use,
                     'remaining_amount': remaining_amount,
                     'applied_discount_id': applied_discount.id if applied_discount else False,
-                    'customer_signature': customer_signature,  # Base64 string will be converted to Binary
+                    'customer_signature': customer_signature,
+                    'student_card_attachment_id': student_card_attachment_id,
                 })
-                
+
                 _logger.info(f"WeChat payment transaction created with ID: {payment_transaction.id}, "
                            f"plan: {plan.name}, is_upgrade: {payment_transaction.is_upgrade}, "
                            f"is_renewal: {payment_transaction.is_renewal}, upgrade_details: {payment_transaction.upgrade_details}")
@@ -798,6 +862,7 @@ class PopcornMembershipController(http.Controller):
                     'applied_discount_id': applied_discount.id if applied_discount else False,
                     'customer_signature': customer_signature,
                     'landing_route': landing_route,
+                    'student_card_attachment_id': student_card_attachment_id,
                 })
                 
                 # Update landing route with access token for secure redirect
@@ -899,8 +964,9 @@ class PopcornMembershipController(http.Controller):
                     'remaining_amount': remaining_amount,
                     'applied_discount_id': applied_discount.id if applied_discount else False,
                     'customer_signature': customer_signature,
+                    'student_card_attachment_id': student_card_attachment_id,
                 })
-                
+
                 _logger.info(f"Payment transaction created with ID: {payment_transaction.id}, "
                            f"plan: {plan.name}, signature provided: {bool(customer_signature)}")
                 
@@ -1577,7 +1643,7 @@ class PopcornMembershipController(http.Controller):
         
         return upgraded_membership
     
-    def _create_membership_from_plan(self, plan, partner, purchase_channel='online', price_tier=None, upgrade_discount_allowed=False, first_timer_customer=False, payment_transaction_id=None, payment_reference=None, customer_signature=None, applied_discount=None, is_renewal=False):
+    def _create_membership_from_plan(self, plan, partner, purchase_channel='online', price_tier=None, upgrade_discount_allowed=False, first_timer_customer=False, payment_transaction_id=None, payment_reference=None, customer_signature=None, applied_discount=None, is_renewal=False, student_card_attachment_id=None):
         """Create a membership directly from a plan (bypassing sales orders)"""
         # Determine price tier if not provided
         if price_tier is None:
@@ -1640,15 +1706,18 @@ class PopcornMembershipController(http.Controller):
             membership_vals['activation_date'] = fields.Date.today()
             membership_vals['state'] = 'active'
         elif plan.activation_policy == 'first_attendance':
-            # Don't set activation_date yet - it will be set when first event is booked
             membership_vals['state'] = 'pending'
         elif plan.activation_policy == 'manual':
-            # Don't set activation_date - requires manual activation
             membership_vals['state'] = 'pending'
+
+        # Student plans always override to pending_student_verification
+        if plan.is_student_plan:
+            membership_vals.pop('activation_date', None)
+            membership_vals['state'] = 'pending_student_verification'
 
         # Buy-Together deferred activation handling - determine state before creating record
         prev_usage_count = None
-        
+
         # Create the membership
         membership = request.env['popcorn.membership'].create(membership_vals)
         
@@ -1691,13 +1760,28 @@ class PopcornMembershipController(http.Controller):
             contract = request.env['popcorn.contract'].sudo().create(contract_vals)
             membership.write({'contract_id': contract.id})
             membership.message_post(body=_('Contract created and signed by customer during checkout'))
-        
+
+        # Link student card attachment if present
+        if plan.is_student_plan and student_card_attachment_id:
+            try:
+                attachment = request.env['ir.attachment'].sudo().browse(student_card_attachment_id)
+                if attachment.exists():
+                    attachment.write({'res_id': membership.id})
+                    membership.write({'student_card_attachment_id': attachment.id})
+                    membership.message_post(body=_('Student card uploaded. Awaiting staff verification before activation.'))
+            except Exception as e:
+                _logger.error(f"Failed to link student card attachment: {str(e)}")
+
         # Log the creation
         membership.message_post(
             body=_('Membership created directly from plan %s') % plan.name
         )
-        
-        if plan.activation_policy == 'immediate':
+
+        if plan.is_student_plan:
+            membership.message_post(
+                body=_('Student membership requires staff verification. Please review the uploaded student card and activate manually.')
+            )
+        elif plan.activation_policy == 'immediate':
             membership.message_post(
                 body=_('Membership automatically activated upon purchase')
             )
@@ -1709,7 +1793,7 @@ class PopcornMembershipController(http.Controller):
             membership.message_post(
                 body=_('Membership requires manual activation by staff')
             )
-        
+
         return membership
     
     def _handle_event_purchase_redirect(self, transaction_id_param):

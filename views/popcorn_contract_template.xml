@@ -137,8 +137,8 @@
                     <div style="margin-bottom: 20px;">
                         <h2>二、报名与取消规则 Registration &amp; Cancellation Rules</h2>
                         <p>1. 甲方需通过俱乐部官方渠道报名参加每次活动。Party A must register through official channels for each club activity.</p>
-                        <p>2. 甲方如欲取消已报名club，须在club开始前24小时或以上取消；次卡会员若在活动开始前24小时内取消，理论上club次数不予返还，个别情况可人性化操作返还。但连续3次club开始前2小时内取消后，自第三次起24小时内取消将照常扣除，不予返还。</p>
-                        <p>If Party A wishes to cancel a reservation, it must be done at least 24 hours before the club starts. For freedom card or EXP card members, cancellations within 24 hours typically will not be refunded. Exceptions can be made case-by-case. However, if a member cancels within 2 hours before start time 3 consecutive times, then from the third time onward, cancellations within 24 hours will result in deductions and will not be refunded.</p>
+                        <p>2. 甲方如欲取消已报名club，须在club开始前3小时或以上取消；次卡会员若在活动开始前3小时内取消，每自然月的第一场club次数予以返还，自第二场开始次数不予返还；金卡会员每自然月如出现3次3小时内取消club或club迟到30分钟或以上，自第3次起，金卡冻结3天且相应天数不在总时效基础上予以延长。</p>
+                        <p>If Party A wishes to cancel a reservation, the cancellation must be done at least 3 hours before the scheduled start time. For freedom/EXP/MiniPass/MegaPass card members, if a cancellation is made within 3 hours before the club starts, the session will be refunded for the first time in each calendar month. From the second time onward within the same calendar month, the session will be deemed used and will not be refunded. For Gold Card Members, if, within a calendar month, a member accumulates three instances of either: cancelling within 3 hours before the club starts or arriving 30 minutes late or more, then after the third time, the Gold Card membership will be suspended for 3 days. The suspension period will not be added back to or extend the original validity period of the membership.</p>
                     </div>
 
                     <!-- Gold Card Freeze Privilege -->
@@ -154,6 +154,9 @@
                         
                         <p>3. 冻卡期间无法预约任何club活动或使用乙方空间、设施或各类资源。</p>
                         <p>During the freeze period, members cannot book events or use the club's space, facilities, or resources.</p>
+
+                        <p>4. 特价期间所购45天学生金卡不做冻卡处理。</p>
+                        <p>Student Gold Cards (45-day validity) purchased during the promotional period are not eligible for freeze.</p>
                     </div>
 
                     <!-- Renewal Policy -->
@@ -245,6 +248,9 @@
                         <p>90-day gold cards: more than 30 days have passed since purchase or more than 10 clubs have been attended.</p>
                         <p>180-day gold cards: more than 60 days have passed since purchase or more than 20 clubs have been attended.</p>
                         <p>365-day gold cards: more than 90 days have passed since purchase or more than 30 clubs have been attended.</p>
+
+                        <p>• 特价期间所有45天学生金卡不做退卡处理</p>
+                        <p>Student Gold Cards (45-day validity) purchased during the promotional period are not eligible for refunds.</p>
                         
                         <h3>2. 自由卡会员退款规则 Freedom Card Refund Policy：</h3>
                         <p>• 购买不满7天，且未参加任何活动，可全额退款；If canceled within 7 days of purchase and no clubs have been attended, a full refund will be issued.</p>
