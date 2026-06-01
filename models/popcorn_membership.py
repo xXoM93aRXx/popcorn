@@ -98,6 +98,18 @@ class PopcornMembership(models.Model):
     # Student verification
     student_card_attachment_id = fields.Many2one('ir.attachment', string='Student Card', ondelete='set null',
         help='Student ID card uploaded at checkout for verification by staff.')
+    student_card_image = fields.Binary(string='Student Card Preview',
+        compute='_compute_student_card_image', store=False,
+        help='Image preview of the uploaded student card (images only).')
+
+    @api.depends('student_card_attachment_id')
+    def _compute_student_card_image(self):
+        for rec in self:
+            att = rec.student_card_attachment_id
+            if att and att.mimetype and att.mimetype.startswith('image/'):
+                rec.student_card_image = att.datas
+            else:
+                rec.student_card_image = False
     
     # Related fields for convenience
     plan_duration_days = fields.Integer(string='Plan Duration (Days)', related='membership_plan_id.duration_days')
