@@ -326,17 +326,23 @@ class PopcornEventController(http.Controller):
                 return 'regular_online'
             elif 'sp' in tag_name or 'special' in tag_name:
                 return 'spclub'
-        
+            elif 'free' in tag_name:
+                return 'free_for_members'
+
         # Fallback: determine from event properties
         if hasattr(event, 'is_online_event') and event.is_online_event:
             return 'regular_online'
-        
+
         return 'regular_offline'  # Default to offline
     
     def _can_membership_attend_event(self, membership, club_type):
         """Check if a membership can attend a specific club type event"""
         if not membership or not club_type:
             return False
+
+        # Free-for-members events: any active membership qualifies, no quota or permission check
+        if club_type == 'free_for_members':
+            return True
 
         # Pending memberships with activation policy first_attendance or immediate should be
         # eligible regardless of current quota counters; they will activate on first use.
@@ -1133,6 +1139,16 @@ class PopcornEventController(http.Controller):
             
             # Check if using second_price or third_price (from Social Experience special pricing)
             event_club_type = self._get_event_club_type(event)
+
+            # First-timer coupons cannot be used on free-for-members events
+            if applied_discount and event_club_type == 'free_for_members':
+                is_first_timer_coupon = (
+                    applied_discount.customer_type in ('first_timer', 'new') or
+                    applied_discount.discount_type == 'first_timer'
+                )
+                if is_first_timer_coupon:
+                    applied_discount = None
+
             should_use_second_price = False
             if event_club_type == 'social_experience':
                 best_membership = self._get_best_membership_for_event(partner, event)

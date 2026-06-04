@@ -59,7 +59,8 @@ class PopcornDiscount(models.Model):
         ('regular_online', 'Regular Online Only'),
         ('spclub', 'Special Club Only'),
         ('social_experience', 'Social Experience Only'),
-    ], string='Event Type Restriction', 
+        ('free_for_members', 'Free for Members Only'),
+    ], string='Event Type Restriction',
        help='Restrict discount to specific event types. Leave empty for no restriction.')
 
     # Customer Restrictions

@@ -77,8 +77,9 @@ class EventEvent(models.Model):
         ('regular_offline', 'Regular Offline'),
         ('regular_online', 'Regular Online'),
         ('spclub', 'Special Club'),
-        ('social_experience', 'Social Experience')
-    ], string='Club Type', compute='_compute_club_type', store=False, 
+        ('social_experience', 'Social Experience'),
+        ('free_for_members', 'Free for Members'),
+    ], string='Club Type', compute='_compute_club_type', store=False,
        help='Automatically determined club type for membership validation')
     
     # Computed fields for website template (not stored, computed on demand)
@@ -245,6 +246,8 @@ class EventEvent(models.Model):
                         event.club_type = 'regular_online'
                     elif 'sp' in tag_name or 'special' in tag_name:
                         event.club_type = 'spclub'
+                    elif 'free' in tag_name:
+                        event.club_type = 'free_for_members'
                     else:
                         event.club_type = False
                 else:

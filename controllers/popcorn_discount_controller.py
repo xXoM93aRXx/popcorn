@@ -198,6 +198,22 @@ class PopcornDiscountController(http.Controller):
                     headers=[('Content-Type', 'application/json')]
                 )
 
+            # First-timer coupons are not valid for free-for-members events
+            if event.club_type == 'free_for_members':
+                is_first_timer_coupon = (
+                    discount.customer_type in ('first_timer', 'new') or
+                    discount.discount_type == 'first_timer'
+                )
+                if is_first_timer_coupon:
+                    result = {
+                        'success': False,
+                        'message': _('First-timer coupons cannot be used for free-for-members events')
+                    }
+                    return request.make_response(
+                        json.dumps(result),
+                        headers=[('Content-Type', 'application/json')]
+                    )
+
             # Check event type restriction
             if discount.event_type:
                 if event.club_type != discount.event_type:

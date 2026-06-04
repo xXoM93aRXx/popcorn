@@ -294,6 +294,8 @@ class PopcornEventRegistration(models.Model):
                         registration.club_type = 'regular_online'
                     elif 'sp' in tag_name or 'special' in tag_name:
                         registration.club_type = 'spclub'
+                    elif 'free' in tag_name:
+                        registration.club_type = 'free_for_members'
                     else:
                         registration.club_type = False
                 else:
@@ -525,12 +527,16 @@ class PopcornEventRegistration(models.Model):
     def _can_consume_membership(self):
         """Check if membership has sufficient quota for this event"""
         self.ensure_one()
-        
+
         if not self.membership_id:
             return False
-        
+
+        # Free-for-members events consume no quota — any active membership qualifies
+        if self.club_type == 'free_for_members':
+            return True
+
         membership = self.membership_id
-        
+
         if membership.plan_quota_mode == 'unlimited':
             return True
         elif membership.plan_quota_mode == 'bucket_counts':
