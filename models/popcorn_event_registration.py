@@ -16,7 +16,8 @@ class PopcornEventRegistration(models.Model):
         ('regular_offline', 'Regular Offline'),
         ('regular_online', 'Regular Online'),
         ('spclub', 'Special Club'),
-        ('social_experience', 'Social Experience')
+        ('social_experience', 'Social Experience'),
+        ('free_for_members', 'Free for Members'),
     ], string='Club Type', compute='_compute_club_type', store=True)
     
     # Membership consumption
