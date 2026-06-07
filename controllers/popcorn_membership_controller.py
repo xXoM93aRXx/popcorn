@@ -173,19 +173,15 @@ class PopcornMembershipController(http.Controller):
         # Get discount information for each plan
         plan_discounts = {}
         for plan in membership_plans:
-            # If user has renewal discount eligibility, use first-timer price as base and apply discounts
-            if has_renewal_discount:
-                # Use first-timer price as the base price for discount calculations
-                original_price = plan.price_first_timer if plan.price_first_timer > 0 else plan.price_normal
-                available_discounts = plan.get_available_discounts(request.env.user.partner_id)
-                best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(request.env.user.partner_id, original_price=original_price)
+            # First-timer and renewal pricing are exclusive — no additional discounts stack
+            if has_renewal_discount or is_first_timer:
+                best_price = plan.price_first_timer if plan.price_first_timer > 0 else plan.price_normal
+                available_discounts = request.env['popcorn.discount'].browse([])
+                best_discount = None
+                extra_days = 0
             else:
-                # Determine correct original price based on first-timer status
-                is_first_timer = request.env.user.partner_id.is_first_timer
-                original_price = plan.price_first_timer if (is_first_timer and plan.price_first_timer > 0) else plan.price_normal
-                
                 available_discounts = plan.get_available_discounts(request.env.user.partner_id)
-                best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(request.env.user.partner_id, original_price=original_price)
+                best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(request.env.user.partner_id, original_price=plan.price_normal)
             
             plan_discounts[plan.id] = {
                 'available_discounts': available_discounts,
@@ -287,17 +283,13 @@ class PopcornMembershipController(http.Controller):
         partner = request.env.user.partner_id
         payment_providers = request.env['payment.provider'].sudo().search([('state', '=', 'enabled')])
         
-        # Get discount information for this plan (including extra days)
-        # For renewals, use first-timer price as base and apply discounts on top
-        if is_renewal:
-            # Use first-timer price as the base price for discount calculations
-            original_price = plan.price_first_timer if plan.price_first_timer > 0 else plan.price_normal
-            best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(request.env.user.partner_id, original_price=original_price)
+        # First-timer and renewal pricing are exclusive — no additional discounts stack
+        if is_renewal or is_first_timer:
+            best_price = plan.price_first_timer if plan.price_first_timer > 0 else plan.price_normal
+            best_discount = None
+            extra_days = 0
         else:
-            # Determine correct original price based on first-timer status
-            original_price = plan.price_first_timer if (is_first_timer and plan.price_first_timer > 0) else plan.price_normal
-            
-            best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(request.env.user.partner_id, original_price=original_price)
+            best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(request.env.user.partner_id, original_price=plan.price_normal)
         
         plan_discounts = {
             plan.id: {
@@ -473,35 +465,23 @@ class PopcornMembershipController(http.Controller):
                 amount = upgrade_details.get('upgrade_price', 0)
                 _logger.info(f"Amount calculation: Upgrade - amount = {amount}")
             elif is_renewal:
-                # Renewals use first-timer price as base, then apply discounts
-                original_price = plan.price_first_timer if plan.price_first_timer > 0 else plan.price_normal
-                
-                # Use coupon discount if applied, otherwise use automatic best discount
-                if applied_discount:
-                    amount = applied_discount.get_discounted_price(plan, original_price, partner)
-                    best_discount = applied_discount
-                    extra_days = applied_discount.get_extra_days(plan, partner)
-                    _logger.info(f"Amount calculation: Renewal with applied discount - original_price = {original_price}, amount = {amount}")
-                else:
-                    # Use discount system to determine best price with first-timer price as base
-                    best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(partner, original_price=original_price)
-                    amount = best_price
-                    _logger.info(f"Amount calculation: Renewal - original_price = {original_price}, best_discount = {best_discount.name if best_discount else None}, amount = {amount}")
+                # Renewal pricing is exclusive — first-timer price only, no discounts stack
+                amount = plan.price_first_timer if plan.price_first_timer > 0 else plan.price_normal
+                best_discount = None
+                extra_days = 0
+                _logger.info(f"Amount calculation: Renewal - amount = {amount} (no discount stacking)")
             else:
-                # Use coupon discount if applied, otherwise use automatic best discount
-                if applied_discount:
-                    original_price = plan.price_normal
-                    if partner.is_first_timer and plan.price_first_timer > 0:
-                        original_price = plan.price_first_timer
-                    amount = applied_discount.get_discounted_price(plan, original_price, partner)
+                if partner.is_first_timer and plan.price_first_timer > 0:
+                    # First-timer pricing is exclusive — first-timer price only, no discounts stack
+                    amount = plan.price_first_timer
+                    best_discount = None
+                    extra_days = 0
+                elif applied_discount:
+                    amount = applied_discount.get_discounted_price(plan, plan.price_normal, partner)
                     best_discount = applied_discount
                     extra_days = applied_discount.get_extra_days(plan, partner)
                 else:
-                    # Determine correct original price based on first-timer status
-                    # This ensures first timer pricing is used as base for discount calculations
-                    original_price = plan.price_first_timer if (partner.is_first_timer and plan.price_first_timer > 0) else plan.price_normal
-                    # Use get_best_discount_with_extra_days to respect first timer pricing
-                    best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(partner, original_price=original_price)
+                    best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(partner, original_price=plan.price_normal)
                     amount = best_price
             
             # Calculate how much popcorn money to use and remaining amount
@@ -1692,16 +1672,17 @@ class PopcornMembershipController(http.Controller):
         else:
             purchase_price = plan.price_normal
         
-        # Get best discount for this plan and customer (including extra days)
-        if applied_discount:
+        # First-timer and renewal pricing are exclusive — no additional discounts stack
+        if is_renewal or partner.is_first_timer:
+            best_price = purchase_price
+            best_discount = None
+            extra_days = 0
+        elif applied_discount:
             _logger.info(f"Using applied discount: {applied_discount.name} (Code: {applied_discount.code}, ID: {applied_discount.id})")
-            # Use the applied discount
             best_price = applied_discount.get_discounted_price(plan, purchase_price, partner)
             best_discount = applied_discount
             extra_days = applied_discount.get_extra_days(plan, partner)
         else:
-            # Get best discount for this plan and customer (including extra days)
-            # Pass purchase_price as original_price so discounts are calculated from the correct base price
             best_price, best_discount, extra_days = plan.get_best_discount_with_extra_days(partner, original_price=purchase_price)
         
         # Create membership values

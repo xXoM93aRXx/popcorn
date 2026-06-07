@@ -128,6 +128,32 @@ class PopcornDiscountController(http.Controller):
                     headers=[('Content-Type', 'application/json')]
                 )
 
+            # First-timer and renewal pricing cannot be combined with coupon codes
+            if partner.is_first_timer:
+                result = {
+                    'success': False,
+                    'message': _('First-timer pricing cannot be combined with coupon codes')
+                }
+                return request.make_response(
+                    json.dumps(result),
+                    headers=[('Content-Type', 'application/json')]
+                )
+
+            active_memberships = request.env['popcorn.membership'].search([
+                ('partner_id', '=', partner.id),
+                ('state', 'in', ['active', 'frozen'])
+            ])
+            for membership in active_memberships:
+                if membership.is_eligible_for_renewal_discount():
+                    result = {
+                        'success': False,
+                        'message': _('Renewal pricing cannot be combined with coupon codes')
+                    }
+                    return request.make_response(
+                        json.dumps(result),
+                        headers=[('Content-Type', 'application/json')]
+                    )
+
             # Check if discount applies to this plan
             if discount.membership_plan_ids and plan not in discount.membership_plan_ids:
                 result = {
