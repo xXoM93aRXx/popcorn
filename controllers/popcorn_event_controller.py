@@ -207,6 +207,13 @@ class PopcornEventController(http.Controller):
                 events.mapped('user_waitlist_position')
                 events.mapped('is_participating')
             
+            # Find the highest-priority active public discount for the banner
+            public_discount = request.env['popcorn.discount'].sudo().search([
+                ('is_public', '=', True),
+                ('active', '=', True),
+                ('is_valid', '=', True),
+            ], order='sequence, name', limit=1)
+
             values = {
                 'current_date': current_date,
                 'current_country': current_country,
@@ -226,7 +233,8 @@ class PopcornEventController(http.Controller):
                 'search_count': event_count,
                 'original_search': fuzzy_search_term and search,
                 'website': website,
-                'has_active_filters': has_active_filters
+                'has_active_filters': has_active_filters,
+                'public_discount': public_discount or False,
             }
 
             return request.render("website_event.index", values)

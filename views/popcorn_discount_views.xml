@@ -69,6 +69,12 @@
                             <field name="partner_id"/>
                             <field name="event_type"/>
                             <field name="is_public"/>
+                            <field name="banner_text" invisible="not is_public"
+                                   placeholder="e.g. Summer sale ends in {timer} — grab your membership!"/>
+                            <field name="banner_link_url" invisible="not is_public"
+                                   placeholder="e.g. /memberships"/>
+                            <field name="banner_link_text" invisible="not is_public"
+                                   placeholder="e.g. Get it now"/>
                         </group>
                         <group>
                             <field name="sequence"/>

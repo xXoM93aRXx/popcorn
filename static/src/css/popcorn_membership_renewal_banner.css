@@ -34,6 +34,34 @@
     line-height: 1.4;
 }
 
+/* Discount Banner Text & Link */
+.popcorn-discount-banner-text {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #101010;
+    text-align: center;
+    line-height: 1.4;
+}
+
+.popcorn-discount-banner-link {
+    display: inline-block;
+    background: #101010;
+    color: #ffc107;
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    text-decoration: none;
+    flex-shrink: 0;
+    transition: background 0.2s, color 0.2s;
+}
+
+.popcorn-discount-banner-link:hover {
+    background: #333;
+    color: #ffd54f;
+    text-decoration: none;
+}
+
 /* Responsive Styles */
 @media (max-width: 768px) {
     .popcorn-renewal-banner-sticky {

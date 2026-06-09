@@ -193,12 +193,20 @@ class PopcornMembershipController(http.Controller):
                 'is_renewal': has_renewal_discount,
             }
         
+        # Find the highest-priority active public discount to show in the banner
+        public_discount = request.env['popcorn.discount'].sudo().search([
+            ('is_public', '=', True),
+            ('active', '=', True),
+            ('is_valid', '=', True),
+        ], order='sequence, name', limit=1)
+
         values = {
             'membership_plans': membership_plans,
             'error_message': error_message,
             'is_first_timer': is_first_timer,
             'plan_discounts': plan_discounts,
             'renewal_banner_info': renewal_banner_info,
+            'public_discount': public_discount or False,
         }
         
         return request.render('popcorn.membership_plans_website_page', values)

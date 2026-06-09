@@ -87,10 +87,16 @@ class PopcornDiscount(models.Model):
     display_name = fields.Char(string='Display Name', compute='_compute_display_name', store=True)
     badge_image = fields.Binary(string='Badge Image', attachment=True, 
                                help='Image to display as badge on website')
-    is_public = fields.Boolean(string='Public Discount', 
+    is_public = fields.Boolean(string='Public Discount',
                               help='Show this discount to customers on website')
-    website_description = fields.Html(string='Website Description', 
+    website_description = fields.Html(string='Website Description',
                                      help='Description shown to customers')
+    banner_text = fields.Char(string='Banner Text',
+                              help='Text shown in the public discount banner. Use {timer} as a placeholder for the live countdown.')
+    banner_link_url = fields.Char(string='Banner Link URL',
+                                  help='Optional URL for a call-to-action link in the banner')
+    banner_link_text = fields.Char(string='Banner Link Text',
+                                   help='Label for the banner link (defaults to "Learn more" if left blank)')
 
     # Computed Fields
     is_valid = fields.Boolean(string='Currently Valid', compute='_compute_is_valid', store=True)

@@ -3,6 +3,25 @@
     <!-- Template (QWeb) -->
     <template id="membership_plans_website_page" name="Membership Plans">
         <t t-call="website.layout">
+            <!-- Public Discount Banner -->
+            <t t-if="public_discount">
+                <div class="popcorn-renewal-banner-sticky popcorn-discount-banner"
+                     t-att-data-discount-date-to="public_discount.date_to and str(public_discount.date_to) or ''"
+                     t-att-data-banner-text="public_discount.banner_text or ''">
+                    <div class="popcorn-renewal-banner-content">
+                        <i class="fa fa-tag popcorn-renewal-icon"></i>
+                        <span class="popcorn-discount-banner-text">
+                            <t t-esc="public_discount.banner_text or public_discount.name"/>
+                        </span>
+                        <t t-if="public_discount.banner_link_url">
+                            <a t-att-href="public_discount.banner_link_url" class="popcorn-discount-banner-link">
+                                <t t-esc="public_discount.banner_link_text or 'Learn more'"/>
+                            </a>
+                        </t>
+                    </div>
+                </div>
+            </t>
+
             <!-- Sticky Renewal Banner (non-dismissable) -->
             <t t-if="renewal_banner_info">
                 <div class="popcorn-renewal-banner-sticky" 

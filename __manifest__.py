@@ -99,6 +99,7 @@
             'popcorn/static/src/js/popcorn_phone_otp.js',
             'popcorn/static/src/js/popcorn_membership_freeze.js',
             'popcorn/static/src/js/popcorn_renewal_countdown.js',
+            'popcorn/static/src/js/popcorn_discount_banner.js',
             'popcorn/static/src/js/popcorn_registration_cancellation.js',
             'popcorn/static/src/js/popcorn_language_switcher.js',
             'popcorn/static/src/js/popcorn_sticky_footer.js',
