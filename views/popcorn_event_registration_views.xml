@@ -18,6 +18,7 @@
                            domain="[('partner_id', '=', partner_id), ('state', 'in', ['active', 'frozen', 'pending'])]"
                            invisible="not event_id.seats_limited"/>
                     <field name="consumption_state" invisible="not membership_id"/>
+                    <field name="points_consumed" readonly="1" invisible="not membership_id"/>
                     <field name="payment_amount"/>
                     <field name="payment_transaction_id" readonly="1"/>
                     <field name="club_type" readonly="1" invisible="not event_id.seats_limited"/>
@@ -82,6 +83,7 @@
                 <!-- Add payment amount after partner name -->
                 <xpath expr="//field[@name='partner_id']" position="after">
                     <field name="payment_amount" string="Payment Amount" optional="show" readonly="1"/>
+                    <field name="points_consumed" string="Points Consumed" optional="show" readonly="1"/>
                 </xpath>
 
                 <!-- Show Late badge right after Status -->
