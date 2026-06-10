@@ -279,24 +279,25 @@ class PopcornEventRegistration(models.Model):
         for registration in self:
             _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] _compute_club_type called for registration {registration.id}")
             if registration.event_id and registration.event_id.tag_ids:
-                # Look for the tag with category "Type" to determine club type
-                type_tag = registration.event_id.tag_ids.filtered(
+                # Look at all tags with category "Type" to determine club type
+                type_tags = registration.event_id.tag_ids.filtered(
                     lambda tag: tag.category_id.name == 'Type'
-                )[:1]  # Safely grab the first record
-                if type_tag:
-                    tag_name = type_tag.name.lower()
-                    _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Found type tag: {type_tag.name}, lowercase: {tag_name}")
-                    if 'social' in tag_name and 'experience' in tag_name:
+                )
+                if type_tags:
+                    tag_names = [tag.name.lower() for tag in type_tags]
+                    _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Found type tags: {tag_names}")
+                    # Free for Members wins when mixed with other Type tags
+                    if any('free' in name for name in tag_names):
+                        registration.club_type = 'free_for_members'
+                    elif any('social' in name and 'experience' in name for name in tag_names):
                         registration.club_type = 'social_experience'
                         _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Setting club_type to 'social_experience'")
-                    elif 'offline' in tag_name:
-                        registration.club_type = 'regular_offline'
-                    elif 'online' in tag_name:
-                        registration.club_type = 'regular_online'
-                    elif 'sp' in tag_name or 'special' in tag_name:
+                    elif any('sp' in name or 'special' in name for name in tag_names):
                         registration.club_type = 'spclub'
-                    elif 'free' in tag_name:
-                        registration.club_type = 'free_for_members'
+                    elif any('offline' in name for name in tag_names):
+                        registration.club_type = 'regular_offline'
+                    elif any('online' in name for name in tag_names):
+                        registration.club_type = 'regular_online'
                     else:
                         registration.club_type = False
                 else:

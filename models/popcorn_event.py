@@ -233,21 +233,22 @@ class EventEvent(models.Model):
         for event in self:
             # Try to determine from tags
             if event.tag_ids:
-                type_tag = event.tag_ids.filtered(
+                type_tags = event.tag_ids.filtered(
                     lambda tag: tag.category_id.name == 'Type'
                 )
-                if type_tag:
-                    tag_name = type_tag.name.lower()
-                    if 'social' in tag_name and 'experience' in tag_name:
-                        event.club_type = 'social_experience'
-                    elif 'offline' in tag_name:
-                        event.club_type = 'regular_offline'
-                    elif 'online' in tag_name:
-                        event.club_type = 'regular_online'
-                    elif 'sp' in tag_name or 'special' in tag_name:
-                        event.club_type = 'spclub'
-                    elif 'free' in tag_name:
+                if type_tags:
+                    tag_names = [tag.name.lower() for tag in type_tags]
+                    # Free for Members wins when mixed with other Type tags
+                    if any('free' in name for name in tag_names):
                         event.club_type = 'free_for_members'
+                    elif any('social' in name and 'experience' in name for name in tag_names):
+                        event.club_type = 'social_experience'
+                    elif any('sp' in name or 'special' in name for name in tag_names):
+                        event.club_type = 'spclub'
+                    elif any('offline' in name for name in tag_names):
+                        event.club_type = 'regular_offline'
+                    elif any('online' in name for name in tag_names):
+                        event.club_type = 'regular_online'
                     else:
                         event.club_type = False
                 else:
