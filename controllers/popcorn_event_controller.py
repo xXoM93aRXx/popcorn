@@ -315,33 +315,12 @@ class PopcornEventController(http.Controller):
         return False, '/memberships', _('Your membership does not allow %s clubs') % event_club_type.replace("_", " ").title()
     
     def _get_event_club_type(self, event):
-        """Determine the club type for an event based on its tags"""
-        if not event.tag_ids:
-            return False
-        
-        # Look for the tag with category "Type" to determine club type
-        type_tag = event.tag_ids.sudo().filtered(
-            lambda tag: tag.category_id.name == 'Type'
-        )[:1]  # Safely grab the first record
-        
-        if type_tag:
-            tag_name = type_tag.name.lower()
-            if 'social' in tag_name and 'experience' in tag_name:
-                return 'social_experience'
-            elif 'offline' in tag_name:
-                return 'regular_offline'
-            elif 'online' in tag_name:
-                return 'regular_online'
-            elif 'sp' in tag_name or 'special' in tag_name:
-                return 'spclub'
-            elif 'free' in tag_name:
-                return 'free_for_members'
+        """Determine the club type for an event.
 
-        # Fallback: determine from event properties
-        if hasattr(event, 'is_online_event') and event.is_online_event:
-            return 'regular_online'
-
-        return 'regular_offline'  # Default to offline
+        Delegates to the model's computed club_type so all code paths share
+        the same tag-priority logic (free_for_members wins over other tags).
+        """
+        return event.sudo().club_type
     
     def _can_membership_attend_event(self, membership, club_type):
         """Check if a membership can attend a specific club type event"""
@@ -522,6 +501,8 @@ class PopcornEventController(http.Controller):
     
     def _get_consumption_text(self, membership, club_type):
         """Get human-readable text for membership consumption"""
+        if club_type == 'free_for_members':
+            return _("Free for members - no consumption")
         if membership.plan_quota_mode == 'unlimited':
             return _("Unlimited membership - no consumption")
         elif membership.plan_quota_mode == 'bucket_counts':
