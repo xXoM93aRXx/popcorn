@@ -142,13 +142,12 @@
                                         <field name="consumed_points_total"/>
                                     </group>
                                 </group>
-                                <field name="registration_ids" readonly="1">
+                                <field name="consumed_registration_ids" readonly="1">
                                     <list>
                                         <field name="event_id"/>
                                         <field name="event_begin_date" string="Club Date"/>
                                         <field name="club_type"/>
                                         <field name="state"/>
-                                        <field name="consumption_state"/>
                                         <field name="points_consumed"/>
                                     </list>
                                 </field>

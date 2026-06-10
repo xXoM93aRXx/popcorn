@@ -134,6 +134,9 @@ class PopcornMembership(models.Model):
     
     # Club registrations booked on this membership
     registration_ids = fields.One2many('event.registration', 'membership_id', string='Club Registrations')
+    consumed_registration_ids = fields.One2many('event.registration', 'membership_id',
+                                                string='Consumed Club Registrations',
+                                                domain=[('consumption_state', '=', 'consumed'), ('state', '!=', 'cancel')])
     registration_count = fields.Integer(string='Clubs Booked', compute='_compute_registration_stats')
     consumed_clubs_count = fields.Integer(string='Clubs Consumed', compute='_compute_registration_stats')
     consumed_points_total = fields.Integer(string='Points Consumed', compute='_compute_registration_stats')
