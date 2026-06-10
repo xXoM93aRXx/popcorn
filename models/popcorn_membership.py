@@ -132,6 +132,12 @@ class PopcornMembership(models.Model):
     plan_allowed_regular_online = fields.Boolean(string='Allows Regular Online', related='membership_plan_id.allowed_regular_online')
     plan_allowed_spclub = fields.Boolean(string='Allows Special Club', related='membership_plan_id.allowed_spclub')
     
+    # Club registrations booked on this membership
+    registration_ids = fields.One2many('event.registration', 'membership_id', string='Club Registrations')
+    registration_count = fields.Integer(string='Clubs Booked', compute='_compute_registration_stats')
+    consumed_clubs_count = fields.Integer(string='Clubs Consumed', compute='_compute_registration_stats')
+    consumed_points_total = fields.Integer(string='Points Consumed', compute='_compute_registration_stats')
+
     # Computed fields for duration
     total_duration_days = fields.Integer(string='Total Duration (Days)', compute='_compute_total_duration_days', store=True)
     days_until_expiry = fields.Integer(string='Days Until Expiry', compute='_compute_days_until_expiry', store=False)
@@ -154,6 +160,17 @@ class PopcornMembership(models.Model):
         copy=False,
         help='Last datetime when attendance policy penalty freeze was applied.'
     )
+    @api.depends('registration_ids', 'registration_ids.state', 'registration_ids.consumption_state',
+                 'registration_ids.points_consumed')
+    def _compute_registration_stats(self):
+        """Compute booking and consumption totals for this membership"""
+        for membership in self:
+            registrations = membership.registration_ids.filtered(lambda r: r.state != 'cancel')
+            consumed = registrations.filtered(lambda r: r.consumption_state == 'consumed')
+            membership.registration_count = len(registrations)
+            membership.consumed_clubs_count = len(consumed)
+            membership.consumed_points_total = sum(consumed.mapped('points_consumed'))
+
     @api.depends('membership_plan_id.duration_days', 'extra_days_extension')
     def _compute_total_duration_days(self):
         """Compute total duration including extra days"""

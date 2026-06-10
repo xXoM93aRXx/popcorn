@@ -134,6 +134,26 @@
                                 </group>
                             </page>
                             
+                            <page string="Booked Clubs" name="booked_clubs">
+                                <group>
+                                    <group string="Totals">
+                                        <field name="registration_count"/>
+                                        <field name="consumed_clubs_count"/>
+                                        <field name="consumed_points_total"/>
+                                    </group>
+                                </group>
+                                <field name="registration_ids" readonly="1">
+                                    <list>
+                                        <field name="event_id"/>
+                                        <field name="event_begin_date" string="Club Date"/>
+                                        <field name="club_type"/>
+                                        <field name="state"/>
+                                        <field name="consumption_state"/>
+                                        <field name="points_consumed"/>
+                                    </list>
+                                </field>
+                            </page>
+
                             <page string="Freeze &amp; Extensions" name="freeze">
                                 <group>
                                     <group string="Freeze Status">
