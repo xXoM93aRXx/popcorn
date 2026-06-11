@@ -155,6 +155,11 @@ class ResPartner(models.Model):
         help='Date when partner was first marked as PDB (Pitched Didn\'t Buy)'
     )
 
+    pdb_pending_date = fields.Date(
+        string='PDB Pending Date',
+        help='Date of first offline club attendance. Partner remains a first-timer until midnight of this date, then PDB is applied.'
+    )
+
     is_pdb_today = fields.Boolean(
         string='Is PDB Today',
         compute='_compute_is_pdb_today',
@@ -411,6 +416,18 @@ class ResPartner(models.Model):
         today = fields.Date.today()
         for partner in self:
             partner.is_pdb_today = partner.pdb and partner.pdb_date == today
+
+    @api.model
+    def _cron_apply_pending_pdb(self):
+        """Hourly cron: convert grace-period partners to PDB after midnight."""
+        today = fields.Date.today()
+        pending = self.search([
+            ('pdb_pending_date', '<', today),
+            ('pdb', '=', False),
+            ('pdb_pending_date', '!=', False),
+        ])
+        for partner in pending:
+            partner.pdb = True
 
     def _get_first_timer_discount_record(self):
         """Get the live discount record linked to this partner's first-timer code."""

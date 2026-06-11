@@ -207,6 +207,14 @@ class PopcornEventController(http.Controller):
                 events.mapped('user_waitlist_position')
                 events.mapped('is_participating')
             
+            # First-timer grace period banner
+            _partner = request.env.user.partner_id
+            first_timer_pending_date = (
+                _partner.pdb_pending_date
+                if _partner.is_first_timer and _partner.pdb_pending_date
+                else False
+            )
+
             # Find the highest-priority active public discount for the banner
             public_discount = request.env['popcorn.discount'].sudo().search([
                 ('is_public', '=', True),
@@ -235,6 +243,7 @@ class PopcornEventController(http.Controller):
                 'website': website,
                 'has_active_filters': has_active_filters,
                 'public_discount': public_discount or False,
+                'first_timer_pending_date': str(first_timer_pending_date) if first_timer_pending_date else False,
             }
 
             return request.render("website_event.index", values)

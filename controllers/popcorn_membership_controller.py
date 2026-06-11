@@ -193,6 +193,14 @@ class PopcornMembershipController(http.Controller):
                 'is_renewal': has_renewal_discount,
             }
         
+        # First-timer grace period banner
+        partner = request.env.user.partner_id
+        first_timer_pending_date = (
+            partner.pdb_pending_date
+            if partner.is_first_timer and partner.pdb_pending_date
+            else False
+        )
+
         # Find the highest-priority active public discount to show in the banner
         public_discount = request.env['popcorn.discount'].sudo().search([
             ('is_public', '=', True),
@@ -207,8 +215,9 @@ class PopcornMembershipController(http.Controller):
             'plan_discounts': plan_discounts,
             'renewal_banner_info': renewal_banner_info,
             'public_discount': public_discount or False,
+            'first_timer_pending_date': str(first_timer_pending_date) if first_timer_pending_date else False,
         }
-        
+
         return request.render('popcorn.membership_plans_website_page', values)
     
     @http.route(['/memberships/website'], type='http', auth="public", website=True)
