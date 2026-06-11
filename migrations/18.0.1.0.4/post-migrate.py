@@ -8,10 +8,8 @@ The fix makes those always return 0, so we force a full recompute here.
 
 
 def migrate(cr, version):
-    from odoo import api, registry
+    from odoo import api
 
-    with registry(cr.dbname).cursor() as new_cr:
-        env = api.Environment(new_cr, 1, {})
-        registrations = env['event.registration'].search([])
-        registrations._compute_points_consumed()
-        new_cr.commit()
+    env = api.Environment(cr, api.SUPERUSER_ID, {})
+    registrations = env['event.registration'].search([])
+    registrations._compute_points_consumed()
