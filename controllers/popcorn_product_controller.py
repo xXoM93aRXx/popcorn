@@ -377,18 +377,19 @@ class PopcornProductController(http.Controller):
                 payment_link = transaction._get_specific_rendering_values(None)
                 if payment_link and 'action_url' in payment_link:
                     payment_url = payment_link['action_url']
+                else:
+                    payment_url = transaction._get_payment_link()
+
+                if payment_url:
+                    user_agent = request.httprequest.headers.get('User-Agent', '')
+                    if 'MicroMessenger' in user_agent:
+                        _logger.info(f"WeChat browser detected — redirecting to Alipay copy-link page for: {transaction.reference}")
+                        return request.redirect(f'/payment/alipay/wechat_redirect?ref={transaction.reference}')
                     _logger.info(f"Redirecting to Alipay payment URL for product purchase: {payment_url[:100]}...")
                     return redirect(payment_url, code=302)
-                else:
-                    # Fallback to direct payment link method
-                    payment_url = transaction._get_payment_link()
-                    if payment_url:
-                        _logger.info(f"Redirecting to Alipay payment URL for product purchase (fallback): {payment_url[:100]}...")
-                        return redirect(payment_url, code=302)
             except Exception as e:
                 _logger.error(f"Failed to get Alipay payment URL for product: {str(e)}", exc_info=True)
-            
-            # If we get here, payment URL generation failed
+
             _logger.error("Failed to create Alipay payment URL")
             return request.redirect('/shop?error=alipay_payment_failed')
         
@@ -473,18 +474,19 @@ class PopcornProductController(http.Controller):
                 payment_link = transaction._get_specific_rendering_values(None)
                 if payment_link and 'action_url' in payment_link:
                     payment_url = payment_link['action_url']
+                else:
+                    payment_url = transaction._get_payment_link()
+
+                if payment_url:
+                    user_agent = request.httprequest.headers.get('User-Agent', '')
+                    if 'MicroMessenger' in user_agent:
+                        _logger.info(f"WeChat browser detected — redirecting to Alipay copy-link page for: {transaction.reference}")
+                        return request.redirect(f'/payment/alipay/wechat_redirect?ref={transaction.reference}')
                     _logger.info(f"Redirecting to Alipay payment URL for cart checkout: {payment_url[:100]}...")
                     return redirect(payment_url, code=302)
-                else:
-                    # Fallback to direct payment link method
-                    payment_url = transaction._get_payment_link()
-                    if payment_url:
-                        _logger.info(f"Redirecting to Alipay payment URL for cart checkout (fallback): {payment_url[:100]}...")
-                        return redirect(payment_url, code=302)
             except Exception as e:
                 _logger.error(f"Failed to get Alipay payment URL for checkout: {str(e)}", exc_info=True)
-            
-            # If we get here, payment URL generation failed
+
             _logger.error("Failed to create Alipay payment URL for checkout")
             return request.redirect('/shop/cart?error=alipay_payment_failed')
         
