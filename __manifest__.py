@@ -1,6 +1,6 @@
 {
     'name': 'Popcorn Club',
-    'version': '18.0.1.0.3',
+    'version': '18.0.1.0.4',
     'category': 'Customizations',
     'summary': 'A generic Odoo 18 module for Popcorn Club',
     'description': """
