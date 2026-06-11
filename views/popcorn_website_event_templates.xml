@@ -597,10 +597,10 @@
         </xpath>
     </template>
 
-    <!-- Public Discount Banner on Events Page -->
+    <!-- Public Discount Banner on Events Page (hidden when first-timer grace banner is active) -->
     <template id="popcorn_event_discount_banner" inherit_id="website_event.index" name="Discount Banner">
         <xpath expr="//div[@id='wrap']" position="before">
-            <t t-if="public_discount">
+            <t t-if="public_discount and not first_timer_pending_date">
                 <div class="popcorn-renewal-banner-sticky popcorn-discount-banner"
                      t-att-data-discount-date-to="public_discount.date_to and str(public_discount.date_to) or ''"
                      t-att-data-banner-text="public_discount.banner_text or ''">

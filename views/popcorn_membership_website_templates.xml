@@ -19,8 +19,8 @@
                 </div>
             </t>
 
-            <!-- Public Discount Banner -->
-            <t t-if="public_discount">
+            <!-- Public Discount Banner (hidden when first-timer grace banner is active) -->
+            <t t-if="public_discount and not first_timer_pending_date">
                 <div class="popcorn-renewal-banner-sticky popcorn-discount-banner"
                      t-att-data-discount-date-to="public_discount.date_to and str(public_discount.date_to) or ''"
                      t-att-data-banner-text="public_discount.banner_text or ''">
