@@ -323,35 +323,35 @@ class PopcornEventRegistration(models.Model):
         'membership_id.membership_plan_id.points_per_social_experience',
     )
     def _compute_points_consumed(self):
-        """Compute points consumed based on club type"""
+        """Compute points consumed based on club type and membership quota mode.
+
+        Only points-mode memberships actually consume points. Unlimited and
+        bucket-count plans (Gold, session buckets) always return 0.
+        Registrations with no membership also return 0.
+        """
         for registration in self:
-            if not registration.club_type:
+            plan = (
+                registration.membership_id.membership_plan_id
+                if registration.membership_id
+                else None
+            )
+
+            # Only points-mode plans consume points
+            if not plan or plan.quota_mode != 'points':
                 registration.points_consumed = 0
                 continue
-            
-            # Get points from membership plan if available
-            if registration.membership_id and registration.membership_id.membership_plan_id:
-                plan = registration.membership_id.membership_plan_id
-                if registration.club_type == 'social_experience':
-                    registration.points_consumed = plan.points_per_social_experience
-                elif registration.club_type == 'regular_offline':
-                    registration.points_consumed = plan.points_per_offline
-                elif registration.club_type == 'regular_online':
-                    registration.points_consumed = plan.points_per_online
-                elif registration.club_type == 'spclub':
-                    registration.points_consumed = plan.points_per_sp
-                else:
-                    registration.points_consumed = 0
+
+            club_type = registration.club_type
+            if club_type == 'regular_offline':
+                registration.points_consumed = plan.points_per_offline
+            elif club_type == 'regular_online':
+                registration.points_consumed = plan.points_per_online
+            elif club_type == 'spclub':
+                registration.points_consumed = plan.points_per_sp
+            elif club_type == 'social_experience':
+                registration.points_consumed = plan.points_per_social_experience
             else:
-                # Fallback to default values if no membership plan
-                if registration.club_type == 'regular_offline':
-                    registration.points_consumed = 3
-                elif registration.club_type == 'regular_online':
-                    registration.points_consumed = 2
-                elif registration.club_type == 'spclub':
-                    registration.points_consumed = 6
-                else:
-                    registration.points_consumed = 0
+                registration.points_consumed = 0
     
     @api.depends('event_id', 'event_id.date_begin', 'event_id.cancellation_deadline_hours')
     def _compute_can_cancel(self):
