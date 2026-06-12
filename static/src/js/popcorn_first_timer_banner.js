@@ -17,12 +17,18 @@ function setupFirstTimerBanners() {
             23, 59, 59, 999
         );
 
+        // If already past midnight, hide immediately — don't reload
+        if (midnight - new Date() <= 0) {
+            banner.style.display = 'none';
+            return;
+        }
+
         function updateTimer() {
             var now = new Date();
             var timeLeft = midnight - now;
 
             if (timeLeft <= 0) {
-                window.location.reload();
+                banner.style.display = 'none';
                 return;
             }
 

@@ -209,11 +209,14 @@ class PopcornEventController(http.Controller):
             
             # First-timer grace period banner
             _partner = request.env.user.partner_id
-            first_timer_pending_date = (
-                _partner.pdb_pending_date
-                if _partner.is_first_timer and _partner.pdb_pending_date
-                else False
-            )
+            first_timer_pending_date = False
+            if _partner.is_first_timer and _partner.pdb_pending_date:
+                _today = fields.Date.today()
+                if _partner.pdb_pending_date >= _today:
+                    first_timer_pending_date = _partner.pdb_pending_date
+                else:
+                    # Grace period already expired; apply PDB now in case cron hasn't run
+                    _partner.sudo().write({'pdb': True, 'is_first_timer': False})
 
             # Find the highest-priority active public discount for the banner
             public_discount = request.env['popcorn.discount'].sudo().search([

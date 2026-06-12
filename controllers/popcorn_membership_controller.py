@@ -195,11 +195,14 @@ class PopcornMembershipController(http.Controller):
         
         # First-timer grace period banner
         partner = request.env.user.partner_id
-        first_timer_pending_date = (
-            partner.pdb_pending_date
-            if partner.is_first_timer and partner.pdb_pending_date
-            else False
-        )
+        first_timer_pending_date = False
+        if partner.is_first_timer and partner.pdb_pending_date:
+            today = fields.Date.today()
+            if partner.pdb_pending_date >= today:
+                first_timer_pending_date = partner.pdb_pending_date
+            else:
+                # Grace period already expired; apply PDB now in case cron hasn't run
+                partner.sudo().write({'pdb': True, 'is_first_timer': False})
 
         # Find the highest-priority active public discount to show in the banner
         public_discount = request.env['popcorn.discount'].sudo().search([
