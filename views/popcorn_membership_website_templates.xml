@@ -263,7 +263,14 @@
                                     <t t-elif="is_renewal">Complete Your Membership Renewal</t>
                                     <t t-else="">Complete Your Membership Purchase</t>
                                 </h2>
-                                
+
+                                <t t-if="checkout_error_message">
+                                    <div class="alert alert-danger" role="alert">
+                                        <i class="fa fa-exclamation-triangle mr-2"/>
+                                        <t t-esc="checkout_error_message"/>
+                                    </div>
+                                </t>
+
                                 <form t-attf-action="/memberships/#{plan.id}/process_checkout" method="post" class="popcorn-checkout-form-content popcorn-membership-checkout-form" t-att-data-plan-id="plan.id">
                                     <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                                     <input type="hidden" name="plan_id" t-att-value="plan.id"/>

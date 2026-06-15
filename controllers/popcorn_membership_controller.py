@@ -2,6 +2,7 @@
 
 from odoo import http, _
 from odoo.http import request
+from odoo.exceptions import ValidationError
 import json
 import logging
 from odoo import fields
@@ -324,6 +325,12 @@ class PopcornMembershipController(http.Controller):
         sms_config_active = self._is_sms_config_active()
         phone_verification_required = sms_config_active and not partner.phone
         
+        checkout_error_map = {
+            'phone_already_used': '哎呀，好像这个操作无法完成，因为该手机号码已被另一个会员使用。请联系小葩寻求帮助。',
+        }
+        checkout_error_code = request.params.get('error', '')
+        checkout_error_message = checkout_error_map.get(checkout_error_code, '')
+
         values = {
             'plan': plan,
             'payment_providers': payment_providers,
@@ -336,8 +343,9 @@ class PopcornMembershipController(http.Controller):
             'phone_verification_required': phone_verification_required,
             'sms_config_active': sms_config_active,
             'partner': partner,
+            'checkout_error_message': checkout_error_message,
         }
-        
+
         return request.render('popcorn.membership_checkout_page', values)
     
     @http.route(['/memberships/<model("popcorn.membership.plan"):plan>/process_checkout'], type='http', auth="public", website=True, methods=['POST'])
@@ -451,16 +459,22 @@ class PopcornMembershipController(http.Controller):
                     request.session.pop('phone_verification_candidate', None)
                     return request.redirect('/memberships/%s/checkout?error=invalid_verification_code' % plan.id)
 
-                partner.write({
-                    'phone': sanitized_input_phone,
-                    'mobile': sanitized_input_phone,
-                })
+                try:
+                    partner.write({
+                        'phone': sanitized_input_phone,
+                        'mobile': sanitized_input_phone,
+                    })
+                except ValidationError:
+                    return request.redirect('/memberships/%s/checkout?error=phone_already_used' % plan.id)
                 request.session.pop('phone_verification_candidate', None)
             else:
-                partner.write({
-                    'phone': sanitized_input_phone,
-                    'mobile': sanitized_input_phone,
-                })
+                try:
+                    partner.write({
+                        'phone': sanitized_input_phone,
+                        'mobile': sanitized_input_phone,
+                    })
+                except ValidationError:
+                    return request.redirect('/memberships/%s/checkout?error=phone_already_used' % plan.id)
             
             # Get customer signature if provided
             customer_signature = post.get('customer_signature')
