@@ -326,7 +326,7 @@ class PopcornMembershipController(http.Controller):
         phone_verification_required = sms_config_active and not partner.phone
         
         checkout_error_map = {
-            'phone_already_used': '哎呀，好像这个操作无法完成，因为该手机号码已被另一个会员使用。请联系小葩寻求帮助。',
+            'phone_already_used': '哎呀，好像这个操作无法完成，因为该手机号码已被另一个会员使用。请联系小帕寻求帮助。',
         }
         checkout_error_code = request.params.get('error', '')
         checkout_error_message = checkout_error_map.get(checkout_error_code, '')
