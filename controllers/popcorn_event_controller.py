@@ -1790,22 +1790,6 @@ class PopcornPortalController(CustomerPortal):
                 ('state', 'in', ['draft', 'open', 'confirmed', 'done']),
             ])
 
-            # DEBUG: log what we found so we can diagnose empty portal pages
-            all_regs = request.env['event.registration'].sudo().search([('partner_id', '=', partner.id)])
-            _logger.info(
-                '[MY_CLUBS] partner=%s (%s) | now=%s | total_regs=%s | '
-                'upcoming=%s | past=%s | all_states=%s',
-                partner.id, partner.name, now,
-                len(all_regs), len(upcoming_registrations), len(past_registrations),
-                list(set(all_regs.mapped('state')))
-            )
-            for r in all_regs[:10]:
-                _logger.info(
-                    '[MY_CLUBS] reg id=%s state=%s is_on_waitlist=%s event=%s date_end=%s',
-                    r.id, r.state, r.is_on_waitlist,
-                    r.event_id.name, r.event_id.date_end
-                )
-
             # Sort the registrations manually
             upcoming_registrations = upcoming_registrations.sorted(key=lambda r: r.event_id.date_begin)
             past_registrations = past_registrations.sorted(key=lambda r: r.event_id.date_begin, reverse=True)
