@@ -368,7 +368,7 @@
                                                         
                                                         <!-- Club Description Excerpt -->
                                                         <div class="club-description-excerpt">
-                                                            <span t-field="registration.event_id.description" t-options="{'widget': 'text', 'max_length': 50, 'strip_html': True}"/>
+                                                            <span t-out="(registration.event_id.description or '')[:120]"/>
                                                         </div>
                                                         
                                                         <!-- Time and Actions Row -->
@@ -453,7 +453,7 @@
                                                         
                                                         <!-- Club Description Excerpt -->
                                                         <div class="club-description-excerpt">
-                                                            <span t-field="registration.event_id.description" t-options="{'widget': 'text', 'max_length': 50, 'strip_html': True}"/>
+                                                            <span t-out="(registration.event_id.description or '')[:120]"/>
                                                         </div>
                                                         
                                                         <!-- Time and Actions Row -->

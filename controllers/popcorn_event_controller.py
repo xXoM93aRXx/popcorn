@@ -1780,16 +1780,14 @@ class PopcornPortalController(CustomerPortal):
             # For regular users, show their registrations (including waitlisted)
             upcoming_registrations = request.env['event.registration'].sudo().search([
                 ('partner_id', '=', partner.id),
-                ('event_id.date_end', '>', now),  # Event hasn't ended yet
-                '|',
-                ('state', 'in', ['open', 'confirmed', 'done']),
-                ('is_on_waitlist', '=', True)  # Include waitlisted registrations
+                ('event_id.date_end', '>', now),
+                ('state', 'in', ['draft', 'open', 'confirmed', 'done']),
             ])
 
             past_registrations = request.env['event.registration'].sudo().search([
                 ('partner_id', '=', partner.id),
-                ('event_id.date_end', '<=', now),  # Event has ended
-                ('state', 'in', ['open', 'confirmed', 'done'])
+                ('event_id.date_end', '<=', now),
+                ('state', 'in', ['draft', 'open', 'confirmed', 'done']),
             ])
 
             # DEBUG: log what we found so we can diagnose empty portal pages
