@@ -51,25 +51,21 @@ class WebsiteMenu(models.Model):
         except:
             website_id = False
         
-        # Get all visible child menus (sub-menus) for the website
+        # Get all child menus (sub-menus) for the website, filter is_visible in Python
+        # (is_visible is a computed non-stored field and cannot be used in search domains)
         all_child_menus = self.search([
             ('website_id', 'in', [website_id, False]),
             ('parent_id', '!=', False),  # Only child menus (sub-menus)
-            ('is_visible', '=', True),   # Only visible menus
-        ], order='sequence')
-        
-        # All visible child menus appear in sticky footer
-        sticky_menus = all_child_menus
-        
+        ], order='sequence').filtered(lambda m: m.is_visible)
+
         # Remove duplicates by URL - keep the first occurrence of each unique URL
         seen_urls = set()
         unique_menus = []
-        for menu in sticky_menus:
+        for menu in all_child_menus:
             if menu.url not in seen_urls:
                 seen_urls.add(menu.url)
                 unique_menus.append(menu)
-        
-        
+
         return self.browse([menu.id for menu in unique_menus])
     
     @api.model
@@ -86,22 +82,19 @@ class WebsiteMenu(models.Model):
         if not website_id:
             website_id = self.env['website'].get_current_website().id
             
-        # Get all visible child menus (sub-menus) for the website
+        # Get all child menus for the website, filter is_visible in Python
+        # (is_visible is a computed non-stored field and cannot be used in search domains)
         all_child_menus = self.search([
             ('website_id', 'in', [website_id, False]),
             ('parent_id', '!=', False),  # Only child menus (sub-menus)
-            ('is_visible', '=', True),   # Only visible menus
-        ], order='sequence')
-        
-        # All visible child menus appear in sticky footer
-        sticky_menus = all_child_menus
-        
+        ], order='sequence').filtered(lambda m: m.is_visible)
+
         # Remove duplicates by URL - keep the first occurrence of each unique URL
         seen_urls = set()
         unique_menus = []
-        for menu in sticky_menus:
+        for menu in all_child_menus:
             if menu.url not in seen_urls:
                 seen_urls.add(menu.url)
                 unique_menus.append(menu)
-        
+
         return self.browse([menu.id for menu in unique_menus])

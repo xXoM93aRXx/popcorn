@@ -320,7 +320,7 @@
                             <t t-if="error_message">
                                 <div class="alert alert-danger alert-dismissible" role="alert">
                                     <i class="fa fa-exclamation-circle me-2"></i>
-                                    <span t-raw="error_message"/>
+                                    <span t-out="error_message"/>
                                     <button type="button" class="btn-close" onclick="this.parentElement.remove()" aria-label="Close"></button>
                                 </div>
                             </t>
