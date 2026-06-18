@@ -20,12 +20,19 @@ function setupDiscountBanners() {
             23, 59, 59, 999
         );
 
+        // If already expired at page load, hide immediately — don't reload
+        if (expiration - new Date() <= 0) {
+            banner.style.display = 'none';
+            return;
+        }
+
         function updateTimer() {
             const now = new Date();
             const timeLeft = expiration - now;
 
             if (timeLeft <= 0) {
-                window.location.reload();
+                banner.style.display = 'none';
+                clearInterval(intervalId);
                 return;
             }
 
