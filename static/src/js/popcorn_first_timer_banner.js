@@ -2,13 +2,16 @@
 function setupFirstTimerBanners() {
     var banners = document.querySelectorAll('.popcorn-first-timer-banner');
     banners.forEach(function(banner) {
+        // Guard against double-setup
+        if (banner.dataset.countdownInitialized) return;
+        banner.dataset.countdownInitialized = '1';
+
         var countdownEl = banner.querySelector('.popcorn-first-timer-countdown');
         if (!countdownEl) return;
 
         var pendingDateStr = banner.dataset.pendingDate;
         if (!pendingDateStr) return;
 
-        // Countdown target: midnight (end of day) of the pending date
         var parts = pendingDateStr.split('-');
         var midnight = new Date(
             parseInt(parts[0]),
@@ -24,11 +27,11 @@ function setupFirstTimerBanners() {
         }
 
         function updateTimer() {
-            var now = new Date();
-            var timeLeft = midnight - now;
+            var timeLeft = midnight - new Date();
 
             if (timeLeft <= 0) {
                 banner.style.display = 'none';
+                clearInterval(intervalId);
                 return;
             }
 
@@ -40,7 +43,7 @@ function setupFirstTimerBanners() {
         }
 
         updateTimer();
-        setInterval(updateTimer, 1000);
+        var intervalId = setInterval(updateTimer, 1000);
     });
 }
 
@@ -50,6 +53,4 @@ if (document.readyState === 'loading') {
     setupFirstTimerBanners();
 }
 
-window.addEventListener('load', function() {
-    setTimeout(setupFirstTimerBanners, 200);
-});
+window.addEventListener('load', setupFirstTimerBanners);
