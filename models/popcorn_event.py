@@ -283,10 +283,7 @@ class EventEvent(models.Model):
         # Check if event date falls within any freeze period
         for membership in frozen_memberships:
             if membership.freeze_start and membership.freeze_end:
-                # Event is frozen if it's during the freeze period
-                # Event is frozen if it's during the freeze period (exclusive of end date)
-                # If freeze ends on Sept 10, events on Sept 11 should be bookable
-                is_frozen = (membership.freeze_start <= event_date and event_date < membership.freeze_end)
+                is_frozen = (membership.freeze_start <= event_date <= membership.freeze_end)
                 
                 # For debugging - let's log this
                 print(f"Event {self.name} on {event_date}, freeze period: {membership.freeze_start} to {membership.freeze_end}, is_frozen: {is_frozen}")

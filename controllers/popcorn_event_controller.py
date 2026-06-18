@@ -310,7 +310,7 @@ class PopcornEventController(http.Controller):
         frozen_blocking_membership = None
         for membership in all_usable_memberships:
             if membership.state == 'frozen' and membership.freeze_active and membership.freeze_start and membership.freeze_end:
-                if membership.freeze_start <= event_date < membership.freeze_end:
+                if membership.freeze_start <= event_date <= membership.freeze_end:
                     frozen_blocking_membership = membership
                     continue
             non_frozen_memberships.append(membership)
@@ -496,7 +496,7 @@ class PopcornEventController(http.Controller):
         # Check if event date falls within any freeze period
         for membership in frozen_memberships:
             if membership.freeze_start and membership.freeze_end:
-                if membership.freeze_start <= event_date < membership.freeze_end:
+                if membership.freeze_start <= event_date <= membership.freeze_end:
                     return True, membership
         
         return False, None
