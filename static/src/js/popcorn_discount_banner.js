@@ -2,6 +2,10 @@
 function setupDiscountBanners() {
     const banners = document.querySelectorAll('.popcorn-discount-banner');
     banners.forEach(function(banner) {
+        // Guard against double-setup (DOMContentLoaded + window.load both fire this)
+        if (banner.dataset.countdownInitialized) return;
+        banner.dataset.countdownInitialized = '1';
+
         const textEl = banner.querySelector('.popcorn-discount-banner-text');
         if (!textEl) return;
 
@@ -57,7 +61,6 @@ function setupDiscountBanners() {
 
         updateTimer();
         const intervalId = setInterval(updateTimer, 1000);
-        textEl.dataset.countdownInterval = intervalId;
     });
 }
 
@@ -67,6 +70,4 @@ if (document.readyState === 'loading') {
     setupDiscountBanners();
 }
 
-window.addEventListener('load', function() {
-    setTimeout(setupDiscountBanners, 200);
-});
+window.addEventListener('load', setupDiscountBanners);

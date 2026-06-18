@@ -206,12 +206,14 @@ class PopcornMembershipController(http.Controller):
                 partner.sudo().write({'pdb': True, 'is_first_timer': False})
 
         # Find the highest-priority active public discount to show in the banner
+        _today = fields.Date.today()
         public_discount = request.env['popcorn.discount'].sudo().search([
             ('is_public', '=', True),
             ('active', '=', True),
-            ('is_valid', '=', True),
             ('banner_text', '!=', False),
             ('banner_text', '!=', ''),
+            '|', ('date_from', '=', False), ('date_from', '<=', _today),
+            '|', ('date_to', '=', False), ('date_to', '>=', _today),
         ], order='sequence, name', limit=1)
 
         values = {
