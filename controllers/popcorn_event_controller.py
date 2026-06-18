@@ -223,6 +223,8 @@ class PopcornEventController(http.Controller):
                 ('is_public', '=', True),
                 ('active', '=', True),
                 ('is_valid', '=', True),
+                ('banner_text', '!=', False),
+                ('banner_text', '!=', ''),
             ], order='sequence, name', limit=1)
 
             values = {
