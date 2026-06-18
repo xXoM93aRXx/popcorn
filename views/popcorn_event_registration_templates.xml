@@ -108,11 +108,11 @@
                             <!-- Show membership and direct purchase options if no membership access -->
                             <t t-else="">
                                 <!-- Error Message Display as Toast -->
-                                <t t-if="request.params.get('error')">
+                                <t t-if="request.params.get('error') or membership_error">
                                     <div class="popcorn-error-banner" id="popcorn-error-banner">
                                         <div class="popcorn-error-content">
                                             <i class="fa fa-exclamation-triangle popcorn-error-icon"></i>
-                                            <span class="popcorn-error-text" t-esc="request.params.get('error')"/>
+                                            <span class="popcorn-error-text" t-esc="request.params.get('error') or membership_error"/>
                                             <button type="button" class="popcorn-error-close">
                                                 <i class="fa fa-times"></i>
                                             </button>

@@ -301,9 +301,26 @@ class PopcornEventController(http.Controller):
         
         # Combine both sets
         all_usable_memberships = active_memberships | pending_first_attendance
-        
+
         if not all_usable_memberships:
             return False, '/memberships', _('Check out the membership plans for big savings and awesome benefits!')
+
+        # Filter out memberships that are frozen during the event date
+        non_frozen_memberships = []
+        frozen_blocking_membership = None
+        for membership in all_usable_memberships:
+            if membership.state == 'frozen' and membership.freeze_active and membership.freeze_start and membership.freeze_end:
+                if membership.freeze_start <= event_date < membership.freeze_end:
+                    frozen_blocking_membership = membership
+                    continue
+            non_frozen_memberships.append(membership)
+
+        if not non_frozen_memberships:
+            freeze_end = frozen_blocking_membership.freeze_end if frozen_blocking_membership else None
+            msg = _('Your membership is frozen until %s. You cannot register for events during this period.') % freeze_end if freeze_end else _('Your membership is currently frozen.')
+            return False, None, msg
+
+        all_usable_memberships = non_frozen_memberships
         
         # Check if any membership allows this event type
         event_club_type = self._get_event_club_type(event)
@@ -415,13 +432,6 @@ class PopcornEventController(http.Controller):
         # Filter active/frozen memberships first
         compatible_memberships = []
         for membership in active_memberships:
-            # Block booking if membership is frozen and the event falls within the freeze window.
-            # Allow booking if the event starts after the freeze ends.
-            if membership.state == 'frozen' and membership.freeze_end:
-                event_start = event.date_begin.date() if event.date_begin else event_date
-                if event_start <= membership.freeze_end:
-                    continue
-
             # For Social Experience events, if membership plan is in second_price or third_price list, skip quota check
             if event_club_type == 'social_experience' and (
                 membership.membership_plan_id in event.membership_plans_second_price_ids
