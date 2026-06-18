@@ -415,6 +415,13 @@ class PopcornEventController(http.Controller):
         # Filter active/frozen memberships first
         compatible_memberships = []
         for membership in active_memberships:
+            # Block booking if membership is frozen and the event falls within the freeze window.
+            # Allow booking if the event starts after the freeze ends.
+            if membership.state == 'frozen' and membership.freeze_end:
+                event_start = event.date_begin.date() if event.date_begin else event_date
+                if event_start <= membership.freeze_end:
+                    continue
+
             # For Social Experience events, if membership plan is in second_price or third_price list, skip quota check
             if event_club_type == 'social_experience' and (
                 membership.membership_plan_id in event.membership_plans_second_price_ids
