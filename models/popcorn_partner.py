@@ -741,8 +741,7 @@ class ResPartner(models.Model):
     # Punctuality Badge — daily cron evaluation
     # -------------------------------------------------------------------------
 
-    # Set to False once logs confirm the logic is correct
-    _PUNCTUALITY_DRY_RUN = True
+    _PUNCTUALITY_DRY_RUN = False
 
     @api.model
     def _cron_evaluate_punctuality_badge(self):
