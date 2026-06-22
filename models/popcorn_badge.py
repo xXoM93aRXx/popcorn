@@ -163,14 +163,6 @@ class BadgeRule(models.Model):
             if field_name == 'distinct_hosts_count_in_period':
                 return self._evaluate_distinct_hosts_rule(partner)
 
-            # Special case: penalty count in period (for punctuality badge)
-            if field_name == 'penalty_count_in_period':
-                return self._evaluate_penalty_count_rule(partner)
-
-            # Special case: minimum perfect attendances per calendar month
-            if field_name == 'min_perfect_attendance_per_month':
-                return self._evaluate_min_perfect_per_month_rule(partner)
-
             # Special case: distinct topics count (event tags in the "Topic" category)
             if field_name == 'distinct_topics_count_in_period':
                 return self._evaluate_distinct_topics_rule(partner)
@@ -277,94 +269,6 @@ class BadgeRule(models.Model):
             _logger.warning(f"Error evaluating distinct hosts rule {self.name}: {str(e)}")
             return False
     
-    def _evaluate_penalty_count_rule(self, partner):
-        """Count quota penalty violations in the rolling time window.
-        Set rule operator '=' value '0' to require zero penalties."""
-        try:
-            from datetime import datetime, timedelta
-            import logging
-            _logger = logging.getLogger(__name__)
-
-            cutoff_end = datetime.now()
-            cutoff_start = cutoff_end - timedelta(days=self.time_filter_months * 30)
-            if self.time_filter_anchor_date:
-                anchor = datetime.combine(self.time_filter_anchor_date, datetime.min.time())
-                cutoff_start = max(cutoff_start, anchor)
-
-            penalty_count = self.env['event.registration'].search_count([
-                ('partner_id', '=', partner.id),
-                ('quota_penalty_violation', '=', True),
-                ('create_date', '>=', cutoff_start.strftime('%Y-%m-%d %H:%M:%S')),
-                ('create_date', '<=', cutoff_end.strftime('%Y-%m-%d %H:%M:%S')),
-            ])
-
-            comparison_value = int(self.value) if self.value.lstrip('-').isdigit() else 0
-            result = self._evaluate_condition(penalty_count, self.operator, comparison_value)
-            _logger.info('Badge Rule %s for partner %s: penalty_count=%s, needed %s %s, result=%s',
-                         self.name, partner.id, penalty_count, self.operator, comparison_value, result)
-            return result
-
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning('Error evaluating penalty_count_in_period: %s', e)
-            return False
-
-    def _evaluate_min_perfect_per_month_rule(self, partner):
-        """Compute the minimum number of perfect attendances (done, not late, not no-show)
-        across all calendar months in the rolling window.
-        Set rule operator '>=' value '5' to require at least 5 per month."""
-        try:
-            from datetime import datetime, timedelta
-            from collections import defaultdict
-            import logging
-            _logger = logging.getLogger(__name__)
-
-            cutoff_end = datetime.now()
-            cutoff_start = cutoff_end - timedelta(days=self.time_filter_months * 30)
-            if self.time_filter_anchor_date:
-                anchor = datetime.combine(self.time_filter_anchor_date, datetime.min.time())
-                cutoff_start = max(cutoff_start, anchor)
-
-            perfect_regs = self.env['event.registration'].search([
-                ('partner_id', '=', partner.id),
-                ('state', '!=', 'cancel'),
-                ('is_late_attendance', '=', False),
-                ('is_no_show_attendance', '=', False),
-                ('create_date', '>=', cutoff_start.strftime('%Y-%m-%d %H:%M:%S')),
-                ('create_date', '<=', cutoff_end.strftime('%Y-%m-%d %H:%M:%S')),
-            ])
-
-            # Build a dict of {(year, month): count}
-            monthly = defaultdict(int)
-            for reg in perfect_regs:
-                if reg.create_date:
-                    monthly[(reg.create_date.year, reg.create_date.month)] += 1
-
-            # Build the full set of calendar months in the window
-            required_months = set()
-            cursor = cutoff_start.replace(day=1)
-            while cursor <= cutoff_end:
-                required_months.add((cursor.year, cursor.month))
-                # Advance to next month
-                if cursor.month == 12:
-                    cursor = cursor.replace(year=cursor.year + 1, month=1)
-                else:
-                    cursor = cursor.replace(month=cursor.month + 1)
-
-            # Minimum across all required months (0 if a month has no perfect attendances)
-            min_per_month = min(monthly.get(m, 0) for m in required_months) if required_months else 0
-
-            comparison_value = int(self.value) if self.value.lstrip('-').isdigit() else 0
-            result = self._evaluate_condition(min_per_month, self.operator, comparison_value)
-            _logger.info('Badge Rule %s for partner %s: min_perfect_per_month=%s across months %s, needed %s %s, result=%s',
-                         self.name, partner.id, min_per_month, sorted(required_months), self.operator, comparison_value, result)
-            return result
-
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning('Error evaluating min_perfect_attendance_per_month: %s', e)
-            return False
-
     def _evaluate_distinct_topics_rule(self, partner):
         """Count distinct event tags in the 'Topic' category across non-cancelled registrations."""
         try:
@@ -629,32 +533,12 @@ class ResPartner(models.Model):
     _inherit = 'res.partner'
 
     # Placeholder fields used as badge rule field references for special-case evaluators
-    penalty_count_in_period = fields.Integer(
-        string='Penalty Count (Period)',
-        compute='_compute_penalty_count_in_period',
-        store=False,
-        help='Number of quota penalty violations in a time period (used by badge rules)'
-    )
-    min_perfect_attendance_per_month = fields.Integer(
-        string='Min Perfect Attendance per Month',
-        compute='_compute_min_perfect_attendance_per_month',
-        store=False,
-        help='Minimum perfect (non-cancelled, not late, not no-show) attendances in any calendar month within a period (used by badge rules)'
-    )
     distinct_topics_count_in_period = fields.Integer(
         string='Distinct Topics Count (Period)',
         compute='_compute_distinct_topics_count_in_period',
         store=False,
         help='Number of distinct event topics (tags in the Topic category) attended (used by badge rules)'
     )
-
-    def _compute_penalty_count_in_period(self):
-        for partner in self:
-            partner.penalty_count_in_period = 0
-
-    def _compute_min_perfect_attendance_per_month(self):
-        for partner in self:
-            partner.min_perfect_attendance_per_month = 0
 
     def _compute_distinct_topics_count_in_period(self):
         for partner in self:

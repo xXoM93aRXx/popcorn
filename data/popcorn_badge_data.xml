@@ -174,46 +174,6 @@
             <field name="active">True</field>
         </record>
         
-        <!-- Badge: Punctuality -->
-        <record id="badge_punctuality" model="popcorn.badge">
-            <field name="name">Punctuality Badge</field>
-            <field name="description">Always on time, never penalised — at least 5 perfect show-ups every month for 90 days in a row!</field>
-            <field name="active">True</field>
-            <field name="prize_popcorn_money" eval="100.0"/>
-        </record>
-
-        <record id="badge_rule_punctuality_no_penalties" model="popcorn.badge.rule">
-            <field name="name">No Penalties in 90 Days</field>
-            <field name="badge_id" ref="badge_punctuality"/>
-            <field name="sequence" eval="10"/>
-            <field name="model_id" ref="base.model_res_partner"/>
-            <field name="field_id" ref="popcorn.field_res_partner__penalty_count_in_period"/>
-            <field name="operator">=</field>
-            <field name="value">0</field>
-            <field name="use_time_filter" eval="True"/>
-            <field name="time_filter_months" eval="3"/>
-            <field name="time_filter_anchor_date">2025-10-27</field>
-            <field name="time_filter_field">create_date</field>
-            <field name="description">Zero quota penalty violations in the rolling 90-day window</field>
-            <field name="active">True</field>
-        </record>
-
-        <record id="badge_rule_punctuality_perfect_per_month" model="popcorn.badge.rule">
-            <field name="name">5+ Perfect Show-ups per Month</field>
-            <field name="badge_id" ref="badge_punctuality"/>
-            <field name="sequence" eval="20"/>
-            <field name="model_id" ref="base.model_res_partner"/>
-            <field name="field_id" ref="popcorn.field_res_partner__min_perfect_attendance_per_month"/>
-            <field name="operator">&gt;=</field>
-            <field name="value">5</field>
-            <field name="use_time_filter" eval="True"/>
-            <field name="time_filter_months" eval="3"/>
-            <field name="time_filter_anchor_date">2025-10-27</field>
-            <field name="time_filter_field">create_date</field>
-            <field name="description">Every calendar month in the 90-day window must have at least 5 perfect (non-cancelled, not late, not no-show) registrations</field>
-            <field name="active">True</field>
-        </record>
-
         <!-- Badge: Variety -->
         <record id="badge_variety" model="popcorn.badge">
             <field name="name">Variety</field>
