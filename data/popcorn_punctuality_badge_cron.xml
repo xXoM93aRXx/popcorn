@@ -1,10 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Delete the old broken punctuality badge and its rules -->
-    <data noupdate="0">
-        <delete model="popcorn.badge" search="[('id', '=', ref('popcorn.badge_punctuality'))]"/>
-    </data>
-
     <data noupdate="1">
 
         <!-- Punctuality Badge -->
