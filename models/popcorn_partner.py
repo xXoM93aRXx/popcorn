@@ -3,7 +3,11 @@
 from odoo import api, fields, models, _
 
 import pytz
-from datetime import datetime, time
+import logging
+from datetime import datetime, time, timedelta
+from collections import defaultdict
+
+_logger = logging.getLogger(__name__)
 
 
 class ResPartner(models.Model):
@@ -730,5 +734,134 @@ class ResPartner(models.Model):
             if partner_id:
                 partner = self.browse(partner_id)
                 partner.action_generate_first_timer_discount()
-        
+
         return result
+
+    # -------------------------------------------------------------------------
+    # Punctuality Badge — daily cron evaluation
+    # -------------------------------------------------------------------------
+
+    # Set to False once logs confirm the logic is correct
+    _PUNCTUALITY_DRY_RUN = True
+
+    @api.model
+    def _cron_evaluate_punctuality_badge(self):
+        """Daily cron: award Punctuality Badge to members who have had
+        zero attendance incidents and at least 5 clean attendances per
+        complete calendar month over the last 90 days.
+
+        While _PUNCTUALITY_DRY_RUN is True, only logs — no badges awarded.
+        """
+        DRY_RUN = self._PUNCTUALITY_DRY_RUN
+        prefix = '[PUNCTUALITY_BADGE DRY RUN]' if DRY_RUN else '[PUNCTUALITY_BADGE]'
+
+        badge = self.env.ref('popcorn.badge_punctuality_90d', raise_if_not_found=False)
+        if not badge:
+            _logger.warning('%s Badge record not found — skipping', prefix)
+            return
+
+        today = fields.Date.today()
+        window_start = today - timedelta(days=90)
+        window_start_dt = datetime.combine(window_start, time.min)
+
+        # Only evaluate partners who don't already have the badge
+        already_earned_ids = self.env['res.partner'].sudo().search([
+            ('permanently_earned_badge_ids', 'in', [badge.id]),
+        ]).ids
+
+        candidates = self.env['res.partner'].sudo().search([
+            ('id', 'not in', already_earned_ids),
+            ('user_ids', '!=', False),   # actual portal/internal users only
+        ])
+
+        _logger.info('%s Evaluating %s candidates (badge: %s)', prefix, len(candidates), badge.name)
+
+        Registration = self.env['event.registration'].sudo()
+
+        for partner in candidates:
+            # ── Rule 1: zero attendance incidents in the 90-day window ──────
+            # Covers all membership types: late_no_show_incident (unlimited)
+            # and quota_penalty_violation (bucket/points)
+            incident_count = Registration.search_count([
+                ('partner_id', '=', partner.id),
+                '|',
+                '&', ('late_no_show_incident', '=', True),
+                     ('late_no_show_incident_date', '>=', window_start_dt),
+                '&', ('quota_penalty_violation', '=', True),
+                     ('quota_penalty_violation_date', '>=', window_start_dt),
+            ])
+
+            if incident_count > 0:
+                _logger.info('%s partner=%s (%s) FAILS: %s incident(s) in last 90 days',
+                             prefix, partner.id, partner.name, incident_count)
+                continue
+
+            # ── Rule 2: ≥5 clean attendances in every complete calendar month ─
+            clean_regs = Registration.search([
+                ('partner_id', '=', partner.id),
+                ('state', 'not in', ['cancel', 'draft']),
+                ('late_no_show_incident', '=', False),
+                ('is_no_show_attendance', '=', False),
+                ('event_id.date_begin', '>=', window_start_dt),
+            ])
+
+            # Group by event month
+            monthly = defaultdict(int)
+            for reg in clean_regs:
+                if reg.event_id.date_begin:
+                    monthly[(reg.event_id.date_begin.year, reg.event_id.date_begin.month)] += 1
+
+            # Only check complete calendar months (exclude current month in progress)
+            complete_months = []
+            cursor = window_start.replace(day=1)
+            while cursor < today.replace(day=1):
+                complete_months.append((cursor.year, cursor.month))
+                if cursor.month == 12:
+                    cursor = cursor.replace(year=cursor.year + 1, month=1)
+                else:
+                    cursor = cursor.replace(month=cursor.month + 1)
+
+            if not complete_months:
+                _logger.info('%s partner=%s (%s) FAILS: no complete months in 90-day window yet',
+                             prefix, partner.id, partner.name)
+                continue
+
+            failed_months = [m for m in complete_months if monthly.get(m, 0) < 5]
+            monthly_summary = ', '.join(
+                '%d/%d=%d' % (m[1], m[0], monthly.get(m, 0)) for m in complete_months
+            )
+
+            if failed_months:
+                _logger.info('%s partner=%s (%s) FAILS: months below 5 clean attendances: %s | full: %s',
+                             prefix, partner.id, partner.name,
+                             [('%d/%d' % (m[1], m[0])) for m in failed_months],
+                             monthly_summary)
+                continue
+
+            # ── Qualifies ────────────────────────────────────────────────────
+            _logger.info('%s partner=%s (%s) QUALIFIES: 0 incidents | %s',
+                         prefix, partner.id, partner.name, monthly_summary)
+
+            if not DRY_RUN:
+                partner.write({
+                    'permanently_earned_badge_ids': [(4, badge.id)],
+                    'notified_badge_ids': [(4, badge.id)],
+                })
+                if badge.prize_popcorn_money > 0:
+                    expiry_date = None
+                    if badge.prize_expiry_days > 0:
+                        expiry_date = today + timedelta(days=badge.prize_expiry_days)
+                    partner.add_popcorn_money(
+                        badge.prize_popcorn_money,
+                        notes='Badge earned: %s' % badge.name,
+                    )
+                    self.env['popcorn.badge.prize'].sudo().create({
+                        'partner_id': partner.id,
+                        'badge_id': badge.id,
+                        'amount': badge.prize_popcorn_money,
+                        'expiry_date': expiry_date,
+                    })
+                    _logger.info('%s partner=%s (%s) AWARDED badge + %s popcorn money',
+                                 prefix, partner.id, partner.name, badge.prize_popcorn_money)
+
+        _logger.info('%s Evaluation complete', prefix)
