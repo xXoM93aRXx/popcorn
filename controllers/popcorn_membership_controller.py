@@ -14,6 +14,17 @@ _logger = logging.getLogger(__name__)
 class PopcornMembershipController(http.Controller):
     """Controller for standalone membership purchase"""
     
+    def _get_membership_plan(self, plan_slug):
+        """Resolve a 'name-id' slug (or bare id) to a popcorn.membership.plan record, sudo'd so it
+        can be looked up before the current user's access rights are known/relevant."""
+        _name, plan_id = request.env['ir.http']._unslug(plan_slug)
+        if not plan_id:
+            raise NotFound()
+        plan = request.env['popcorn.membership.plan'].sudo().browse(plan_id).exists()
+        if not plan:
+            raise NotFound()
+        return plan
+
     def _is_sms_config_active(self):
         """Check if SMS configuration is active"""
         try:
@@ -237,14 +248,15 @@ class PopcornMembershipController(http.Controller):
         
         return request.render('popcorn.membership_plans_website_page')
     
-    @http.route(['/memberships/<model("popcorn.membership.plan"):plan>'], type='http', auth="public", website=True)
+    @http.route(['/memberships/<string:plan>'], type='http', auth="public", website=True)
     def membership_plan_detail(self, plan, **post):
         """Display detailed information about a specific membership plan"""
         # Check if user is logged in (public user means not logged in)
         if request.env.user.id == request.env.ref('base.public_user').id:
             return request.redirect('/web/login?redirect=' + request.httprequest.url)
-        
-        
+
+        plan = self._get_membership_plan(plan)
+
         values = {
             'plan': plan,
             'benefits': plan.get_membership_benefits(),
@@ -252,13 +264,15 @@ class PopcornMembershipController(http.Controller):
         
         return request.render('popcorn.membership_plan_detail_page', values)
     
-    @http.route(['/memberships/<model("popcorn.membership.plan"):plan>/checkout'], type='http', auth="public", website=True)
+    @http.route(['/memberships/<string:plan>/checkout'], type='http', auth="public", website=True)
     def membership_checkout(self, plan, **post):
         """Display checkout page for membership purchase"""
         # Check if user is logged in (public user means not logged in)
         if request.env.user.id == request.env.ref('base.public_user').id:
             return request.redirect('/web/login?redirect=' + request.httprequest.url)
-        
+
+        plan = self._get_membership_plan(plan)
+
         # Check if this is an upgrade (from URL parameters)
         is_upgrade = post.get('upgrade') == 'true' or request.params.get('upgrade') == 'true'
         upgrade_details = None
@@ -352,13 +366,15 @@ class PopcornMembershipController(http.Controller):
 
         return request.render('popcorn.membership_checkout_page', values)
     
-    @http.route(['/memberships/<model("popcorn.membership.plan"):plan>/process_checkout'], type='http', auth="public", website=True, methods=['POST'])
+    @http.route(['/memberships/<string:plan>/process_checkout'], type='http', auth="public", website=True, methods=['POST'])
     def process_membership_checkout(self, plan, **post):
         """Process the checkout form and initiate payment transaction"""
         # Check if user is logged in (public user means not logged in)
         if request.env.user.id == request.env.ref('base.public_user').id:
             return request.redirect('/web/login?redirect=' + request.httprequest.url)
-        
+
+        plan = self._get_membership_plan(plan)
+
         try:
             # Get partner first (needed for renewal check)
             partner = request.env.user.partner_id
@@ -1397,13 +1413,15 @@ class PopcornMembershipController(http.Controller):
             _logger.error("Failed to find membership for transaction %s: %s", transaction_reference, str(e))
             return None
 
-    @http.route(['/memberships/<model("popcorn.membership.plan"):plan>/purchase'], type='http', auth="public", website=True)
+    @http.route(['/memberships/<string:plan>/purchase'], type='http', auth="public", website=True)
     def membership_purchase(self, plan, **post):
         """Handle membership purchase"""
         # Check if user is logged in (public user means not logged in)
         if request.env.user.id == request.env.ref('base.public_user').id:
             return request.redirect('/web/login?redirect=' + request.httprequest.url)
-        
+
+        plan = self._get_membership_plan(plan)
+
         if request.httprequest.method == 'POST':
             # Handle the purchase
             try:
