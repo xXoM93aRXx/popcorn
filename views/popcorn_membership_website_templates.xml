@@ -291,9 +291,24 @@
                                         </div>
                                         <div class="popcorn-form-group">
                                             <label for="phone" class="popcorn-form-label">Phone Number *</label>
-                                            <input type="tel" id="phone" name="phone" class="popcorn-form-input" 
+                                            <input type="tel" id="phone" name="phone" class="popcorn-form-input"
                                                    t-att-value="request.env.user.partner_id.phone or ''" required="required"/>
                                         </div>
+                                        <t t-if="phone_verification_required">
+                                            <div class="popcorn-form-group">
+                                                <label for="phone_verification_code" class="popcorn-form-label">Verification Code</label>
+                                                <div class="popcorn-verification-group">
+                                                    <input type="text" id="phone_verification_code" name="phone_verification_code" class="popcorn-form-input" placeholder="Enter SMS code" />
+                                                    <button type="button" class="popcorn-btn popcorn-btn-secondary popcorn-send-phone-otp"
+                                                            data-phone-input="#phone"
+                                                            data-message-target="#membership_phone_otp_message"
+                                                            data-code-target="#phone_verification_code">
+                                                        <i class="fa fa-paper-plane"></i> Send Code
+                                                    </button>
+                                                </div>
+                                                <small id="membership_phone_otp_message" class="text-muted"></small>
+                                            </div>
+                                        </t>
                                     </div>
                                     
                                     <!-- Student Card + ID Card Upload (student plans only) -->

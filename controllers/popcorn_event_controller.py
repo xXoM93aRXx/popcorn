@@ -17,7 +17,16 @@ _logger = logging.getLogger(__name__)
 
 class PopcornEventController(http.Controller):
     """Controller for Popcorn Club membership-gated event registration"""
-    
+
+    def _is_sms_config_active(self):
+        """Check if SMS configuration is active"""
+        try:
+            sms_config = request.env['sms.config'].sudo().search([('is_active', '=', True)], limit=1)
+            return bool(sms_config and sms_config.is_active)
+        except Exception as e:
+            _logger.warning('Failed to check SMS config status: %s', str(e))
+            return False
+
     @http.route(['/event', '/event/page/<int:page>', '/events', '/events/page/<int:page>'], type='http', auth="public", website=True, methods=['GET', 'POST'])
     def events_list(self, page=1, **searches):
         """Override events list to show ALL events on one page without pagination"""
@@ -1045,7 +1054,7 @@ class PopcornEventController(http.Controller):
         values = {
             'event': event,
             'partner': partner,
-            'phone_verification_required': not partner.phone,
+            'phone_verification_required': self._is_sms_config_active(),
             'second_price': second_price if should_use_second_price else None,
         }
 
@@ -1096,10 +1105,10 @@ class PopcornEventController(http.Controller):
 
             Users = request.env['res.users'].sudo()
             sanitized_input_phone = Users._sanitize_phone(kwargs.get('phone'))
-            sanitized_partner_phone = Users._sanitize_phone(partner.phone)
             if not sanitized_input_phone:
                 return request.redirect(f'/popcorn/event/{event.id}/checkout?error=invalid_phone_format')
-            phone_needs_verification = not sanitized_partner_phone or sanitized_partner_phone != sanitized_input_phone
+            # Same rule as the checkout page: verification is required whenever SMS is active
+            phone_needs_verification = self._is_sms_config_active()
 
             if phone_needs_verification:
                 verification_code = (kwargs.get('phone_verification_code') or '').strip()
@@ -1125,14 +1134,20 @@ class PopcornEventController(http.Controller):
                     return request.redirect(f'/popcorn/event/{event.id}/checkout?error=invalid_verification_code')
 
                 # Verification succeeded; store sanitized phone on partner
-                partner.write({
-                    'phone': sanitized_input_phone,
-                    'mobile': sanitized_input_phone,
-                })
+                try:
+                    partner.write({
+                        'phone': sanitized_input_phone,
+                        'mobile': sanitized_input_phone,
+                    })
+                except ValidationError:
+                    return request.redirect(f'/popcorn/event/{event.id}/checkout?error=phone_already_used')
                 request.session.pop('phone_verification_candidate', None)
             else:
-                # Phone already on file and matches the submitted value
-                partner.write({'phone': sanitized_input_phone, 'mobile': sanitized_input_phone})
+                # SMS is not active, so store the submitted phone without verifying it
+                try:
+                    partner.write({'phone': sanitized_input_phone, 'mobile': sanitized_input_phone})
+                except ValidationError:
+                    return request.redirect(f'/popcorn/event/{event.id}/checkout?error=phone_already_used')
             
             # Get applied discount ID from coupon code (if any)
             applied_discount_id = kwargs.get('applied_discount_id')

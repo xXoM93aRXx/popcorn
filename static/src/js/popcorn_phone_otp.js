@@ -95,11 +95,13 @@ function onSendPhoneOtp(ev) {
 }
 
 function setupOtpButtons() {
-    var $button = $('#event_send_phone_otp');
-    if ($button.length && !$button.data('popcorn-otp-bound')) {
-        $button.data('popcorn-otp-bound', true);
-        $button.on('click', onSendPhoneOtp);
-    }
+    $('#event_send_phone_otp, .popcorn-send-phone-otp').each(function () {
+        var $button = $(this);
+        if (!$button.data('popcorn-otp-bound')) {
+            $button.data('popcorn-otp-bound', true);
+            $button.on('click', onSendPhoneOtp);
+        }
+    });
 }
 
 if (document.readyState === 'loading') {

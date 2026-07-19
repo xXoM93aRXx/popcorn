@@ -339,12 +339,17 @@ class PopcornMembershipController(http.Controller):
             }
         }
         
-        # Check if SMS config is active - only require verification if SMS is active
+        # Phone verification is driven entirely by the SMS configuration:
+        # active means the code field shows and is required, inactive means neither.
         sms_config_active = self._is_sms_config_active()
-        phone_verification_required = sms_config_active and not partner.phone
+        phone_verification_required = sms_config_active
         
         checkout_error_map = {
             'phone_already_used': '哎呀，好像这个操作无法完成，因为该手机号码已被另一个会员使用。请联系小帕寻求帮助。',
+            'invalid_phone_format': 'Please enter a valid phone number using digits only.',
+            'phone_verification_required': 'Please verify your phone number before completing checkout.',
+            'phone_verification_mismatch': 'Please request a new verification code for the phone number you entered.',
+            'invalid_verification_code': 'The verification code is invalid or has expired. Please request a new one.',
         }
         checkout_error_code = request.params.get('error', '')
         checkout_error_message = checkout_error_map.get(checkout_error_code, '')
@@ -453,10 +458,8 @@ class PopcornMembershipController(http.Controller):
             if not sanitized_input_phone:
                 return request.redirect('/memberships/%s/checkout?error=invalid_phone_format' % plan.id)
 
-            # Check if SMS config is active - only require verification if SMS is active
-            sms_config_active = self._is_sms_config_active()
-            sanitized_partner_phone = Users._sanitize_phone(partner.phone)
-            phone_needs_verification = False
+            # Same rule as the checkout page: verification is required whenever SMS is active
+            phone_needs_verification = self._is_sms_config_active()
 
             if phone_needs_verification:
                 verification_code = (post.get('phone_verification_code') or '').strip()
