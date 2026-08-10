@@ -57,9 +57,11 @@ class ResConfigSettings(models.TransientModel):
              'deepseek-v4-pro, which is slower and costs more per post.'
     )
 
+    # res.config.settings only accepts boolean/integer/float/char/selection/
+    # many2one/datetime for config_parameter fields, so this one is read and
+    # written by hand below to keep a multi-line editor for the rules.
     forum_content_regulations = fields.Text(
         string='Content Regulations',
-        config_parameter='popcorn.forum_content_regulations',
         help='The rules a post must follow, in plain text. These are sent to DeepSeek verbatim as the only '
              'basis for its decision, so write them as a numbered list of clear, checkable statements. '
              'Editing them affects future posts only; use "Re-run Moderation" to re-check existing ones.'
@@ -72,6 +74,20 @@ class ResConfigSettings(models.TransientModel):
         help='Shown to the member after they submit a post. Deliberately identical whether the post is '
              'published or rejected, so the moderation outcome is not revealed.'
     )
+
+    @api.model
+    def get_values(self):
+        res = super().get_values()
+        res['forum_content_regulations'] = self.env['ir.config_parameter'].sudo().get_param(
+            'popcorn.forum_content_regulations', ''
+        )
+        return res
+
+    def set_values(self):
+        super().set_values()
+        self.env['ir.config_parameter'].sudo().set_param(
+            'popcorn.forum_content_regulations', self.forum_content_regulations or ''
+        )
 
 
 
