@@ -1,6 +1,6 @@
 {
     'name': 'Popcorn Club',
-    'version': '18.0.1.0.9',
+    'version': '18.0.1.0.10',
     'category': 'Customizations',
     'summary': 'A generic Odoo 18 module for Popcorn Club',
     'description': """
@@ -125,6 +125,7 @@
             'popcorn/static/src/css/popcorn_toast_styles.css',
             'popcorn/static/src/js/popcorn_product_buy_now.js',
             'popcorn/static/src/js/popcorn_badge_animation.js',
+            'popcorn/static/src/js/popcorn_forum.js',
         ],
         'web.report_assets_common': [
             'popcorn/static/src/css/popcorn_contract_report.css',

@@ -1,15 +1,18 @@
 /* Club Forum Styles */
+
+/* Falls back when the sticky footer stylesheet is not on the page */
 .popcorn-forum-page {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: #f8f9fa;
     min-height: 100vh;
-    padding: 20px 0 60px;
+    padding: 20px 0 0;
 }
 
 .popcorn-forum-container {
     max-width: 800px;
     margin: 0 auto;
-    padding: 0 20px;
+    /* Clears the floating button and the sticky footer bar below it */
+    padding: 0 20px calc(var(--sticky-nav-h, 72px) + 96px);
 }
 
 /* Header */
@@ -63,118 +66,6 @@
     color: inherit;
     font-weight: 600;
     text-decoration: underline;
-}
-
-/* Post form */
-.popcorn-forum-form-card {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    padding: 20px;
-    margin-bottom: 24px;
-}
-
-.popcorn-forum-form-title {
-    font-size: 17px;
-    font-weight: 600;
-    color: #333;
-    margin: 0 0 16px;
-}
-
-.popcorn-forum-field {
-    margin-bottom: 16px;
-}
-
-.popcorn-forum-field label {
-    display: block;
-    font-size: 13px;
-    font-weight: 500;
-    color: #495057;
-    margin-bottom: 6px;
-}
-
-.popcorn-forum-input,
-.popcorn-forum-textarea {
-    width: 100%;
-    padding: 10px 12px;
-    font-size: 15px;
-    color: #212529;
-    background: #fff;
-    border: 1px solid #dee2e6;
-    border-radius: 6px;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.popcorn-forum-textarea {
-    resize: vertical;
-    min-height: 120px;
-    font-family: inherit;
-    line-height: 1.5;
-}
-
-.popcorn-forum-input:focus,
-.popcorn-forum-textarea:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.12);
-}
-
-.popcorn-forum-form-actions {
-    display: flex;
-    justify-content: flex-end;
-}
-
-.popcorn-forum-submit {
-    background: #e60000;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 10px 22px;
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.popcorn-forum-submit:hover {
-    background: #c50000;
-}
-
-.popcorn-forum-submit:disabled {
-    background: #6c757d;
-    cursor: not-allowed;
-}
-
-/* Call to action for non-members */
-.popcorn-forum-cta {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    padding: 18px 20px;
-    margin-bottom: 24px;
-    font-size: 15px;
-    color: #495057;
-}
-
-.popcorn-forum-cta i {
-    font-size: 18px;
-    color: #6c757d;
-}
-
-.popcorn-forum-cta-link {
-    color: #e60000;
-    font-weight: 600;
-    text-decoration: none;
-    margin-left: auto;
-}
-
-.popcorn-forum-cta-link:hover {
-    text-decoration: underline;
-    color: #c50000;
 }
 
 /* Feed */
@@ -256,26 +147,266 @@
     margin-top: 24px;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+/* Floating action button
+   Sits above the sticky footer bar, which is 72px tall and z-index 1000 */
+.popcorn-forum-fab {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(var(--sticky-nav-h, 72px) + 16px);
+    z-index: 990;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 999px;
+    background: var(--brand-red, #e60000);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(230, 0, 0, 0.32);
+    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.popcorn-forum-fab:hover,
+.popcorn-forum-fab:focus {
+    background: #c50000;
+    color: #fff;
+    text-decoration: none;
+    transform: translateX(-50%) translateY(-2px);
+    box-shadow: 0 8px 22px rgba(230, 0, 0, 0.4);
+}
+
+.popcorn-forum-fab i {
+    font-size: 15px;
+    font-style: normal;
+}
+
+/* Share something sheet, layered over the sticky footer */
+.popcorn-forum-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    display: none;
+}
+
+.popcorn-forum-modal.is-open {
+    display: block;
+}
+
+.popcorn-forum-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    animation: popcornForumFade 0.2s ease;
+}
+
+.popcorn-forum-modal-dialog {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #fff;
+    border-radius: 16px 16px 0 0;
+    padding: 20px;
+    max-height: 88vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
+    animation: popcornForumSlideUp 0.25s ease;
+}
+
+.popcorn-forum-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.popcorn-forum-modal-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+}
+
+.popcorn-forum-modal-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    line-height: 1;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.popcorn-forum-modal-close:hover {
+    background: #f1f3f5;
+    color: #212529;
+}
+
+.popcorn-forum-modal-close i {
+    font-style: normal;
+}
+
+@keyframes popcornForumSlideUp {
+    from {
+        transform: translateY(100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+@keyframes popcornForumFade {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Stops the page behind the sheet from scrolling on touch devices */
+body.popcorn-forum-modal-open {
+    overflow: hidden;
+}
+
+/* Form */
+.popcorn-forum-field {
+    margin-bottom: 16px;
+}
+
+.popcorn-forum-field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 6px;
+}
+
+.popcorn-forum-input,
+.popcorn-forum-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    /* 16px keeps iOS Safari from zooming the page when the field is focused */
+    font-size: 16px;
+    color: #212529;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.popcorn-forum-textarea {
+    resize: vertical;
+    min-height: 120px;
+    font-family: inherit;
+    line-height: 1.5;
+}
+
+.popcorn-forum-input:focus,
+.popcorn-forum-textarea:focus {
+    outline: none;
+    border-color: var(--brand-red, #e60000);
+    box-shadow: 0 0 0 3px rgba(230, 0, 0, 0.12);
+}
+
+.popcorn-forum-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.popcorn-forum-submit {
+    background: var(--brand-red, #e60000);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 22px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.popcorn-forum-submit:hover {
+    background: #c50000;
+}
+
+.popcorn-forum-submit:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+.popcorn-forum-cancel {
+    background: none;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 10px 18px;
+    font-size: 15px;
+    color: #495057;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.popcorn-forum-cancel:hover {
+    background: #f1f3f5;
+}
+
+/* Desktop: centre the sheet as a dialog instead of a bottom sheet */
+@media (min-width: 768px) {
+    .popcorn-forum-modal-dialog {
+        top: 50%;
+        bottom: auto;
+        left: 50%;
+        right: auto;
+        width: 560px;
+        max-width: calc(100% - 40px);
+        transform: translate(-50%, -50%);
+        border-radius: 12px;
+        animation: popcornForumZoom 0.2s ease;
+    }
+
+    @keyframes popcornForumZoom {
+        from {
+            opacity: 0;
+            transform: translate(-50%, -48%);
+        }
+        to {
+            opacity: 1;
+            transform: translate(-50%, -50%);
+        }
+    }
+}
+
+/* Mobile */
+@media (max-width: 767px) {
     .popcorn-forum-container {
-        padding: 0 14px;
+        padding-left: 14px;
+        padding-right: 14px;
     }
 
     .popcorn-forum-header h1 {
         font-size: 24px;
     }
 
-    .popcorn-forum-form-card,
     .popcorn-forum-post {
         padding: 16px;
     }
 
-    .popcorn-forum-cta-link {
-        margin-left: 0;
+    .popcorn-forum-form-actions {
+        flex-direction: column-reverse;
     }
 
-    .popcorn-forum-submit {
+    .popcorn-forum-submit,
+    .popcorn-forum-cancel {
         width: 100%;
+        padding: 12px 18px;
     }
 }

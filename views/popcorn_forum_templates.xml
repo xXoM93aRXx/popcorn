@@ -39,61 +39,6 @@
                             <span t-translation="on">You have posted a few times already. Please take a break and come back in a little while.</span>
                         </div>
 
-                        <!-- Post form, members only -->
-                        <div t-if="is_member" class="popcorn-forum-form-card">
-                            <h2 class="popcorn-forum-form-title">
-                                <span t-translation="on">Share something</span>
-                            </h2>
-                            <form action="/forum/submit" method="post" class="popcorn-forum-form">
-                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                                <div class="popcorn-forum-field">
-                                    <label for="popcorn_forum_title">
-                                        <span t-translation="on">Title</span>
-                                    </label>
-                                    <input type="text"
-                                           id="popcorn_forum_title"
-                                           name="title"
-                                           class="popcorn-forum-input"
-                                           t-att-maxlength="title_max_length"
-                                           placeholder="Give your post a title"
-                                           required="required"/>
-                                </div>
-                                <div class="popcorn-forum-field">
-                                    <label for="popcorn_forum_content">
-                                        <span t-translation="on">Your post</span>
-                                    </label>
-                                    <textarea id="popcorn_forum_content"
-                                              name="content"
-                                              class="popcorn-forum-textarea"
-                                              rows="6"
-                                              t-att-maxlength="content_max_length"
-                                              placeholder="Tell the club what is on your mind"
-                                              required="required"/>
-                                </div>
-                                <div class="popcorn-forum-form-actions">
-                                    <button type="submit" class="popcorn-forum-submit">
-                                        <span t-translation="on">Post to the club</span>
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-
-                        <!-- Prompts for everyone who cannot post -->
-                        <div t-elif="not is_logged_in" class="popcorn-forum-cta">
-                            <i class="fa fa-user-circle-o"/>
-                            <span t-translation="on">Log in with your member account to join the conversation.</span>
-                            <a href="/web/login?redirect=/forum" class="popcorn-forum-cta-link">
-                                <span t-translation="on">Log in</span>
-                            </a>
-                        </div>
-                        <div t-else="" class="popcorn-forum-cta">
-                            <i class="fa fa-star-o"/>
-                            <span t-translation="on">Members with an active membership can post here.</span>
-                            <a href="/memberships" class="popcorn-forum-cta-link">
-                                <span t-translation="on">See membership plans</span>
-                            </a>
-                        </div>
-
                         <!-- Feed -->
                         <div class="popcorn-forum-feed">
                             <t t-if="posts">
@@ -125,6 +70,72 @@
                             <t t-call="website.pager"/>
                         </div>
 
+                    </div>
+                </div>
+
+                <!-- Floating action button, sits clear of the sticky footer bar -->
+                <button t-if="is_member" type="button" class="popcorn-forum-fab" data-forum-open="1">
+                    <i class="fa fa-pencil"/>
+                    <span t-translation="on">Share something</span>
+                </button>
+                <a t-elif="not is_logged_in" href="/web/login?redirect=/forum" class="popcorn-forum-fab">
+                    <i class="fa fa-user-circle-o"/>
+                    <span t-translation="on">Log in to post</span>
+                </a>
+                <a t-else="" href="/memberships" class="popcorn-forum-fab">
+                    <i class="fa fa-star-o"/>
+                    <span t-translation="on">Members can post</span>
+                </a>
+
+                <!-- Share something sheet -->
+                <div t-if="is_member" class="popcorn-forum-modal" id="popcornForumModal">
+                    <div class="popcorn-forum-modal-backdrop" data-forum-close="1"/>
+                    <div class="popcorn-forum-modal-dialog" role="dialog" aria-modal="true"
+                         aria-labelledby="popcornForumModalTitle">
+                        <div class="popcorn-forum-modal-header">
+                            <h2 class="popcorn-forum-modal-title" id="popcornForumModalTitle">
+                                <span t-translation="on">Share something</span>
+                            </h2>
+                            <button type="button" class="popcorn-forum-modal-close" data-forum-close="1"
+                                    aria-label="Close">
+                                <i class="fa fa-times"/>
+                            </button>
+                        </div>
+                        <form action="/forum/submit" method="post" class="popcorn-forum-form">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <div class="popcorn-forum-field">
+                                <label for="popcorn_forum_title">
+                                    <span t-translation="on">Title</span>
+                                </label>
+                                <input type="text"
+                                       id="popcorn_forum_title"
+                                       name="title"
+                                       class="popcorn-forum-input"
+                                       t-att-maxlength="title_max_length"
+                                       placeholder="Give your post a title"
+                                       required="required"/>
+                            </div>
+                            <div class="popcorn-forum-field">
+                                <label for="popcorn_forum_content">
+                                    <span t-translation="on">Your post</span>
+                                </label>
+                                <textarea id="popcorn_forum_content"
+                                          name="content"
+                                          class="popcorn-forum-textarea"
+                                          rows="6"
+                                          t-att-maxlength="content_max_length"
+                                          placeholder="Tell the club what is on your mind"
+                                          required="required"/>
+                            </div>
+                            <div class="popcorn-forum-form-actions">
+                                <button type="button" class="popcorn-forum-cancel" data-forum-close="1">
+                                    <span t-translation="on">Cancel</span>
+                                </button>
+                                <button type="submit" class="popcorn-forum-submit">
+                                    <span t-translation="on">Post to the club</span>
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </t>
