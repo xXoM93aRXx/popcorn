@@ -67,10 +67,11 @@ class ResConfigSettings(models.TransientModel):
              'Editing them affects future posts only; use "Re-run Moderation" to re-check existing ones.'
     )
 
+    # Related to a translatable field on res.company so the message can be
+    # maintained per language, which a config_parameter cannot do.
     forum_thank_you_message = fields.Char(
-        string='Forum Thank You Message',
-        config_parameter='popcorn.forum_thank_you_message',
-        default='Thanks for sharing with the club! Your post has been received.',
+        related='company_id.forum_thank_you_message',
+        readonly=False,
         help='Shown to the member after they submit a post. Deliberately identical whether the post is '
              'published or rejected, so the moderation outcome is not revealed.'
     )

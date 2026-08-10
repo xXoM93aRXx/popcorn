@@ -33,7 +33,8 @@ class PopcornForumController(http.Controller):
         ])
 
     def _get_thank_you_message(self):
-        message = request.env['ir.config_parameter'].sudo().get_param('popcorn.forum_thank_you_message')
+        """Company message in the visitor's language, falling back to the module translation."""
+        message = request.env.company.sudo().forum_thank_you_message
         return message or _('Thanks for sharing with the club! Your post has been received.')
 
     @http.route(['/forum', '/forum/page/<int:page>'], type='http', auth="public", website=True, sitemap=True)
