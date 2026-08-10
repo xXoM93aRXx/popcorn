@@ -1,6 +1,6 @@
 {
     'name': 'Popcorn Club',
-    'version': '18.0.1.0.7',
+    'version': '18.0.1.0.8',
     'category': 'Customizations',
     'summary': 'A generic Odoo 18 module for Popcorn Club',
     'description': """
@@ -75,6 +75,7 @@
         'views/popcorn_contract_website_templates.xml',
         'views/popcorn_contact_templates.xml',
         'views/popcorn_forum_templates.xml',
+        'data/popcorn_forum_menu_data.xml',
         'views/popcorn_contract_template.xml',
         'views/popcorn_signature_actions.xml',
         'views/popcorn_notification_templates.xml',
