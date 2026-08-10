@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Club Forum Page -->
+        <template id="popcorn_forum_page" name="Club Forum">
+            <t t-call="website.layout">
+                <t t-set="title">Club Forum - Popcorn Club</t>
+                <div class="popcorn-forum-page">
+                    <div class="popcorn-forum-container">
+
+                        <div class="popcorn-forum-header">
+                            <h1><span t-translation="on">Club Forum</span></h1>
+                            <p class="popcorn-forum-subtitle">
+                                <span t-translation="on">What the Popcorn Club is talking about.</span>
+                            </p>
+                        </div>
+
+                        <!-- Thank you banner: identical whatever the moderator decided -->
+                        <div t-if="thanks" class="popcorn-forum-alert popcorn-forum-alert-success">
+                            <i class="fa fa-check-circle"/>
+                            <span t-esc="thank_you_message"/>
+                        </div>
+
+                        <div t-if="error == 'members_only'" class="popcorn-forum-alert popcorn-forum-alert-warning">
+                            <i class="fa fa-lock"/>
+                            <span t-translation="on">Posting is for members with an active membership. </span>
+                            <a href="/memberships"><span t-translation="on">See the membership plans</span></a>
+                        </div>
+                        <div t-if="error == 'empty'" class="popcorn-forum-alert popcorn-forum-alert-warning">
+                            <i class="fa fa-exclamation-circle"/>
+                            <span t-translation="on">Please give your post both a title and some content.</span>
+                        </div>
+                        <div t-if="error == 'too_long'" class="popcorn-forum-alert popcorn-forum-alert-warning">
+                            <i class="fa fa-exclamation-circle"/>
+                            <span t-translation="on">That post is a bit long. Please shorten it and try again.</span>
+                        </div>
+                        <div t-if="error == 'rate_limited'" class="popcorn-forum-alert popcorn-forum-alert-warning">
+                            <i class="fa fa-clock-o"/>
+                            <span t-translation="on">You have posted a few times already. Please take a break and come back in a little while.</span>
+                        </div>
+
+                        <!-- Post form, members only -->
+                        <div t-if="is_member" class="popcorn-forum-form-card">
+                            <h2 class="popcorn-forum-form-title">
+                                <span t-translation="on">Share something</span>
+                            </h2>
+                            <form action="/forum/submit" method="post" class="popcorn-forum-form">
+                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                <div class="popcorn-forum-field">
+                                    <label for="popcorn_forum_title">
+                                        <span t-translation="on">Title</span>
+                                    </label>
+                                    <input type="text"
+                                           id="popcorn_forum_title"
+                                           name="title"
+                                           class="popcorn-forum-input"
+                                           t-att-maxlength="title_max_length"
+                                           placeholder="Give your post a title"
+                                           required="required"/>
+                                </div>
+                                <div class="popcorn-forum-field">
+                                    <label for="popcorn_forum_content">
+                                        <span t-translation="on">Your post</span>
+                                    </label>
+                                    <textarea id="popcorn_forum_content"
+                                              name="content"
+                                              class="popcorn-forum-textarea"
+                                              rows="6"
+                                              t-att-maxlength="content_max_length"
+                                              placeholder="Tell the club what is on your mind"
+                                              required="required"/>
+                                </div>
+                                <div class="popcorn-forum-form-actions">
+                                    <button type="submit" class="popcorn-forum-submit">
+                                        <span t-translation="on">Post to the club</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Prompts for everyone who cannot post -->
+                        <div t-elif="not is_logged_in" class="popcorn-forum-cta">
+                            <i class="fa fa-user-circle-o"/>
+                            <span t-translation="on">Log in with your member account to join the conversation.</span>
+                            <a href="/web/login?redirect=/forum" class="popcorn-forum-cta-link">
+                                <span t-translation="on">Log in</span>
+                            </a>
+                        </div>
+                        <div t-else="" class="popcorn-forum-cta">
+                            <i class="fa fa-star-o"/>
+                            <span t-translation="on">Members with an active membership can post here.</span>
+                            <a href="/memberships" class="popcorn-forum-cta-link">
+                                <span t-translation="on">See membership plans</span>
+                            </a>
+                        </div>
+
+                        <!-- Feed -->
+                        <div class="popcorn-forum-feed">
+                            <t t-if="posts">
+                                <t t-foreach="posts" t-as="post">
+                                    <article class="popcorn-forum-post">
+                                        <header class="popcorn-forum-post-header">
+                                            <h3 class="popcorn-forum-post-title"><t t-esc="post.name"/></h3>
+                                            <div class="popcorn-forum-post-meta">
+                                                <span class="popcorn-forum-post-author">
+                                                    <t t-esc="post.author_id.name"/>
+                                                </span>
+                                                <span class="popcorn-forum-post-dot">·</span>
+                                                <span class="popcorn-forum-post-date">
+                                                    <t t-esc="post.create_date" t-options="{'widget': 'date'}"/>
+                                                </span>
+                                            </div>
+                                        </header>
+                                        <div class="popcorn-forum-post-body"><t t-esc="post.content"/></div>
+                                    </article>
+                                </t>
+                            </t>
+                            <div t-else="" class="popcorn-forum-empty">
+                                <i class="fa fa-comments-o"/>
+                                <p><span t-translation="on">No posts yet. Be the first to share something with the club.</span></p>
+                            </div>
+                        </div>
+
+                        <div t-if="pager['page_count'] &gt; 1" class="popcorn-forum-pager">
+                            <t t-call="website.pager"/>
+                        </div>
+
+                    </div>
+                </div>
+            </t>
+        </template>
+    </data>
+</odoo>

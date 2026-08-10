@@ -1,0 +1,281 @@
+/* Club Forum Styles */
+.popcorn-forum-page {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f8f9fa;
+    min-height: 100vh;
+    padding: 20px 0 60px;
+}
+
+.popcorn-forum-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Header */
+.popcorn-forum-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.popcorn-forum-header h1 {
+    font-size: 28px;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 6px;
+}
+
+.popcorn-forum-subtitle {
+    font-size: 15px;
+    color: #6c757d;
+    margin: 0;
+}
+
+/* Alerts */
+.popcorn-forum-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    border-radius: 8px;
+    font-size: 15px;
+    margin-bottom: 20px;
+}
+
+.popcorn-forum-alert i {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.popcorn-forum-alert-success {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.popcorn-forum-alert-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+}
+
+.popcorn-forum-alert a {
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+/* Post form */
+.popcorn-forum-form-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.popcorn-forum-form-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 16px;
+}
+
+.popcorn-forum-field {
+    margin-bottom: 16px;
+}
+
+.popcorn-forum-field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 6px;
+}
+
+.popcorn-forum-input,
+.popcorn-forum-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 15px;
+    color: #212529;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.popcorn-forum-textarea {
+    resize: vertical;
+    min-height: 120px;
+    font-family: inherit;
+    line-height: 1.5;
+}
+
+.popcorn-forum-input:focus,
+.popcorn-forum-textarea:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.12);
+}
+
+.popcorn-forum-form-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.popcorn-forum-submit {
+    background: #e60000;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 22px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.popcorn-forum-submit:hover {
+    background: #c50000;
+}
+
+.popcorn-forum-submit:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+/* Call to action for non-members */
+.popcorn-forum-cta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 18px 20px;
+    margin-bottom: 24px;
+    font-size: 15px;
+    color: #495057;
+}
+
+.popcorn-forum-cta i {
+    font-size: 18px;
+    color: #6c757d;
+}
+
+.popcorn-forum-cta-link {
+    color: #e60000;
+    font-weight: 600;
+    text-decoration: none;
+    margin-left: auto;
+}
+
+.popcorn-forum-cta-link:hover {
+    text-decoration: underline;
+    color: #c50000;
+}
+
+/* Feed */
+.popcorn-forum-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.popcorn-forum-post {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+}
+
+.popcorn-forum-post-header {
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+}
+
+.popcorn-forum-post-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 6px;
+    word-break: break-word;
+}
+
+.popcorn-forum-post-meta {
+    font-size: 13px;
+    color: #6c757d;
+}
+
+.popcorn-forum-post-author {
+    font-weight: 500;
+}
+
+.popcorn-forum-post-dot {
+    margin: 0 6px;
+}
+
+.popcorn-forum-post-body {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #212529;
+    /* Members type plain text, so keep their line breaks */
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Empty state */
+.popcorn-forum-empty {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 48px 20px;
+    text-align: center;
+    color: #6c757d;
+}
+
+.popcorn-forum-empty i {
+    font-size: 40px;
+    margin-bottom: 12px;
+    display: block;
+    color: #dee2e6;
+}
+
+.popcorn-forum-empty p {
+    margin: 0;
+    font-size: 15px;
+}
+
+/* Pager */
+.popcorn-forum-pager {
+    display: flex;
+    justify-content: center;
+    margin-top: 24px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .popcorn-forum-container {
+        padding: 0 14px;
+    }
+
+    .popcorn-forum-header h1 {
+        font-size: 24px;
+    }
+
+    .popcorn-forum-form-card,
+    .popcorn-forum-post {
+        padding: 16px;
+    }
+
+    .popcorn-forum-cta-link {
+        margin-left: 0;
+    }
+
+    .popcorn-forum-submit {
+        width: 100%;
+    }
+}

@@ -1,6 +1,6 @@
 {
     'name': 'Popcorn Club',
-    'version': '18.0.1.0.4',
+    'version': '18.0.1.0.5',
     'category': 'Customizations',
     'summary': 'A generic Odoo 18 module for Popcorn Club',
     'description': """
@@ -45,6 +45,7 @@
         'data/popcorn_badge_prize_expiry_data.xml',
         'data/popcorn_pdb_pending_cron.xml',
         'data/popcorn_punctuality_badge_cron.xml',
+        'data/popcorn_forum_moderation_cron.xml',
         'data/popcorn_first_timer_coupon_reminder_data.xml',
         'views/popcorn_event_tag_category_views.xml',
         'views/popcorn_activity_sport_views.xml',
@@ -55,6 +56,7 @@
         'views/popcorn_badge_views.xml',
         'views/popcorn_referral_views.xml',
         'views/popcorn_notification_views.xml',
+        'views/popcorn_forum_views.xml',
         'data/popcorn_notification_data.xml',
     
         'views/popcorn_registration_button_override.xml',
@@ -72,6 +74,7 @@
         'views/popcorn_host_profile_templates.xml',
         'views/popcorn_contract_website_templates.xml',
         'views/popcorn_contact_templates.xml',
+        'views/popcorn_forum_templates.xml',
         'views/popcorn_contract_template.xml',
         'views/popcorn_signature_actions.xml',
         'views/popcorn_notification_templates.xml',
@@ -95,6 +98,7 @@
             'popcorn/static/src/css/popcorn_contact_styles.css',
             'popcorn/static/src/css/popcorn_portal_styles.css',
             'popcorn/static/src/css/popcorn_notification_styles.css',
+            'popcorn/static/src/css/popcorn_forum_styles.css',
             'popcorn/static/src/js/popcorn_membership_popup.js',
             'popcorn/static/src/js/popcorn_student_card_upload.js',
             'popcorn/static/src/js/popcorn_event_registration.js',

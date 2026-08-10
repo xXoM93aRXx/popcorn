@@ -66,4 +66,6 @@ access_popcorn_activity_sport_category_manager,popcorn.activity_sport.category.m
 access_popcorn_activity_sport_category_portal,popcorn.activity_sport.category.portal,popcorn.model_popcorn_activity_sport_category,base.group_portal,1,0,0,0
 access_popcorn_badge_prize_user,popcorn.badge.prize.user,popcorn.model_popcorn_badge_prize,base.group_user,1,0,0,0
 access_popcorn_badge_prize_manager,popcorn.badge.prize.manager,popcorn.model_popcorn_badge_prize,base.group_system,1,1,1,1
+access_popcorn_forum_post_user,popcorn.forum.post.user,popcorn.model_popcorn_forum_post,base.group_user,1,1,0,0
+access_popcorn_forum_post_manager,popcorn.forum.post.manager,popcorn.model_popcorn_forum_post,base.group_system,1,1,1,1
 

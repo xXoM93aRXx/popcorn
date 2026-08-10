@@ -35,6 +35,44 @@ class ResConfigSettings(models.TransientModel):
              'Disable this before a module update so you can configure badge prizes before evaluation begins.'
     )
 
+    forum_moderation_enabled = fields.Boolean(
+        string='Enable Forum Moderation',
+        config_parameter='popcorn.forum_moderation_enabled',
+        default=False,
+        help='When enabled, every forum post is checked against the content regulations by DeepSeek before '
+             'it becomes visible. When disabled, posts are published immediately without any review.'
+    )
+
+    forum_deepseek_api_key = fields.Char(
+        string='DeepSeek API Key',
+        config_parameter='popcorn.forum_deepseek_api_key',
+        help='API key from platform.deepseek.com used to moderate forum posts.'
+    )
+
+    forum_deepseek_model = fields.Char(
+        string='DeepSeek Model',
+        config_parameter='popcorn.forum_deepseek_model',
+        default='deepseek-v4-flash',
+        help='DeepSeek model used for moderation. Leave as deepseek-v4-flash unless you need the stronger '
+             'deepseek-v4-pro, which is slower and costs more per post.'
+    )
+
+    forum_content_regulations = fields.Text(
+        string='Content Regulations',
+        config_parameter='popcorn.forum_content_regulations',
+        help='The rules a post must follow, in plain text. These are sent to DeepSeek verbatim as the only '
+             'basis for its decision, so write them as a numbered list of clear, checkable statements. '
+             'Editing them affects future posts only; use "Re-run Moderation" to re-check existing ones.'
+    )
+
+    forum_thank_you_message = fields.Char(
+        string='Forum Thank You Message',
+        config_parameter='popcorn.forum_thank_you_message',
+        default='Thanks for sharing with the club! Your post has been received.',
+        help='Shown to the member after they submit a post. Deliberately identical whether the post is '
+             'published or rejected, so the moderation outcome is not revealed.'
+    )
+
 
 
 

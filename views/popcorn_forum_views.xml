@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <!-- Forum Post List View -->
+        <record id="view_popcorn_forum_post_list" model="ir.ui.view">
+            <field name="name">popcorn.forum.post.list</field>
+            <field name="model">popcorn.forum.post</field>
+            <field name="arch" type="xml">
+                <list string="Forum Posts" decoration-danger="state == 'rejected'"
+                      decoration-warning="state in ('pending', 'failed')"
+                      decoration-muted="state == 'approved' and not is_published">
+                    <field name="create_date" string="Posted"/>
+                    <field name="author_id"/>
+                    <field name="name"/>
+                    <field name="state" widget="badge"
+                           decoration-success="state == 'approved'"
+                           decoration-danger="state == 'rejected'"
+                           decoration-warning="state in ('pending', 'failed')"/>
+                    <field name="is_published" string="Visible"/>
+                    <field name="moderation_source" string="Decided By"/>
+                    <field name="moderation_rule_broken" string="Rule Broken" optional="show"/>
+                    <field name="moderation_reason" string="Reason" optional="hide"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- Forum Post Form View -->
+        <record id="view_popcorn_forum_post_form" model="ir.ui.view">
+            <field name="name">popcorn.forum.post.form</field>
+            <field name="model">popcorn.forum.post</field>
+            <field name="arch" type="xml">
+                <form string="Forum Post">
+                    <header>
+                        <button name="action_force_approve" type="object" string="Approve &amp; Publish"
+                                class="btn-primary" invisible="state == 'approved' and is_published"/>
+                        <button name="action_force_reject" type="object" string="Reject"
+                                invisible="state == 'rejected'"/>
+                        <button name="action_rerun_moderation" type="object" string="Re-run Moderation"
+                                help="Send this post to DeepSeek again, for example after editing the content regulations"/>
+                        <field name="state" widget="statusbar" statusbar_visible="pending,approved,rejected"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_title">
+                            <label for="name" string="Title"/>
+                            <h1><field name="name" placeholder="Post title"/></h1>
+                        </div>
+                        <group>
+                            <group>
+                                <field name="author_id" options="{'no_create': True}"/>
+                                <field name="create_date" string="Posted On" readonly="1"/>
+                            </group>
+                            <group>
+                                <field name="is_published"/>
+                                <field name="moderation_source" readonly="1"/>
+                                <field name="moderation_date" readonly="1"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Content" name="content">
+                                <field name="content" placeholder="Post content"/>
+                            </page>
+                            <page string="Moderation" name="moderation">
+                                <group>
+                                    <field name="moderation_rule_broken" readonly="1"/>
+                                    <field name="moderation_model" readonly="1"/>
+                                </group>
+                                <separator string="Reason"/>
+                                <field name="moderation_reason" readonly="1"
+                                       help="Never shown to the author"/>
+                                <separator string="Regulations Applied"/>
+                                <field name="moderation_rules_used" readonly="1"/>
+                                <separator string="Raw Response"/>
+                                <field name="moderation_response" readonly="1"/>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Forum Post Search View -->
+        <record id="view_popcorn_forum_post_search" model="ir.ui.view">
+            <field name="name">popcorn.forum.post.search</field>
+            <field name="model">popcorn.forum.post</field>
+            <field name="arch" type="xml">
+                <search string="Forum Posts">
+                    <field name="name"/>
+                    <field name="content"/>
+                    <field name="author_id"/>
+                    <filter name="filter_pending" string="Needs Attention"
+                            domain="[('state', 'in', ['pending', 'failed'])]"/>
+                    <filter name="filter_approved" string="Approved" domain="[('state', '=', 'approved')]"/>
+                    <filter name="filter_rejected" string="Rejected" domain="[('state', '=', 'rejected')]"/>
+                    <separator/>
+                    <filter name="filter_published" string="Visible on Website"
+                            domain="[('is_published', '=', True)]"/>
+                    <separator/>
+                    <filter name="filter_by_ai" string="Decided by DeepSeek"
+                            domain="[('moderation_source', '=', 'ai')]"/>
+                    <filter name="filter_by_staff" string="Decided by Staff"
+                            domain="[('moderation_source', '=', 'manual')]"/>
+                    <group expand="0" string="Group By">
+                        <filter name="group_by_state" string="Status" context="{'group_by': 'state'}"/>
+                        <filter name="group_by_author" string="Author" context="{'group_by': 'author_id'}"/>
+                        <filter name="group_by_date" string="Posted On" context="{'group_by': 'create_date:day'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <!-- Action -->
+        <record id="popcorn_forum_post_action" model="ir.actions.act_window">
+            <field name="name">Forum Posts</field>
+            <field name="res_model">popcorn.forum.post</field>
+            <field name="view_mode">list,form</field>
+            <field name="search_view_id" ref="view_popcorn_forum_post_search"/>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    No forum posts yet
+                </p>
+                <p>
+                    Posts written by members on the club forum appear here, together with the
+                    moderation verdict from DeepSeek. You can override any verdict.
+                </p>
+            </field>
+        </record>
+
+        <!-- Menus -->
+        <menuitem id="menu_popcorn_forum"
+                  name="Forum"
+                  parent="menu_popcorn_root"
+                  sequence="20"/>
+
+        <menuitem id="menu_popcorn_forum_posts"
+                  name="Forum Posts"
+                  parent="menu_popcorn_forum"
+                  action="popcorn_forum_post_action"
+                  sequence="10"/>
+
+        <!-- Forum Settings -->
+        <record id="view_popcorn_forum_settings_form" model="ir.ui.view">
+            <field name="name">popcorn.forum.settings.form</field>
+            <field name="model">res.config.settings</field>
+            <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//app[@name='popcorn']" position="inside">
+                    <block title="Club Forum Moderation">
+                        <setting string="Enable Forum Moderation"
+                                 help="When on, every post is checked by DeepSeek against the content regulations before it appears. When off, posts are published immediately with no review.">
+                            <field name="forum_moderation_enabled"/>
+                        </setting>
+                        <setting string="DeepSeek API Key"
+                                 help="API key from platform.deepseek.com. Without it, posts are held for staff review instead of being published."
+                                 invisible="not forum_moderation_enabled">
+                            <field name="forum_deepseek_api_key" password="True" class="oe_inline"/>
+                        </setting>
+                        <setting string="DeepSeek Model"
+                                 help="deepseek-v4-flash is fast and cheap. deepseek-v4-pro reasons more thoroughly but is slower and costs more per post."
+                                 invisible="not forum_moderation_enabled">
+                            <field name="forum_deepseek_model" class="oe_inline"/>
+                        </setting>
+                        <setting string="Content Regulations"
+                                 help="The rules a post must follow. These are sent to DeepSeek verbatim and are the only basis for its decision, so write clear, checkable, numbered statements."
+                                 invisible="not forum_moderation_enabled">
+                            <field name="forum_content_regulations"
+                                   nolabel="1"
+                                   placeholder="1. No hate speech, harassment or personal attacks on other members.&#10;2. No advertising, promotion of other clubs, or spam links.&#10;3. No sharing of other members' personal contact details.&#10;4. Keep it related to Popcorn Club: events, books, films, socials.&#10;5. No profanity or sexually explicit content."/>
+                        </setting>
+                        <setting string="Thank You Message"
+                                 help="Shown to the member after they post. Kept identical whether the post was published or rejected, so the outcome is not revealed.">
+                            <field name="forum_thank_you_message" class="oe_inline"/>
+                        </setting>
+                    </block>
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>

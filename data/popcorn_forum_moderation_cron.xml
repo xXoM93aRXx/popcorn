@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Safety net: posts are moderated inline on submit, this only retries
+             the ones left pending or failed by an outage or a missing setting -->
+        <record id="ir_cron_popcorn_forum_moderation_backlog" model="ir.cron">
+            <field name="name">Popcorn: Re-moderate Forum Backlog</field>
+            <field name="model_id" ref="model_popcorn_forum_post"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_moderate_backlog()</field>
+            <field name="interval_number">30</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+            <field name="user_id" ref="base.user_root"/>
+            <field name="priority">10</field>
+        </record>
+
+    </data>
+</odoo>

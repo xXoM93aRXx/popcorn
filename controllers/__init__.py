@@ -11,3 +11,4 @@ from . import popcorn_notification_controller
 from . import popcorn_discount_controller
 from . import popcorn_profile_controller
 from . import popcorn_product_controller
+from . import popcorn_forum_controller
