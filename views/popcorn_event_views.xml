@@ -82,6 +82,14 @@
                 <field name="host_id" widget="many2one_avatar" class="me-2"/>
                 </div>
             </xpath>
+            <!-- Waitlist total, directly under the Attendees line.
+                 Hidden when empty, the same way the Attendees line is. -->
+            <xpath expr="//div[@t-if='record.seats_taken.raw_value']" position="after">
+                <div t-if="record.waitlist_count.raw_value" class="d-flex ps-1">
+                    <i class="fa fa-hourglass-half mt-1 me-2 text-center" title="Waitlist"/>
+                    <field name="waitlist_count" class="me-1"/> On Waitlist
+                </div>
+            </xpath>
         </field>
     </record>
 

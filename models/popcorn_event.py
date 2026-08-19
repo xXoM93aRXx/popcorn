@@ -1106,7 +1106,7 @@ class EventEvent(models.Model):
                 event.seats_taken = len(confirmed_registrations)
                 event.seats_available = max(0, event.seats_max - event.seats_taken)
     
-    @api.depends('registration_ids', 'registration_ids.is_on_waitlist')
+    @api.depends('registration_ids', 'registration_ids.is_on_waitlist', 'registration_ids.state')
     def _compute_waitlist_info(self):
         """Compute waitlist count"""
         for event in self:
