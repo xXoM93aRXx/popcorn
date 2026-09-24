@@ -513,10 +513,27 @@ class PopcornMembership(models.Model):
             body=_('Membership activated manually from pending payment status by staff')
         )
     
-    def action_freeze(self, freeze_days):
-        """Freeze membership for specified days"""
+    def is_frozen_on(self, target_date):
+        """Return whether this membership is frozen on ``target_date``."""
+        self.ensure_one()
+        target_date = fields.Date.to_date(target_date)
+        return bool(
+            self.freeze_active
+            and self.freeze_start
+            and self.freeze_end
+            and target_date
+            and self.freeze_start <= target_date <= self.freeze_end
+        )
+
+    def action_freeze(self, freeze_days, freeze_start=None):
+        """Schedule a membership freeze for the requested inclusive period."""
         self.ensure_one()
         plan = self.membership_plan_id
+        freeze_start = fields.Date.to_date(freeze_start) if freeze_start else fields.Date.context_today(self)
+        today = fields.Date.context_today(self)
+
+        if self.state != 'active':
+            raise UserError(_('Only active memberships can be frozen'))
         
         if not plan.freeze_allowed:
             raise UserError(_('This plan does not allow freezing'))
@@ -529,20 +546,20 @@ class PopcornMembership(models.Model):
         
         if self.freeze_active:
             raise UserError(_('Membership is already frozen'))
+
+        if freeze_start < today:
+            raise UserError(_('The freeze start date cannot be in the past'))
         
-        freeze_start = fields.Date.today()
         # Freeze end should be start + freeze_days - 1 (since the start day counts as day 1)
         freeze_end = freeze_start + timedelta(days=freeze_days - 1)
-        
-        # Debug logging
-        print(f"Freezing membership {self.id}: start={freeze_start}, end={freeze_end}, days={freeze_days}")
-        
+
         self.write({
             'freeze_active': True,
             'freeze_start': freeze_start,
             'freeze_end': freeze_end,
             'freeze_total_days_used': self.freeze_total_days_used + freeze_days,
             'freeze_is_penalty': False,
+            'state': 'frozen' if freeze_start <= today <= freeze_end else 'active',
         })
 
     def _apply_attendance_policy_freeze(self, freeze_days):
@@ -621,16 +638,52 @@ class PopcornMembership(models.Model):
         if self.freeze_is_penalty and not self.env.user.has_group('base.group_user'):
             raise UserError(_('Penalty freeze cannot be ended from portal.'))
         
-        # Just clear the freeze state - freeze_total_days_used already contains the freeze days
-        # that were added when the freeze was initiated, so we don't need to add them again
-        self.write({
+        vals = {
             'freeze_active': False,
             'freeze_start': False,
             'freeze_end': False,
             'freeze_is_penalty': False,
             'state': 'active' if self.state == 'frozen' else self.state,
-            # freeze_total_days_used remains unchanged - it already contains the correct total
-        })
+        }
+
+        # Voluntary freezes reserve the full requested duration when scheduled.
+        # If cancelled before starting or ended early, remove the unused days.
+        if not self.freeze_is_penalty and self.freeze_start and self.freeze_end:
+            today = fields.Date.context_today(self)
+            planned_days = (self.freeze_end - self.freeze_start).days + 1
+            if today < self.freeze_start:
+                actual_days = 0
+            else:
+                actual_days = min((today - self.freeze_start).days + 1, planned_days)
+            unused_days = max(planned_days - actual_days, 0)
+            vals['freeze_total_days_used'] = max(
+                (self.freeze_total_days_used or 0) - unused_days,
+                0,
+            )
+
+        self.write(vals)
+
+    @api.model
+    def _cron_update_membership_freezes(self):
+        """Activate scheduled freezes and close freeze periods that have ended."""
+        today = fields.Date.today()
+        memberships = self.search([
+            ('freeze_active', '=', True),
+            ('freeze_start', '!=', False),
+            ('freeze_end', '!=', False),
+        ])
+        for membership in memberships:
+            if membership.freeze_end < today:
+                membership.write({
+                    'freeze_active': False,
+                    'freeze_start': False,
+                    'freeze_end': False,
+                    'freeze_is_penalty': False,
+                    'state': 'active' if membership.state == 'frozen' else membership.state,
+                })
+                membership.message_post(body=_('Membership freeze completed automatically.'))
+            elif membership.freeze_start <= today <= membership.freeze_end and membership.state == 'active':
+                membership.state = 'frozen'
     
     def action_expire(self):
         """Mark membership as expired"""
@@ -922,6 +975,7 @@ class PopcornMembership(models.Model):
     @api.model
     def _cron_expire_memberships(self):
         """Cron job to expire memberships past their effective end date or with zero points"""
+        self._cron_update_membership_freezes()
         
         # 1. Expire memberships past their effective end date
         expired_memberships = self.search([

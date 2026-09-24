@@ -18,6 +18,11 @@ function setupFreezeFunctionality() {
     console.log('Freeze days input not found, skipping freeze functionality setup');
     return;
   }
+
+  if (freezeModal.dataset.freezeInitialized === 'true') {
+    return;
+  }
+  freezeModal.dataset.freezeInitialized = 'true';
   
   console.log('Setting up freeze functionality...');
   
@@ -62,8 +67,9 @@ function setupFreezeFunctionality() {
         const freezeStartDateInput = document.getElementById('freezeStartDate');
         if (freezeStartDateInput) {
           const today = new Date();
-          freezeStartDateInput.value = today.toISOString().split('T')[0];
-          freezeStartDateInput.min = today.toISOString().split('T')[0]; // Allow today and future dates
+          const todayValue = formatLocalDate(today);
+          freezeStartDateInput.value = todayValue;
+          freezeStartDateInput.min = todayValue; // Allow today and future dates
         }
         
         // Update freeze period preview
@@ -133,7 +139,7 @@ function setupFreezeFunctionality() {
       }
       
       // Check if start date is in the future
-      const selectedDate = new Date(freezeStartDate);
+      const selectedDate = parseLocalDate(freezeStartDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Reset time to start of day
       
@@ -247,11 +253,11 @@ function updateFreezePeriodPreview() {
   // Get the selected start date from the date picker
   let startDate;
   if (freezeStartDateInput.value) {
-    startDate = new Date(freezeStartDateInput.value);
+    startDate = parseLocalDate(freezeStartDateInput.value);
   } else {
     // Default to today if no date selected
     startDate = new Date();
-    freezeStartDateInput.value = startDate.toISOString().split('T')[0];
+    freezeStartDateInput.value = formatLocalDate(startDate);
   }
   
   // Calculate end date (inclusive of the freeze duration)
@@ -267,6 +273,18 @@ function updateFreezePeriodPreview() {
   // Update display elements
   freezeStartDateDisplay.textContent = startDate.toLocaleDateString();
   freezeEndDateDisplay.textContent = endDate.toLocaleDateString();
+}
+
+function formatLocalDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function parseLocalDate(value) {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
 }
 
 

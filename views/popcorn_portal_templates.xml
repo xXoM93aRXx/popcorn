@@ -552,7 +552,14 @@
                                                          <div class="col-auto">
                                                              <t t-if="membership.freeze_active">
                                                                  <span class="badge bg-warning">
-                                                                     <i class="fa fa-pause"></i> <span t-translation="on">Frozen until</span> <span t-esc="membership.freeze_end"/>
+                                                                      <t t-if="membership.freeze_start and current_date &lt; membership.freeze_start">
+                                                                          <i class="fa fa-calendar"></i>
+                                                                          <span t-translation="on">Freeze scheduled</span>
+                                                                          <span t-esc="membership.freeze_start"/> – <span t-esc="membership.freeze_end"/>
+                                                                      </t>
+                                                                      <t t-else="">
+                                                                          <i class="fa fa-pause"></i> <span t-translation="on">Frozen until</span> <span t-esc="membership.freeze_end"/>
+                                                                      </t>
                                                                  </span>
                                                              </t>
                                                              <t t-else="">
@@ -614,18 +621,25 @@
                                                                          <i class="fa fa-refresh"></i> <span t-translation="on">Renew</span>
                                                                      </a>
                                                                  </t>
-                                                                 <t t-if="membership.membership_plan_id.freeze_allowed and membership.state == 'active' and not membership.freeze_active">
+                                                                  <t t-set="remaining_freeze_days" t-value="membership.membership_plan_id.freeze_max_total_days - membership.freeze_total_days_used"/>
+                                                                  <t t-if="membership.membership_plan_id.freeze_allowed and membership.state == 'active' and not membership.freeze_active and remaining_freeze_days &gt;= membership.membership_plan_id.freeze_min_days">
                                                                      <button type="button" class="btn btn-outline-warning btn-sm popcorn-freeze-btn" 
                                                                              t-att-data-membership-id="membership.id"
                                                                              t-att-data-min-days="membership.membership_plan_id.freeze_min_days"
-                                                                             t-att-data-max-days="membership.membership_plan_id.freeze_max_total_days">
+                                                                              t-att-data-max-days="remaining_freeze_days">
                                                                          <i class="fa fa-pause"></i> <span t-translation="on">Freeze</span>
                                                                      </button>
                                                                  </t>
                                                                 <t t-if="membership.freeze_active and not membership.freeze_is_penalty">
                                                                      <button type="button" class="btn btn-outline-warning btn-sm popcorn-unfreeze-btn" 
                                                                              t-att-data-membership-id="membership.id">
-                                                                         <i class="fa fa-play"></i> <span t-translation="on">Unfreeze</span>
+                                                                          <i class="fa fa-play"></i>
+                                                                          <t t-if="membership.freeze_start and current_date &lt; membership.freeze_start">
+                                                                              <span t-translation="on">Cancel Freeze</span>
+                                                                          </t>
+                                                                          <t t-else="">
+                                                                              <span t-translation="on">End Freeze Early</span>
+                                                                          </t>
                                                                      </button>
                                                                  </t>
                                                              </div>

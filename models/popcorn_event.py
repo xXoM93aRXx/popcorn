@@ -277,19 +277,16 @@ class EventEvent(models.Model):
         if not frozen_memberships:
             return False, None
         
-        # Convert event datetime to date for comparison
-        event_date = self.date_begin.date() if self.date_begin else None
+        # Convert the UTC event datetime to the event's local calendar date.
+        event_date = fields.Datetime.context_timestamp(
+            self.with_context(tz=self.date_tz or self.env.user.tz),
+            self.date_begin,
+        ).date()
         
         # Check if event date falls within any freeze period
         for membership in frozen_memberships:
-            if membership.freeze_start and membership.freeze_end:
-                is_frozen = (membership.freeze_start <= event_date <= membership.freeze_end)
-                
-                # For debugging - let's log this
-                print(f"Event {self.name} on {event_date}, freeze period: {membership.freeze_start} to {membership.freeze_end}, is_frozen: {is_frozen}")
-                
-                if is_frozen:
-                    return True, membership
+            if membership.is_frozen_on(event_date):
+                return True, membership
         
         return False, None
     

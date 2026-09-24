@@ -296,7 +296,13 @@ class PopcornEventController(http.Controller):
         
         # Check if user has any active memberships or pending memberships with first_attendance policy
         # Only include memberships that are still valid on the event date
-        event_date = event.date_begin.date() if event.date_begin else fields.Date.today()
+        event_date = (
+            fields.Datetime.context_timestamp(
+                event.with_context(tz=event.date_tz or request.env.user.tz),
+                event.date_begin,
+            ).date()
+            if event.date_begin else fields.Date.context_today(event)
+        )
         active_memberships = request.env['popcorn.membership'].sudo().search([
             ('partner_id', '=', partner.id),
             ('state', 'in', ['active', 'frozen']),
@@ -322,10 +328,9 @@ class PopcornEventController(http.Controller):
         non_frozen_memberships = []
         frozen_blocking_membership = None
         for membership in all_usable_memberships:
-            if membership.state == 'frozen' and membership.freeze_active and membership.freeze_start and membership.freeze_end:
-                if membership.freeze_start <= event_date <= membership.freeze_end:
-                    frozen_blocking_membership = membership
-                    continue
+            if membership.is_frozen_on(event_date):
+                frozen_blocking_membership = membership
+                continue
             non_frozen_memberships.append(membership)
 
         if not non_frozen_memberships:
@@ -433,7 +438,13 @@ class PopcornEventController(http.Controller):
         # Strategy: always prefer currently active/frozen memberships. Only if none are
         # compatible do we fall back to pending memberships with first_attendance policy.
         # Only include memberships that are still valid on the event date.
-        event_date = event.date_begin.date() if event.date_begin else fields.Date.today()
+        event_date = (
+            fields.Datetime.context_timestamp(
+                event.with_context(tz=event.date_tz or request.env.user.tz),
+                event.date_begin,
+            ).date()
+            if event.date_begin else fields.Date.context_today(event)
+        )
         active_memberships = request.env['popcorn.membership'].sudo().search([
             ('partner_id', '=', partner.id),
             ('state', 'in', ['active', 'frozen']),
@@ -445,6 +456,8 @@ class PopcornEventController(http.Controller):
         # Filter active/frozen memberships first
         compatible_memberships = []
         for membership in active_memberships:
+            if membership.is_frozen_on(event_date):
+                continue
             # For Social Experience events, if membership plan is in second_price or third_price list, skip quota check
             if event_club_type == 'social_experience' and (
                 membership.membership_plan_id in event.membership_plans_second_price_ids
@@ -504,13 +517,17 @@ class PopcornEventController(http.Controller):
         if not frozen_memberships:
             return False, None
         
-        event_date = event.date_begin.date()
+        if not event.date_begin:
+            return False, None
+        event_date = fields.Datetime.context_timestamp(
+            event.with_context(tz=event.date_tz or request.env.user.tz),
+            event.date_begin,
+        ).date()
         
         # Check if event date falls within any freeze period
         for membership in frozen_memberships:
-            if membership.freeze_start and membership.freeze_end:
-                if membership.freeze_start <= event_date <= membership.freeze_end:
-                    return True, membership
+            if membership.is_frozen_on(event_date):
+                return True, membership
         
         return False, None
     
@@ -1889,6 +1906,8 @@ class PopcornPortalController(CustomerPortal):
             error_message = _('Freeze duration exceeds the maximum allowed days.')
         elif kwargs.get('error') == 'invalid_freeze_days':
             error_message = _('Invalid freeze duration specified.')
+        elif kwargs.get('error') == 'invalid_freeze_start':
+            error_message = _('The freeze start date must be today or a future date.')
         elif kwargs.get('error') == 'freeze_failed':
             error_message = _('Failed to freeze membership. Please try again.')
         elif kwargs.get('error') == 'unfreeze_failed':
@@ -2138,9 +2157,7 @@ class PopcornPortalController(CustomerPortal):
     @http.route(['/my/cards/<model("popcorn.membership"):membership>/freeze'], type='http', auth="user", website=True, methods=['POST'])
     def portal_membership_freeze(self, membership, **kwargs):
         """Freeze a membership card"""
-        _logger.info(f"Freeze request received for membership {membership.id} by user {request.env.user.id}")
-        _logger.info(f"Request parameters: {kwargs}")
-        _logger.info(f"CSRF token in request: {kwargs.get('csrf_token')}")
+        _logger.info("Freeze request received for membership %s by user %s", membership.id, request.env.user.id)
         
         # Check if user owns this membership
         if membership.partner_id.id != request.env.user.partner_id.id:
@@ -2176,7 +2193,10 @@ class PopcornPortalController(CustomerPortal):
             if freeze_start_date_str:
                 freeze_start = fields.Date.from_string(freeze_start_date_str)
             else:
-                freeze_start = fields.Date.today()
+                freeze_start = fields.Date.context_today(membership)
+
+            if freeze_start < fields.Date.context_today(membership):
+                return request.redirect('/my/cards?error=invalid_freeze_start')
             
             # Calculate freeze end date (inclusive)
             freeze_end = freeze_start + timedelta(days=freeze_days - 1)
@@ -2184,7 +2204,7 @@ class PopcornPortalController(CustomerPortal):
             # Check if user has any clubs booked during the freeze period
             conflicting_registrations = request.env['event.registration'].sudo().search([
                 ('partner_id', '=', membership.partner_id.id),
-                ('state', 'in', ['open', 'done']),
+                ('state', 'in', ['open', 'confirmed', 'done']),
                 ('event_id.date_begin', '!=', False),
             ])
             
@@ -2192,7 +2212,10 @@ class PopcornPortalController(CustomerPortal):
             conflicts = []
             for reg in conflicting_registrations:
                 if reg.event_id and reg.event_id.date_begin:
-                    event_date = reg.event_id.date_begin.date()
+                    event_date = fields.Datetime.context_timestamp(
+                        reg.event_id.with_context(tz=reg.event_id.date_tz or request.env.user.tz),
+                        reg.event_id.date_begin,
+                    ).date()
                     if freeze_start <= event_date <= freeze_end:
                         conflicts.append(reg)
             
@@ -2213,12 +2236,14 @@ class PopcornPortalController(CustomerPortal):
                 return request.redirect('/my/cards?error=clubs_booked_during_freeze')
             
             # Freeze the membership
-            _logger.info(f"Calling action_freeze with {freeze_days} days")
-            membership.action_freeze(freeze_days)
+            _logger.info("Calling action_freeze with %s days from %s", freeze_days, freeze_start)
+            membership.action_freeze(freeze_days, freeze_start)
             
             # Log the action
             membership.message_post(
-                body=_('Membership frozen for %s days by portal user') % freeze_days
+                body=_('Membership freeze scheduled from %s to %s (%s days) by portal user') % (
+                    freeze_start, freeze_end, freeze_days,
+                )
             )
             
             _logger.info("Freeze successful")

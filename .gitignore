@@ -59,6 +59,10 @@ coverage.xml
 .pytest_cache/
 .tox/
 tests/
+!tests/
+tests/*
+!tests/__init__.py
+!tests/test_membership_freeze.py
 
 # Translations (keep .po files but ignore compiled .mo files)
 *.mo

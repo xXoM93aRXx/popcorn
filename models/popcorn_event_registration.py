@@ -493,14 +493,14 @@ class PopcornEventRegistration(models.Model):
         if not membership.freeze_active:
             return False
         
-        # Get event date
-        event_date = self.event_id.date_begin.date()
+        # Get the event's local calendar date rather than the raw UTC date.
+        event_date = fields.Datetime.context_timestamp(
+            self.event_id.with_context(tz=self.event_id.date_tz or self.env.user.tz),
+            self.event_id.date_begin,
+        ).date()
         
         # Check if event date falls within freeze period
-        if membership.freeze_start and membership.freeze_end:
-            return membership.freeze_start <= event_date < membership.freeze_end
-        
-        return False
+        return membership.is_frozen_on(event_date)
     
     def _get_quota_mode_priority(self, quota_mode):
         """Get priority for quota mode (higher number = higher priority)"""
@@ -1057,7 +1057,10 @@ class PopcornEventRegistration(models.Model):
         if self.membership_id:
             # Check if membership is frozen during event
             if self._is_membership_frozen_during_event(self.membership_id):
-                event_date = self.event_id.date_begin.date()
+                event_date = fields.Datetime.context_timestamp(
+                    self.event_id.with_context(tz=self.event_id.date_tz or self.env.user.tz),
+                    self.event_id.date_begin,
+                ).date()
                 raise ValidationError(_('Cannot book this event: Your membership is frozen from %s to %s. Event date: %s') % (
                     self.membership_id.freeze_start,
                     self.membership_id.freeze_end,
