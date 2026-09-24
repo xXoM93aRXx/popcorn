@@ -563,28 +563,81 @@ class PopcornMembership(models.Model):
         })
 
     def _apply_attendance_policy_freeze(self, freeze_days):
-        """Apply or extend freeze for attendance policy."""
+        """Apply a penalty freeze and cancel bookings in its date range."""
         self.ensure_one()
         if freeze_days <= 0:
             return False
 
-        freeze_start = fields.Date.today()
-        freeze_end = freeze_start + timedelta(days=freeze_days - 1)
+        today = fields.Date.context_today(self)
+        penalty_start = today + timedelta(days=1)
+        penalty_end = penalty_start + timedelta(days=freeze_days - 1)
+        freeze_start = penalty_start
+        freeze_end = penalty_end
+        corrected_total_days = None
 
-        if self.freeze_active and self.freeze_end:
-            # Extend from current freeze end when already frozen.
-            freeze_start = self.freeze_start or fields.Date.today()
-            freeze_end = self.freeze_end + timedelta(days=freeze_days)
+        if self.freeze_active and self.freeze_start and self.freeze_end:
+            periods_touch = (
+                self.freeze_start <= penalty_end + timedelta(days=1)
+                and self.freeze_end >= penalty_start - timedelta(days=1)
+            )
+            if periods_touch:
+                # Preserve an overlapping/adjacent voluntary period while making
+                # sure the complete penalty interval is covered.
+                freeze_start = min(self.freeze_start, penalty_start)
+                freeze_end = max(self.freeze_end, penalty_end)
+            else:
+                # A single membership can only store one freeze period. Replace a
+                # separate scheduled period and release its unused reserved days.
+                if not self.freeze_is_penalty:
+                    planned_days = (self.freeze_end - self.freeze_start).days + 1
+                    if today < self.freeze_start:
+                        actual_days = 0
+                    else:
+                        actual_days = min((today - self.freeze_start).days + 1, planned_days)
+                    corrected_total_days = max(
+                        (self.freeze_total_days_used or 0) - (planned_days - actual_days),
+                        0,
+                    )
+
+        Registration = self.env['event.registration'].sudo()
+        registrations = Registration.search([
+            ('membership_id', '=', self.id),
+            ('state', 'in', ['open', 'confirmed']),
+            ('event_id.date_begin', '!=', False),
+        ])
+        cancelled_clubs = []
+        for registration in registrations:
+            event = registration.event_id
+            event_date = fields.Datetime.context_timestamp(
+                event.with_context(tz=event.date_tz or 'UTC'),
+                event.date_begin,
+            ).date()
+            if penalty_start <= event_date <= penalty_end:
+                registration.with_context(
+                    bypass_cancellation_deadline=True,
+                    skip_attendance_penalty=True,
+                    attendance_policy_freeze_cancellation=True,
+                ).action_cancel_registration()
+                cancelled_clubs.append(event.display_name)
 
         vals = {
             'freeze_active': True,
             'freeze_start': freeze_start,
             'freeze_end': freeze_end,
             'freeze_is_penalty': True,
+            'state': 'frozen' if freeze_start <= today <= freeze_end else 'active',
         }
-        if self.state == 'active':
-            vals['state'] = 'frozen'
+        if corrected_total_days is not None:
+            vals['freeze_total_days_used'] = corrected_total_days
         self.write(vals)
+
+        if cancelled_clubs:
+            self.message_post(
+                body=_(
+                    'Attendance-policy freeze scheduled from %s to %s. '
+                    'Automatically cancelled clubs: %s'
+                ) % (penalty_start, penalty_end, ', '.join(cancelled_clubs))
+            )
         return True
 
     def _evaluate_unlimited_late_no_show_policy(self):
@@ -625,8 +678,14 @@ class PopcornMembership(models.Model):
             membership.message_post(
                 body=_(
                     'Attendance policy applied: %s incidents detected this month. '
-                    'Membership frozen for %s days. (Max once per calendar month)'
-                ) % (incident_count, freeze_days)
+                    'Penalty freeze scheduled from %s to %s for %s days. '
+                    '(Max once per calendar month)'
+                ) % (
+                    incident_count,
+                    fields.Date.context_today(membership) + timedelta(days=1),
+                    fields.Date.context_today(membership) + timedelta(days=freeze_days),
+                    freeze_days,
+                )
             )
     
     def action_unfreeze(self):

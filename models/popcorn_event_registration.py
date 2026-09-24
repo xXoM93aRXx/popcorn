@@ -596,8 +596,12 @@ class PopcornEventRegistration(models.Model):
         _logger.info(f"Partner: {self.partner_id.name} (ID: {self.partner_id.id})")
         _logger.info(f"Current state: {self.state}, is_on_waitlist: {self.is_on_waitlist}")
         
-        # Check if cancellation is allowed
-        if not self.event_id.can_cancel_registration(self):
+        # Policy-driven cancellations are initiated by the system and must not
+        # be blocked by the member-facing cancellation deadline.
+        if (
+            not self.env.context.get('bypass_cancellation_deadline')
+            and not self.event_id.can_cancel_registration(self)
+        ):
             raise UserError(_('Cancellation is not allowed at this time. Please check the event cancellation deadline.'))
         
         # Check if registration is in a cancellable state
@@ -665,14 +669,17 @@ class PopcornEventRegistration(models.Model):
         })
 
         # Count cancellation incident for unlimited memberships.
-        incident_type = self._get_cancellation_incident_type()
-        if incident_type:
-            self._apply_attendance_penalty_policy(incident_type)
+        if not self.env.context.get('skip_attendance_penalty'):
+            incident_type = self._get_cancellation_incident_type()
+            if incident_type:
+                self._apply_attendance_penalty_policy(incident_type)
         
         # Log the cancellation
-        self.message_post(
-            body=_('Registration cancelled by portal user')
-        )
+        if self.env.context.get('attendance_policy_freeze_cancellation'):
+            cancellation_message = _('Registration cancelled automatically due to attendance-policy freeze')
+        else:
+            cancellation_message = _('Registration cancelled by portal user')
+        self.message_post(body=cancellation_message)
         
         # Promote next person from waitlist if event has limited seats
         if self.event_id.seats_limited:
@@ -1118,7 +1125,11 @@ class PopcornEventRegistration(models.Model):
 
         # Count cancellation incidents for unlimited memberships regardless
         # of waitlist-promotion context.
-        if 'state' in vals and vals['state'] == 'cancel':
+        if (
+            'state' in vals
+            and vals['state'] == 'cancel'
+            and not self.env.context.get('skip_attendance_penalty')
+        ):
             for registration in self:
                 original_state = original_states.get(registration.id)
                 if original_state in ['open', 'confirmed']:
@@ -1387,6 +1398,8 @@ class PopcornEventRegistration(models.Model):
         - False: cancellation happens outside that window (no incident)
         """
         self.ensure_one()
+        if self.env.context.get('skip_attendance_penalty'):
+            return False
         if not self.event_id or not self.event_id.date_begin:
             return False
 

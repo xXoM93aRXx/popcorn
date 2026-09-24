@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 from odoo import fields
 from odoo.tests.common import TransactionCase
@@ -21,7 +21,10 @@ class TestMembershipFreeze(TransactionCase):
             'freeze_max_total_days': 30,
             'price_normal': 100.0,
         })
-        cls.partner = cls.env['res.partner'].create({'name': 'Freeze Test Member'})
+        cls.partner = cls.env['res.partner'].create({
+            'name': 'Freeze Test Member',
+            'email': 'freeze-test@example.com',
+        })
         cls.today = fields.Date.today()
 
     def _create_membership(self):
@@ -33,6 +36,24 @@ class TestMembershipFreeze(TransactionCase):
             'price_tier': 'normal',
             'state': 'active',
             'activation_date': self.today,
+        })
+
+    def _create_registration(self, membership, event_day, name):
+        event_start = datetime.combine(event_day, time(12, 0))
+        event = self.env['event.event'].create({
+            'name': name,
+            'date_begin': event_start,
+            'date_end': event_start + timedelta(hours=2),
+            'date_tz': 'UTC',
+            'cancellation_deadline_hours': 1000,
+        })
+        return self.env['event.registration'].create({
+            'event_id': event.id,
+            'partner_id': self.partner.id,
+            'membership_id': membership.id,
+            'name': self.partner.name,
+            'email': self.partner.email,
+            'state': 'open',
         })
 
     def test_future_freeze_keeps_requested_dates(self):
@@ -96,3 +117,59 @@ class TestMembershipFreeze(TransactionCase):
         self.assertFalse(membership.freeze_end)
         self.assertEqual(membership.freeze_total_days_used, 7)
         self.assertEqual(membership.state, 'active')
+
+    def test_penalty_freeze_starts_tomorrow_and_cancels_bookings(self):
+        membership = self._create_membership()
+        first_penalty_day = self.today + timedelta(days=1)
+        inside_registration = self._create_registration(
+            membership, first_penalty_day, 'Inside Penalty Period',
+        )
+        outside_registration = self._create_registration(
+            membership, first_penalty_day + timedelta(days=3), 'Outside Penalty Period',
+        )
+
+        membership._apply_attendance_policy_freeze(3)
+
+        self.assertEqual(membership.freeze_start, first_penalty_day)
+        self.assertEqual(membership.freeze_end, first_penalty_day + timedelta(days=2))
+        self.assertTrue(membership.freeze_is_penalty)
+        self.assertEqual(membership.state, 'active')
+        self.assertEqual(inside_registration.state, 'cancel')
+        self.assertEqual(outside_registration.state, 'open')
+        self.assertFalse(inside_registration.late_no_show_incident)
+
+    def test_penalty_replaces_separate_scheduled_freeze_and_releases_days(self):
+        membership = self._create_membership()
+        membership.action_freeze(5, self.today + timedelta(days=10))
+        self.assertEqual(membership.freeze_total_days_used, 5)
+
+        membership._apply_attendance_policy_freeze(3)
+
+        self.assertEqual(membership.freeze_start, self.today + timedelta(days=1))
+        self.assertEqual(membership.freeze_end, self.today + timedelta(days=3))
+        self.assertEqual(membership.freeze_total_days_used, 0)
+        self.assertTrue(membership.freeze_is_penalty)
+
+    def test_third_incident_applies_penalty_and_cancels_booking(self):
+        membership = self._create_membership()
+        for index in range(3):
+            incident = self._create_registration(
+                membership,
+                self.today - timedelta(days=index + 1),
+                'Incident %s' % index,
+            )
+            incident.write({
+                'late_no_show_incident': True,
+                'late_no_show_incident_date': fields.Datetime.now(),
+            })
+        affected_booking = self._create_registration(
+            membership,
+            self.today + timedelta(days=2),
+            'Booking Cancelled by Penalty',
+        )
+
+        membership._evaluate_unlimited_late_no_show_policy()
+
+        self.assertTrue(membership.freeze_is_penalty)
+        self.assertEqual(membership.attendance_policy_freeze_count, 1)
+        self.assertEqual(affected_booking.state, 'cancel')
