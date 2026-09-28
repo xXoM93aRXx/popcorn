@@ -1949,14 +1949,16 @@ class PopcornMembershipController(http.Controller):
                     applied_discount.action_increment_usage()
                     _logger.info(f"Discount usage count after: {applied_discount.usage_count}")
                     
-                    # Calculate discounted price (pass None for membership_plan since this is an event)
-                    discounted_price = applied_discount.get_discounted_price(None, event.event_price, partner)
+                    # Use the same membership-specific base price that checkout used.
+                    special_price_details = event._get_special_price_details(partner=partner)
+                    original_price = special_price_details.get('price', event.event_price)
+                    discounted_price = applied_discount.get_discounted_price(None, original_price, partner)
                     
                     # Create usage record
                     request.env['popcorn.discount.usage'].sudo().create({
                         'discount_id': applied_discount.id,
                         'partner_id': partner.id,
-                        'original_price': event.event_price,
+                        'original_price': original_price,
                         'discounted_price': discounted_price,
                         'currency_id': event.currency_id.id if event.currency_id else request.env.company.currency_id.id,
                         'event_id': event.id,
@@ -2035,6 +2037,7 @@ class PopcornMembershipController(http.Controller):
             'email': partner.email,
             'phone': partner.phone,
             'state': 'open',
+            'payment_amount': event_purchase_details.get('event_price', 0),
         }
         
         # Create the registration
@@ -2042,7 +2045,11 @@ class PopcornMembershipController(http.Controller):
         
         # Log the direct purchase
         registration.message_post(
-            body=_('Direct purchase registration for club: %s. Price: %s%s') % (event.name, event.currency_id.symbol, event.event_price)
+            body=_('Direct purchase registration for club: %s. Price: %s%s') % (
+                event.name,
+                event.currency_id.symbol,
+                event_purchase_details.get('event_price', event.event_price),
+            )
         )
         
         # Clear the session data

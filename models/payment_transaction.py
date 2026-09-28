@@ -554,8 +554,9 @@ class PaymentTransaction(models.Model):
             applied_discount.action_increment_usage()
             _logger.info(f"Discount usage count after: {applied_discount.usage_count}")
             
-            # Calculate discounted price for event (same logic as event controller)
-            original_price = event.event_price
+            # Use the same membership-specific base price that checkout used.
+            special_price_details = event._get_special_price_details(partner=partner)
+            original_price = special_price_details.get('price', event.event_price)
             if applied_discount.discount_type == 'percentage':
                 discount_amount = original_price * (applied_discount.discount_value / 100)
                 discounted_price = max(0, original_price - discount_amount)
@@ -569,7 +570,7 @@ class PaymentTransaction(models.Model):
             self.env['popcorn.discount.usage'].create({
                 'discount_id': applied_discount.id,
                 'partner_id': partner.id,
-                'original_price': event.event_price,
+                'original_price': original_price,
                 'discounted_price': discounted_price,
                 'currency_id': event.currency_id.id if event.currency_id else self.env.company.currency_id.id,
                 'event_id': event.id,

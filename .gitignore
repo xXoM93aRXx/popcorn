@@ -64,6 +64,7 @@ tests/*
 !tests/__init__.py
 !tests/test_membership_freeze.py
 !tests/test_focus_club.py
+!tests/test_event_special_price.py
 
 # Translations (keep .po files but ignore compiled .mo files)
 *.mo

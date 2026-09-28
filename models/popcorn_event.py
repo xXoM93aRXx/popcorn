@@ -31,19 +31,19 @@ class EventEvent(models.Model):
     second_price = fields.Float(
         string='Second Price',
         digits='Product Price',
-        help='Alternative price for memberships in the special pricing list (for Social Experience events)'
+        help='Alternative price for memberships in the second-price list'
     )
 
     membership_plans_second_price_ids = fields.Many2many(
         'popcorn.membership.plan',
         string='Membership Plans with Second Price',
-        help='Membership plans that should pay second_price for Social Experience events (skips quota check)'
+        help='Membership plans that should pay the second price instead of using membership quota'
     )
 
     third_price = fields.Float(
         string='Third Price',
         digits='Product Price',
-        help='Alternative price for memberships in the third pricing list (for Social Experience events)'
+        help='Alternative price for memberships in the third-price list'
     )
 
     membership_plans_third_price_ids = fields.Many2many(
@@ -51,8 +51,74 @@ class EventEvent(models.Model):
         'event_event_membership_plan_third_price_rel',
         'event_id', 'plan_id',
         string='Membership Plans with Third Price',
-        help='Membership plans that should pay third_price for Social Experience events (skips quota check)'
+        help='Membership plans that should pay the third price instead of using membership quota'
     )
+
+    def _get_special_price_details(self, partner=None, memberships=None):
+        """Return the server-authoritative special price for an eligible member.
+
+        Special pricing is configured by membership plan, not by club type.  Keeping
+        the lookup on the event model lets registration, checkout, coupon validation,
+        and payment creation all use the same decision.
+        """
+        self.ensure_one()
+
+        if memberships is None:
+            if not partner:
+                return {}
+
+            event_date = (
+                fields.Datetime.context_timestamp(
+                    self.with_context(tz=self.date_tz or self.env.user.tz),
+                    self.date_begin,
+                ).date()
+                if self.date_begin else fields.Date.context_today(self)
+            )
+            active_memberships = self.env['popcorn.membership'].sudo().search([
+                ('partner_id', '=', partner.id),
+                ('state', 'in', ['active', 'frozen']),
+                '|',
+                ('effective_end_date', '=', False),
+                ('effective_end_date', '>=', event_date),
+            ])
+            pending_memberships = self.env['popcorn.membership'].sudo().search([
+                ('partner_id', '=', partner.id),
+                ('state', '=', 'pending'),
+                ('membership_plan_id.activation_policy', 'in', ['first_attendance', 'immediate']),
+            ])
+            memberships = active_memberships | pending_memberships
+            memberships = memberships.filtered(lambda membership: not membership.is_frozen_on(event_date))
+        elif isinstance(memberships, list):
+            memberships = self.env['popcorn.membership'].sudo().browse([
+                membership.id for membership in memberships if membership
+            ])
+
+        second_plan_ids = set(self.membership_plans_second_price_ids.ids)
+        third_plan_ids = set(self.membership_plans_third_price_ids.ids)
+
+        if self.second_price and self.second_price > 0:
+            membership = memberships.filtered(
+                lambda item: item.membership_plan_id.id in second_plan_ids
+            )[:1]
+            if membership:
+                return {
+                    'price': self.second_price,
+                    'tier': 'second',
+                    'membership': membership,
+                }
+
+        if self.third_price and self.third_price > 0:
+            membership = memberships.filtered(
+                lambda item: item.membership_plan_id.id in third_plan_ids
+            )[:1]
+            if membership:
+                return {
+                    'price': self.third_price,
+                    'tier': 'third',
+                    'membership': membership,
+                }
+
+        return {}
 
     hide_after_minutes = fields.Integer(
         string='Hide After Minutes',

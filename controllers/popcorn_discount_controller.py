@@ -269,8 +269,9 @@ class PopcornDiscountController(http.Controller):
                     headers=[('Content-Type', 'application/json')]
                 )
 
-            # Calculate discounted price for event
-            original_price = event.event_price or 0
+            # Use the same server-side membership price as event checkout.
+            special_price_details = event._get_special_price_details(partner=partner)
+            original_price = special_price_details.get('price', event.event_price or 0)
 
             # Apply discount calculation
             if discount.discount_type == 'percentage':

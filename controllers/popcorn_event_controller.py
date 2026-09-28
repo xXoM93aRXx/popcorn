@@ -345,14 +345,10 @@ class PopcornEventController(http.Controller):
         if not event_club_type:
             return True, None, None  # No club type restriction, allow access
         
-        # For Social Experience events, check if any membership plan is in second_price or third_price list
-        # If yes, allow access (they'll pay instead of using quota)
-        if event_club_type == 'social_experience':
-            for membership in all_usable_memberships:
-                if membership.membership_plan_id in event.membership_plans_second_price_ids:
-                    return True, None, None  # Allow access - will redirect to payment
-                if membership.membership_plan_id in event.membership_plans_third_price_ids:
-                    return True, None, None  # Allow access - will redirect to payment
+        # A configured special price grants paid access without consuming quota,
+        # regardless of the event's club type.
+        if event._get_special_price_details(memberships=all_usable_memberships):
+            return True, None, None
 
         # Check if any membership allows this club type
         for membership in all_usable_memberships:
@@ -440,6 +436,10 @@ class PopcornEventController(http.Controller):
         if not event_club_type:
             # If no specific club type is determined, default to regular_offline
             event_club_type = 'regular_offline'
+
+        special_price_details = event._get_special_price_details(partner=partner)
+        if special_price_details:
+            return special_price_details['membership']
         
         # Strategy: always prefer currently active/frozen memberships. Only if none are
         # compatible do we fall back to pending memberships with first_attendance policy.
@@ -464,14 +464,7 @@ class PopcornEventController(http.Controller):
         for membership in active_memberships:
             if membership.is_frozen_on(event_date):
                 continue
-            # For Social Experience events, if membership plan is in second_price or third_price list, skip quota check
-            if event_club_type == 'social_experience' and (
-                membership.membership_plan_id in event.membership_plans_second_price_ids
-                or membership.membership_plan_id in event.membership_plans_third_price_ids
-            ):
-                # Include membership without quota check - will redirect to payment
-                compatible_memberships.append(membership)
-            elif self._can_membership_attend_event(membership, event_club_type):
+            if self._can_membership_attend_event(membership, event_club_type):
                 compatible_memberships.append(membership)
 
         # If no compatible active/frozen membership exists, consider pending memberships
@@ -483,14 +476,7 @@ class PopcornEventController(http.Controller):
             ])
 
             for membership in pending_auto:
-                # For Social Experience events, if membership plan is in second_price or third_price list, skip quota check
-                if event_club_type == 'social_experience' and (
-                    membership.membership_plan_id in event.membership_plans_second_price_ids
-                    or membership.membership_plan_id in event.membership_plans_third_price_ids
-                ):
-                    # Include membership without quota check - will redirect to payment
-                    compatible_memberships.append(membership)
-                elif self._can_membership_attend_event(membership, event_club_type):
+                if self._can_membership_attend_event(membership, event_club_type):
                     compatible_memberships.append(membership)
         
         if not compatible_memberships:
@@ -649,10 +635,10 @@ class PopcornEventController(http.Controller):
         # User is logged in, check membership access and show registration options page
         has_access, redirect_url, error_message = self._check_membership_access(event)
         
-        # Check if this is a Social Experience event and user should pay second_price
-        # If yes, force has_access = False so they see the options page with second_price
-        event_club_type = self._get_event_club_type(event)
+        # A plan-specific special price always sends the member through paid checkout.
         should_pay_second_price = False
+        special_price = 0
+        best_membership = False
         needs_signature = False
         contract_id = None
 
@@ -670,27 +656,20 @@ class PopcornEventController(http.Controller):
                         needs_signature = True
                         contract_id = contract.id
 
-                # If user's membership plan is in the second_price list, show options page with second_price
-                if best_membership and best_membership.membership_plan_id in event.membership_plans_second_price_ids:
+                special_price_details = event._get_special_price_details(partner=partner)
+                if special_price_details:
                     should_pay_second_price = True
+                    special_price = special_price_details['price']
+                    best_membership = special_price_details['membership']
                     has_access = False  # Force to show options page instead of direct registration
                     needs_signature = False  # Reset since we're not using membership directly
-                # If user's membership plan is in the third_price list, show options page with third_price
-                elif best_membership and best_membership.membership_plan_id in event.membership_plans_third_price_ids:
-                    should_pay_second_price = True
-                    has_access = False
-                    needs_signature = False
 
         values = {
             'event': event,
             'has_membership_access': has_access,
             'membership_error': error_message,
             'should_pay_second_price': should_pay_second_price,
-            'second_price': (
-                event.third_price
-                if (should_pay_second_price and best_membership and best_membership.membership_plan_id in event.membership_plans_third_price_ids)
-                else (event.second_price if should_pay_second_price else 0)
-            ),
+            'second_price': special_price,
             'needs_contract_signature': needs_signature,
             'contract_id': contract_id,
         }
@@ -755,12 +734,9 @@ class PopcornEventController(http.Controller):
         # Find the best membership for this event
         best_membership = self._get_best_membership_for_event(partner, event)
         
-        # Check if this is a Social Experience event and user's membership should pay second_price or third_price
-        if event_club_type == 'social_experience' and best_membership:
-            if best_membership.membership_plan_id in event.membership_plans_second_price_ids:
-                return request.redirect(f'/popcorn/event/{event.id}/checkout?second_price={event.second_price}')
-            elif best_membership.membership_plan_id in event.membership_plans_third_price_ids:
-                return request.redirect(f'/popcorn/event/{event.id}/checkout?second_price={event.third_price}')
+        # The checkout recalculates the configured price server-side.
+        if event._get_special_price_details(partner=partner):
+            return request.redirect(f'/popcorn/event/{event.id}/checkout')
         
         if not best_membership:
             # Check if user has memberships but they don't have sufficient quota
@@ -1052,28 +1028,15 @@ class PopcornEventController(http.Controller):
         if request.env.user.id == request.env.ref('base.public_user').id:
             return redirect('/web/login?redirect=' + request.httprequest.url)
         
-        # Check if event has a price set (or second_price/third_price for Social Experience)
-        event_club_type = self._get_event_club_type(event)
-        should_use_second_price = False
-        second_price = None
-
-        if event_club_type == 'social_experience':
-            partner = request.env.user.sudo().partner_id
-            if partner:
-                best_membership = self._get_best_membership_for_event(partner, event)
-                if best_membership and best_membership.membership_plan_id in event.membership_plans_second_price_ids:
-                    should_use_second_price = True
-                    second_price = event.second_price
-                elif best_membership and best_membership.membership_plan_id in event.membership_plans_third_price_ids:
-                    should_use_second_price = True
-                    second_price = event.third_price
+        partner = request.env.user.sudo().partner_id
+        special_price_details = event._get_special_price_details(partner=partner)
+        second_price = special_price_details.get('price')
 
         # Check if event has a price set
-        if not should_use_second_price and (not event.event_price or event.event_price <= 0):
+        if second_price is None and (not event.event_price or event.event_price <= 0):
             return request.not_found()
         
         # Check if user is already registered for this event
-        partner = request.env.user.sudo().partner_id
         existing_registration = request.env['event.registration'].sudo().search([
             ('event_id', '=', event.id),
             ('partner_id', '=', partner.id),
@@ -1090,7 +1053,7 @@ class PopcornEventController(http.Controller):
             'event': event,
             'partner': partner,
             'phone_verification_required': self._is_sms_config_active(),
-            'second_price': second_price if should_use_second_price else None,
+            'second_price': second_price,
         }
 
         return request.render('popcorn.event_checkout_page', values)
@@ -1106,16 +1069,17 @@ class PopcornEventController(http.Controller):
         if request.env.user.id == request.env.ref('base.public_user').id:
             return redirect('/web/login?redirect=' + request.httprequest.url)
         
-        # Check if event has a price set
-        if not event.event_price or event.event_price <= 0:
-            return request.not_found()
-
         partner = request.env.user.sudo().partner_id
 
         # Ensure partner exists (important for internal users)
         if not partner or not partner.exists():
             _logger.error(f"User {request.env.user.login} does not have a partner record")
             return request.redirect(f'/popcorn/event/{event.id}/checkout?error=no_partner')
+
+        special_price_details = event._get_special_price_details(partner=partner)
+        special_price = special_price_details.get('price')
+        if special_price is None and (not event.event_price or event.event_price <= 0):
+            return request.not_found()
 
         # Check if user is already registered for this event
         existing_registration = request.env['event.registration'].sudo().search([
@@ -1209,7 +1173,8 @@ class PopcornEventController(http.Controller):
             use_popcorn_money = kwargs.get('use_popcorn_money') == 'on'
             popcorn_money_balance = partner.popcorn_money_balance
             
-            # Check if using second_price or third_price (from Social Experience special pricing)
+            # Recalculate the configured membership price server-side. Never trust a
+            # price supplied by the browser.
             event_club_type = self._get_event_club_type(event)
 
             # First-timer coupons cannot be used on free-for-members events
@@ -1221,19 +1186,7 @@ class PopcornEventController(http.Controller):
                 if is_first_timer_coupon:
                     applied_discount = None
 
-            should_use_second_price = False
-            if event_club_type == 'social_experience':
-                best_membership = self._get_best_membership_for_event(partner, event)
-                if best_membership and best_membership.membership_plan_id in event.membership_plans_second_price_ids:
-                    should_use_second_price = True
-                    event_price = event.second_price
-                elif best_membership and best_membership.membership_plan_id in event.membership_plans_third_price_ids:
-                    should_use_second_price = True
-                    event_price = event.third_price
-
-            if not should_use_second_price:
-                # Calculate event price with discount if applied
-                event_price = event.event_price
+            event_price = special_price if special_price is not None else event.event_price
             
             if applied_discount:
                 # Apply discount calculation
@@ -1641,11 +1594,20 @@ class PopcornEventController(http.Controller):
         if registration_id:
             registration = request.env['event.registration'].sudo().browse(int(registration_id))
         
+        special_price_details = event._get_special_price_details(
+            partner=request.env.user.sudo().partner_id
+        )
+        purchase_price = (
+            registration.payment_amount
+            if registration and registration.exists()
+            else special_price_details.get('price', event.event_price)
+        )
+
         values = {
             'event': event,
             'registration': registration,
             'partner': request.env.user.sudo().partner_id,
-            'purchase_price': event.event_price,
+            'purchase_price': purchase_price,
         }
         
         return request.render('popcorn.event_checkout_success_page', values)
@@ -1715,11 +1677,12 @@ class PopcornEventController(http.Controller):
                 _logger.info(f"Event registration {existing_registration.id} already exists for transaction {transaction.reference}, "
                            f"showing success page (created by backend polling)")
                 # Show success page with existing registration
+                transaction_price = (transaction.amount or 0) + (transaction.popcorn_money_to_use or 0)
                 values = {
                     'event': event,
                     'partner': request.env.user.partner_id,
                     'registration': existing_registration,
-                    'purchase_price': event.event_price,
+                    'purchase_price': transaction_price,
                     'transaction': transaction,
                 }
                 return request.render('popcorn.event_direct_purchase_success_page', values)
@@ -1729,11 +1692,12 @@ class PopcornEventController(http.Controller):
             _logger.info(f"Payment successful for transaction {transaction.reference}, but registration not yet created. "
                         f"Showing processing screen - backend polling will create registration.")
             
+            transaction_price = (transaction.amount or 0) + (transaction.popcorn_money_to_use or 0)
             values = {
                 'event': event,
                 'partner': request.env.user.partner_id,
                 'registration': None,  # Will be created by backend polling
-                'purchase_price': event.event_price,
+                'purchase_price': transaction_price,
                 'transaction': transaction,
                 'transaction_id': transaction.reference,  # Pass to template for client-side polling
                 'processing': True,  # Flag to enable client-side polling in template
@@ -1744,11 +1708,19 @@ class PopcornEventController(http.Controller):
         if registration_id:
             registration = request.env['event.registration'].sudo().browse(int(registration_id))
         
+        special_price_details = event._get_special_price_details(
+            partner=request.env.user.sudo().partner_id
+        )
+        purchase_price = (
+            registration.payment_amount
+            if registration and registration.exists()
+            else special_price_details.get('price', event.event_price)
+        )
         values = {
             'event': event,
             'partner': request.env.user.partner_id,
             'registration': registration,
-            'purchase_price': event.event_price,
+            'purchase_price': purchase_price,
         }
         
         return request.render('popcorn.event_direct_purchase_success_page', values)

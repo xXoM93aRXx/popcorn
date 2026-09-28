@@ -142,7 +142,7 @@
                                                 </p>
                                                 <p class="popcorn-purchase-desc">
                                                     <t t-if="should_pay_second_price">
-                                                        <span t-translation="on">Purchase this Social Experience event with special pricing</span>
+                                                        <span t-translation="on">Purchase this club with your membership price</span>
                                                     </t>
                                                     <t t-else="">
                                                         <span t-translation="on">Purchase this club directly without a membership</span>
