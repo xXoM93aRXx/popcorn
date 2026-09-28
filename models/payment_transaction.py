@@ -590,7 +590,9 @@ class PaymentTransaction(models.Model):
             'payment_transaction_id': self.id,
         }
         
-        registration = self.env['event.registration'].create(registration_vals)
+        registration = self.env['event.registration'].with_context(
+            skip_membership_auto_selection=True
+        ).create(registration_vals)
         
         registration.message_post(
             body=_(

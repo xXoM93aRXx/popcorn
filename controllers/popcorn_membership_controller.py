@@ -1980,7 +1980,9 @@ class PopcornMembershipController(http.Controller):
             }
             _logger.info(f"Registration vals: {registration_vals}")
             
-            registration = request.env['event.registration'].sudo().create(registration_vals)
+            registration = request.env['event.registration'].sudo().with_context(
+                skip_membership_auto_selection=True
+            ).create(registration_vals)
             _logger.info(f"Event registration created with ID: {registration.id}, State: {registration.state}, Payment Transaction: {transaction.id}")
             
             payment_message = _('Direct purchase registration for event: %s. Price: %s. Payment successful via %s. Transaction: %s. Event registration created and activated.') % (event.name, pending_event_purchase['event_price'], transaction.provider_id.name, transaction.reference)
@@ -2041,7 +2043,9 @@ class PopcornMembershipController(http.Controller):
         }
         
         # Create the registration
-        registration = request.env['event.registration'].sudo().create(registration_vals)
+        registration = request.env['event.registration'].sudo().with_context(
+            skip_membership_auto_selection=True
+        ).create(registration_vals)
         
         # Log the direct purchase
         registration.message_post(

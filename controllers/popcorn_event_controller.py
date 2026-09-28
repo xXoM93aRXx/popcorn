@@ -1253,7 +1253,9 @@ class PopcornEventController(http.Controller):
                     'payment_amount': event_price,
                 }
 
-                registration = request.env['event.registration'].sudo().create(registration_vals)
+                registration = request.env['event.registration'].sudo().with_context(
+                    skip_membership_auto_selection=True
+                ).create(registration_vals)
                 _logger.info(f"Registration created: {registration.id} with state: {registration_state}")
 
                 # Deduct popcorn money if used
@@ -1371,7 +1373,9 @@ class PopcornEventController(http.Controller):
                     'payment_amount': event_price,
                 }
 
-                registration = request.env['event.registration'].sudo().create(registration_vals)
+                registration = request.env['event.registration'].sudo().with_context(
+                    skip_membership_auto_selection=True
+                ).create(registration_vals)
 
                 # Process referral if present
                 referral_code = request.session.get('referral_code')

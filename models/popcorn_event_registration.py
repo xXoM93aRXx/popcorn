@@ -577,6 +577,13 @@ class PopcornEventRegistration(models.Model):
         _logger.info(f"=== Portal Cancellation: Registration {self.id} for event {self.event_id.name} (ID: {self.event_id.id}) ===")
         _logger.info(f"Partner: {self.partner_id.name} (ID: {self.partner_id.id})")
         _logger.info(f"Current state: {self.state}, is_on_waitlist: {self.is_on_waitlist}")
+
+        # A payment transaction identifies a direct ticket purchase.  Older paid
+        # registrations may still have a membership attached by the former
+        # auto-selection behavior, so membership_id must not suppress refunds.
+        is_direct_paid_registration = bool(
+            self.payment_transaction_id and self.payment_amount > 0
+        )
         
         # Policy-driven cancellations are initiated by the system and must not
         # be blocked by the member-facing cancellation deadline.
@@ -599,6 +606,15 @@ class PopcornEventRegistration(models.Model):
             if self.membership_id and self.consumption_state == 'consumed':
                 self._restore_membership_quota()
 
+            if is_direct_paid_registration:
+                try:
+                    self._process_automatic_refund()
+                except Exception as e:
+                    _logger.error(f"Failed to process automatic waitlist refund for registration {self.id}: {str(e)}")
+                    self.message_post(
+                        body=_('Registration cancelled but automatic refund failed: %s. Please contact support for manual refund.') % str(e)
+                    )
+
             # Log the cancellation before deletion
             self.message_post(
                 body=_('Waitlist registration cancelled by portal user')
@@ -620,7 +636,11 @@ class PopcornEventRegistration(models.Model):
         # If membership was consumed or pending, restore the quota
         if self.consumption_state in ['consumed', 'pending'] and self.membership_id:
             if self.consumption_state == 'consumed':
-                if self._should_block_quota_refund_for_cancel_window():
+                if is_direct_paid_registration:
+                    # The membership was attached by legacy auto-selection; this
+                    # paid booking must not consume quota or trigger a quota penalty.
+                    self._restore_membership_quota()
+                elif self._should_block_quota_refund_for_cancel_window():
                     self._apply_cancel_window_non_refund_penalty()
                     self.message_post(
                         body=_('Quota/points refund blocked due to repeated cancellation-window violations.')
@@ -632,7 +652,7 @@ class PopcornEventRegistration(models.Model):
         # Handle automatic refund for single club purchases (not membership)
         _logger.info(f"Cancelling registration {self.id}: payment_transaction_id={self.payment_transaction_id.id if self.payment_transaction_id else None}, payment_amount={self.payment_amount}, membership_id={self.membership_id.id if self.membership_id else None}")
         
-        if self.payment_transaction_id and self.payment_amount > 0 and not self.membership_id:
+        if is_direct_paid_registration:
             _logger.info(f"Refund conditions met for registration {self.id}, initiating automatic refund")
             try:
                 self._process_automatic_refund()
@@ -642,16 +662,19 @@ class PopcornEventRegistration(models.Model):
                     body=_('Registration cancelled but automatic refund failed: %s. Please contact support for manual refund.') % str(e)
                 )
         else:
-            _logger.info(f"Refund not triggered for registration {self.id}: has_transaction={bool(self.payment_transaction_id)}, has_amount={self.payment_amount > 0}, has_membership={bool(self.membership_id)}")
+            _logger.info(f"Refund not triggered for registration {self.id}: has_transaction={bool(self.payment_transaction_id)}, has_amount={self.payment_amount > 0}")
         
         # Cancel the registration with context flag to prevent double promotion
-        self.with_context(skip_waitlist_promotion=True).write({
+        self.with_context(
+            skip_waitlist_promotion=True,
+            skip_attendance_penalty=is_direct_paid_registration,
+        ).write({
             'state': 'cancel',
             'consumption_state': 'cancelled'
         })
 
         # Count cancellation incident for unlimited memberships.
-        if not self.env.context.get('skip_attendance_penalty'):
+        if not self.env.context.get('skip_attendance_penalty') and not is_direct_paid_registration:
             incident_type = self._get_cancellation_incident_type()
             if incident_type:
                 self._apply_attendance_penalty_policy(incident_type)
@@ -1029,7 +1052,12 @@ class PopcornEventRegistration(models.Model):
         self.ensure_one()
         
         # Auto-select membership if none selected
-        if not self.membership_id and self.partner_id and self.event_id:
+        if (
+            not self.env.context.get('skip_membership_auto_selection')
+            and not self.membership_id
+            and self.partner_id
+            and self.event_id
+        ):
             best_membership = self._find_best_membership()
             if best_membership:
                 self.membership_id = best_membership

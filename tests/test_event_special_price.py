@@ -70,3 +70,23 @@ class TestEventSpecialPrice(TransactionCase):
         )
 
         self.assertFalse(event._get_special_price_details(partner=self.partner))
+
+    def test_paid_registration_does_not_attach_or_consume_membership(self):
+        event = self._create_event(
+            second_price=95.0,
+            membership_plans_second_price_ids=[(6, 0, self.plan.ids)],
+        )
+
+        registration = self.env['event.registration'].with_context(
+            skip_membership_auto_selection=True
+        ).create({
+            'event_id': event.id,
+            'partner_id': self.partner.id,
+            'name': self.partner.name,
+            'email': self.partner.email,
+            'state': 'open',
+            'payment_amount': 95.0,
+        })
+
+        self.assertFalse(registration.membership_id)
+        self.assertEqual(registration.consumption_state, 'pending')
