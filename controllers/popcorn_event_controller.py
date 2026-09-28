@@ -397,6 +397,8 @@ class PopcornEventController(http.Controller):
                 return False
             elif club_type == 'spclub' and membership.remaining_sp < 1:
                 return False
+            elif club_type == 'focus_club' and membership.remaining_focus < 1:
+                return False
         elif membership.plan_quota_mode == 'points' and not is_pending_auto_eligible:
             # Calculate points needed for this club type
             plan = membership.membership_plan_id
@@ -406,6 +408,8 @@ class PopcornEventController(http.Controller):
                 points_needed = plan.points_per_online
             elif club_type == 'spclub':
                 points_needed = plan.points_per_sp
+            elif club_type == 'focus_club':
+                points_needed = plan.points_per_focus
             elif club_type == 'social_experience':
                 points_needed = plan.points_per_social_experience
             else:
@@ -420,6 +424,8 @@ class PopcornEventController(http.Controller):
         elif club_type == 'regular_online' and not membership.plan_allowed_regular_online:
             return False
         elif club_type == 'spclub' and not membership.plan_allowed_spclub:
+            return False
+        elif club_type == 'focus_club' and not membership.plan_allowed_focus_club:
             return False
         # Note: social_experience doesn't have a permission check - all memberships can attend
         
@@ -571,6 +577,8 @@ class PopcornEventController(http.Controller):
                 return _("1 online session consumed (remaining: %s)") % membership.remaining_online
             elif club_type == 'spclub':
                 return _("1 special club session consumed (remaining: %s)") % membership.remaining_sp
+            elif club_type == 'focus_club':
+                return _("1 Focus Club session consumed (remaining: %s)") % membership.remaining_focus
             elif club_type == 'social_experience':
                 return _("No membership quota consumed (bucket plans don't support Social Experience events)")
         elif membership.plan_quota_mode == 'points':
@@ -581,6 +589,8 @@ class PopcornEventController(http.Controller):
                 points_needed = plan.points_per_online
             elif club_type == 'spclub':
                 points_needed = plan.points_per_sp
+            elif club_type == 'focus_club':
+                points_needed = plan.points_per_focus
             elif club_type == 'social_experience':
                 points_needed = plan.points_per_social_experience
             else:
@@ -783,6 +793,8 @@ class PopcornEventController(http.Controller):
                             points_needed = plan.points_per_online
                         elif event_club_type == 'spclub':
                             points_needed = plan.points_per_sp
+                        elif event_club_type == 'focus_club':
+                            points_needed = plan.points_per_focus
                         elif event_club_type == 'social_experience':
                             points_needed = plan.points_per_social_experience
                             _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Social Experience detected! Plan points_per_social_experience: {plan.points_per_social_experience}, Points needed: {points_needed}")
@@ -806,6 +818,10 @@ class PopcornEventController(http.Controller):
                             error_message = _('No special club sessions remaining. You have %s special club sessions left') % membership.remaining_sp
                             quota_issue_found = True
                             break
+                        elif event_club_type == 'focus_club' and membership.remaining_focus < 1:
+                            error_message = _('No Focus Club sessions remaining. You have %s Focus Club sessions left') % membership.remaining_focus
+                            quota_issue_found = True
+                            break
                         elif event_club_type == 'social_experience':
                             # Bucket-based memberships don't support social_experience events
                             error_message = _('Social Experience events are not supported with bucket-based memberships')
@@ -823,6 +839,8 @@ class PopcornEventController(http.Controller):
                             allows_club_type = membership.plan_allowed_regular_online
                         elif event_club_type == 'spclub':
                             allows_club_type = membership.plan_allowed_spclub
+                        elif event_club_type == 'focus_club':
+                            allows_club_type = membership.plan_allowed_focus_club
                         
                         if allows_club_type:
                             # Found a membership that allows this club type and has sufficient quota
@@ -1180,7 +1198,7 @@ class PopcornEventController(http.Controller):
                         # Validate event type restriction if discount has one
                         if applied_discount.event_type:
                             event_club_type = self._get_event_club_type(event)
-                            if event_club_type != applied_discount.event_type:
+                            if not applied_discount._applies_to_event_type(event_club_type):
                                 # Discount doesn't match event type - invalidate it
                                 _logger.warning(f"Discount {applied_discount_id} event_type ({applied_discount.event_type}) doesn't match event club_type ({event_club_type})")
                                 applied_discount = None
@@ -2043,9 +2061,15 @@ class PopcornPortalController(CustomerPortal):
         past_offline = membership._count_used_sessions('regular_offline', past_only=True)
         past_online = membership._count_used_sessions('regular_online', past_only=True)
         past_sp = membership._count_used_sessions('spclub', past_only=True)
+        past_focus = membership._count_used_sessions('focus_club', past_only=True)
 
-        total_past = past_offline + past_online + past_sp
-        total_quota = (current_plan.quota_offline or 0) + (current_plan.quota_online or 0) + (current_plan.quota_sp or 0)
+        total_past = past_offline + past_online + past_sp + past_focus
+        total_quota = sum((
+            current_plan.quota_offline or 0,
+            current_plan.quota_online or 0,
+            current_plan.quota_sp or 0,
+            current_plan.quota_focus or 0,
+        ))
         total_remaining = max(0, total_quota - total_past)
 
         # Calculate unit value

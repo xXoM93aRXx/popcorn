@@ -453,7 +453,7 @@ class ResPartner(models.Model):
         discount = self._get_first_timer_discount_record()
         if not discount:
             return False
-        if club_type and discount.event_type and discount.event_type != club_type:
+        if club_type and not discount._applies_to_event_type(club_type):
             return False
 
         return discount._is_currently_valid()
@@ -535,11 +535,11 @@ class ResPartner(models.Model):
                     'popcorn.first_timer_discount_amount', '118.00'
                 ))
                 
-                # Create the actual discount record (restricted to regular offline clubs only)
+                # First-timer coupons cover Regular Offline and Focus Club events.
                 self.env['popcorn.discount'].sudo().create({
                     'name': f'First Timer Discount - {partner.name}',
                     'code': discount_code,
-                    'description': f'First timer discount for {partner.name} - Valid for Regular Offline clubs only',
+                    'description': f'First timer discount for {partner.name} - Valid for Regular Offline and Focus Clubs',
                     'active': True,
                     'discount_type': 'fixed_amount',
                     'discount_value': discount_amount,
@@ -549,9 +549,11 @@ class ResPartner(models.Model):
                     'usage_limit_per_customer': 1,
                     'customer_type': 'first_timer',
                     'partner_id': partner.id,  # Restrict to this specific partner
-                    'event_type': 'regular_offline',  # Only valid for regular offline clubs
+                    # Kept as regular_offline for compatibility; discount matching
+                    # explicitly includes Focus Club for first-timer coupons.
+                    'event_type': 'regular_offline',
                     'is_public': True,
-                    'website_description': f'Welcome discount for {partner.name}! Get {discount_amount}RMB off your first regular offline club registration.'
+                    'website_description': f'Welcome discount for {partner.name}! Get {discount_amount}RMB off your first Regular Offline or Focus Club booking.'
                 })
                 
                 # Post message

@@ -33,6 +33,7 @@
         'security/popcorn_groups.xml',
         'security/ir.model.access.csv',
         'data/popcorn_membership_plans_data.xml',
+        'data/popcorn_focus_club_data.xml',
         'data/popcorn_sticky_footer_data.xml',
         'data/popcorn_badge_data.xml',
         'data/popcorn_activity_sport_category_data.xml',

@@ -11,7 +11,7 @@
             <field name="title">Your First-Timer Discount Expires Soon! 🎁</field>
             <field name="message"><![CDATA[
                 <p><strong>Don't forget!</strong> Your first-timer discount code <strong>{first_timer_discount_code}</strong> expires in 14 days.</p>
-                <p>Use it now to get discounts on Regular Offline clubs before it's too late!</p>
+                <p>Use it now on a Regular Offline or Focus Club before it's too late!</p>
             ]]></field>
             <field name="banner_position">top</field>
             <field name="banner_style">warning</field>
@@ -53,7 +53,7 @@
             <field name="title">Only 7 Days Left on Your First-Timer Discount! ⏰</field>
             <field name="message"><![CDATA[
                 <p><strong>Hurry!</strong> Your first-timer discount code <strong>{first_timer_discount_code}</strong> expires in just 7 days.</p>
-                <p>Book a Regular Offline club now and save!</p>
+                <p>Book a Regular Offline or Focus Club now and save!</p>
             ]]></field>
             <field name="banner_position">top</field>
             <field name="banner_style">warning</field>
@@ -93,7 +93,7 @@
             <field name="title">Last Chance! 3 Days Left on Your Discount! ⚠️</field>
             <field name="message"><![CDATA[
                 <p><strong>Last chance!</strong> Your first-timer discount code <strong>{first_timer_discount_code}</strong> expires in only 3 days.</p>
-                <p>Don't miss out on your special discount for Regular Offline clubs!</p>
+                <p>Don't miss out on your special discount for Regular Offline and Focus Clubs!</p>
             ]]></field>
             <field name="banner_position">top</field>
             <field name="banner_style">danger</field>
@@ -133,7 +133,7 @@
             <field name="title">FINAL DAY! Your Discount Expires Tomorrow! 🚨</field>
             <field name="message"><![CDATA[
                 <p><strong>THIS IS IT!</strong> Your first-timer discount code <strong>{first_timer_discount_code}</strong> expires <strong>TOMORROW</strong>!</p>
-                <p>Book a Regular Offline club today or lose your discount forever!</p>
+                <p>Book a Regular Offline or Focus Club today or lose your discount forever!</p>
             ]]></field>
             <field name="banner_position">top</field>
             <field name="banner_style">danger</field>

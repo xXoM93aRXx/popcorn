@@ -195,6 +195,12 @@
                                                         <span class="popcorn-feature-text"><t t-esc="plan.quota_sp"/> Special Club Sessions</span>
                                                     </div>
                                                 </t>
+                                                <t t-if="plan.quota_focus">
+                                                    <div class="popcorn-feature-item">
+                                                        <i class="fa fa-bullseye popcorn-feature-icon"></i>
+                                                        <span class="popcorn-feature-text"><t t-esc="plan.quota_focus"/> Focus Club Sessions</span>
+                                                    </div>
+                                                </t>
                                             </t>
                                             <t t-elif="plan.quota_mode == 'points'">
                                                 <div class="popcorn-feature-item">
@@ -220,6 +226,12 @@
                                                 <div class="popcorn-feature-item">
                                                     <i class="fa fa-check-circle popcorn-feature-icon"></i>
                                                     <span class="popcorn-feature-text" t-translation="on">Special Club Access</span>
+                                                </div>
+                                            </t>
+                                            <t t-if="plan.allowed_focus_club">
+                                                <div class="popcorn-feature-item">
+                                                    <i class="fa fa-bullseye popcorn-feature-icon"></i>
+                                                    <span class="popcorn-feature-text" t-translation="on">Focus Club Access</span>
                                                 </div>
                                             </t>
                                             
@@ -617,6 +629,9 @@
                                             </t>
                                             <t t-if="plan.quota_sp">
                                                 <li><t t-esc="plan.quota_sp"/> special club sessions</li>
+                                            </t>
+                                            <t t-if="plan.quota_focus">
+                                                <li><t t-esc="plan.quota_focus"/> Focus Club sessions</li>
                                             </t>
                                         </t>
                                         <t t-elif="plan.quota_mode == 'points'">

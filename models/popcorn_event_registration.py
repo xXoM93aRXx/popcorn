@@ -16,6 +16,7 @@ class PopcornEventRegistration(models.Model):
         ('regular_offline', 'Regular Offline'),
         ('regular_online', 'Regular Online'),
         ('spclub', 'Special Club'),
+        ('focus_club', 'Focus Club'),
         ('social_experience', 'Social Experience'),
         ('free_for_members', 'Free for Members'),
     ], string='Club Type', compute='_compute_club_type', store=True)
@@ -273,45 +274,15 @@ class PopcornEventRegistration(models.Model):
         for registration in self:
             registration.no_show_attendance_badge = 'No Show' if registration.is_no_show_attendance else ''
     
-    @api.depends('event_id.tag_ids')
+    @api.depends('event_id.tag_ids', 'event_id.is_online_event')
     def _compute_club_type(self):
-        """Compute club type from the event's Type tag"""
+        """Store the event's centrally computed club type on the registration."""
         for registration in self:
-            _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] _compute_club_type called for registration {registration.id}")
-            if registration.event_id and registration.event_id.tag_ids:
-                # Look at all tags with category "Type" to determine club type
-                type_tags = registration.event_id.tag_ids.filtered(
-                    lambda tag: tag.category_id.name == 'Type'
-                )
-                if type_tags:
-                    tag_names = [tag.name.lower() for tag in type_tags]
-                    _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Found type tags: {tag_names}")
-                    # Free for Members wins when mixed with other Type tags
-                    if any('free' in name for name in tag_names):
-                        registration.club_type = 'free_for_members'
-                    elif any('social' in name and 'experience' in name for name in tag_names):
-                        registration.club_type = 'social_experience'
-                        _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Setting club_type to 'social_experience'")
-                    elif any('sp' in name or 'special' in name for name in tag_names):
-                        registration.club_type = 'spclub'
-                    elif any('offline' in name for name in tag_names):
-                        registration.club_type = 'regular_offline'
-                    elif any('online' in name for name in tag_names):
-                        registration.club_type = 'regular_online'
-                    else:
-                        registration.club_type = False
-                else:
-                    _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] No type tag found, using fallback")
-                    # Fallback: determine from event properties
-                    if hasattr(registration.event_id, 'is_online_event') and registration.event_id.is_online_event:
-                        registration.club_type = 'regular_online'
-                    else:
-                        registration.club_type = 'regular_offline'
-            else:
-                # Default to offline if no tags
-                registration.club_type = 'regular_offline'
-                _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] No event_id or tag_ids, defaulting to 'regular_offline'")
-            _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Final club_type: {registration.club_type}")
+            registration.club_type = (
+                registration.event_id.club_type
+                if registration.event_id
+                else False
+            )
     
     @api.depends(
         'club_type',
@@ -320,6 +291,7 @@ class PopcornEventRegistration(models.Model):
         'membership_id.membership_plan_id.points_per_offline',
         'membership_id.membership_plan_id.points_per_online',
         'membership_id.membership_plan_id.points_per_sp',
+        'membership_id.membership_plan_id.points_per_focus',
         'membership_id.membership_plan_id.points_per_social_experience',
     )
     def _compute_points_consumed(self):
@@ -348,6 +320,8 @@ class PopcornEventRegistration(models.Model):
                 registration.points_consumed = plan.points_per_online
             elif club_type == 'spclub':
                 registration.points_consumed = plan.points_per_sp
+            elif club_type == 'focus_club':
+                registration.points_consumed = plan.points_per_focus
             elif club_type == 'social_experience':
                 registration.points_consumed = plan.points_per_social_experience
             else:
@@ -408,6 +382,8 @@ class PopcornEventRegistration(models.Model):
                     raise ValidationError(_('This membership plan does not allow regular online events'))
                 elif club_type == 'spclub' and not membership.plan_allowed_spclub:
                     raise ValidationError(_('This membership plan does not allow special club events'))
+                elif club_type == 'focus_club' and not membership.plan_allowed_focus_club:
+                    raise ValidationError(_('This membership plan does not allow Focus Club events'))
     
     @api.onchange('partner_id', 'event_id')
     def _onchange_partner_event(self):
@@ -467,6 +443,8 @@ class PopcornEventRegistration(models.Model):
             return False
         elif self.club_type == 'spclub' and not membership.plan_allowed_spclub:
             return False
+        elif self.club_type == 'focus_club' and not membership.plan_allowed_focus_club:
+            return False
         
         # Check if membership has sufficient quota
         if membership.plan_quota_mode == 'unlimited':
@@ -477,6 +455,8 @@ class PopcornEventRegistration(models.Model):
             elif self.club_type == 'regular_online' and membership.remaining_online <= 0:
                 return False
             elif self.club_type == 'spclub' and membership.remaining_sp <= 0:
+                return False
+            elif self.club_type == 'focus_club' and membership.remaining_focus <= 0:
                 return False
         elif membership.plan_quota_mode == 'points':
             if membership.points_remaining < self.points_consumed:
@@ -559,6 +539,8 @@ class PopcornEventRegistration(models.Model):
             return membership.remaining_online >= 1
         elif self.club_type == 'spclub':
             return membership.remaining_sp >= 1
+        elif self.club_type == 'focus_club':
+            return membership.remaining_focus >= 1
         elif self.club_type == 'social_experience':
             # Bucket-based memberships don't support social_experience events
             return False
@@ -877,6 +859,8 @@ class PopcornEventRegistration(models.Model):
                 membership.remaining_online += 1
             elif self.club_type == 'spclub':
                 membership.remaining_sp += 1
+            elif self.club_type == 'focus_club':
+                membership.remaining_focus += 1
         elif membership.plan_quota_mode == 'points':
             membership.points_remaining += self.points_consumed
         
@@ -1006,7 +990,7 @@ class PopcornEventRegistration(models.Model):
         # Partner keeps is_first_timer=True until midnight; a cron then flips pdb=True.
         if not is_import and registration.partner_id and not registration.partner_id.pdb:
             if not registration.partner_id.pdb_pending_date:
-                if registration.club_type == 'regular_offline':
+                if registration.club_type in ('regular_offline', 'focus_club'):
                     non_cancelled_count = self.env['event.registration'].search_count([
                         ('partner_id', '=', registration.partner_id.id),
                         ('state', '!=', 'cancel'),
@@ -1490,6 +1474,15 @@ class PopcornEventRegistration(models.Model):
                     body=_(
                         'Attendance policy penalty applied for event "%s": '
                         '1 special session was not refunded.'
+                    ) % self.event_id.name
+                )
+            elif self.club_type == 'focus_club':
+                membership.write({'adj_focus': membership.adj_focus - 1})
+                self.write({'quota_penalty_applied': True})
+                membership.message_post(
+                    body=_(
+                        'Attendance policy penalty applied for event "%s": '
+                        '1 Focus Club session was not refunded.'
                     ) % self.event_id.name
                 )
             return True

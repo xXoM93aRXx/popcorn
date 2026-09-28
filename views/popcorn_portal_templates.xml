@@ -600,6 +600,9 @@
                                                                          <span t-if="membership.remaining_sp > 0" class="badge bg-warning">
                                                                              <i class="fa fa-star"></i> <span t-esc="membership.remaining_sp"/> <span t-translation="on">special</span>
                                                                          </span>
+                                                                         <span t-if="membership.remaining_focus > 0" class="badge bg-secondary">
+                                                                             <i class="fa fa-bullseye"></i> <span t-esc="membership.remaining_focus"/> <span t-translation="on">focus</span>
+                                                                         </span>
                                                                      </div>
                                                                  </t>
                                                                  <t t-elif="membership.plan_quota_mode == 'points'">
@@ -813,6 +816,9 @@
                                                      <span t-if="membership.remaining_sp > 0">
                                                          <i class="fa fa-star"></i> <span t-esc="membership.remaining_sp"/> special
                                                      </span>
+                                                     <span t-if="membership.remaining_focus > 0">
+                                                         <i class="fa fa-bullseye"></i> <span t-esc="membership.remaining_focus"/> focus
+                                                     </span>
                                                  </div>
                                              </t>
                                              <t t-elif="membership.plan_quota_mode == 'points'">
@@ -877,6 +883,9 @@
                                                                          <t t-if="option['plan'].quota_sp">
                                                                              <li><i class="fa fa-star"></i> <span t-esc="option['plan'].quota_sp"/> special club sessions</li>
                                                                          </t>
+                                                                         <t t-if="option['plan'].quota_focus">
+                                                                             <li><i class="fa fa-bullseye"></i> <span t-esc="option['plan'].quota_focus"/> Focus Club sessions</li>
+                                                                         </t>
                                                                      </t>
                                                                      <t t-elif="option['plan'].quota_mode == 'points'">
                                                                          <li><i class="fa fa-coins"></i> <span t-esc="option['plan'].points_start"/> points</li>
@@ -889,6 +898,9 @@
                                                                      </t>
                                                                      <t t-if="option['plan'].allowed_spclub">
                                                                          <li><i class="fa fa-check text-success"></i> Special club access</li>
+                                                                     </t>
+                                                                     <t t-if="option['plan'].allowed_focus_club">
+                                                                         <li><i class="fa fa-check text-success"></i> Focus Club access</li>
                                                                      </t>
                                                                      <t t-if="option['plan'].freeze_allowed">
                                                                          <li><i class="fa fa-pause text-info"></i> Freeze available</li>

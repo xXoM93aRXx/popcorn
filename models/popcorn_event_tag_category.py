@@ -12,6 +12,29 @@ class EventTagCategory(models.Model):
 class EventTag(models.Model):
     _inherit = 'event.tag'
 
+    @api.model
+    def _ensure_focus_club_type_tag(self):
+        """Ensure each Type category offers Focus Club as an event type."""
+        categories = self.env['event.tag.category'].sudo().search([
+            ('name', '=', 'Type'),
+        ])
+        if not categories:
+            categories = self.env['event.tag.category'].sudo().create({
+                'name': 'Type',
+            })
+
+        for category in categories:
+            existing = self.sudo().search([
+                ('name', '=', 'Focus Club'),
+                ('category_id', '=', category.id),
+            ], limit=1)
+            if not existing:
+                self.sudo().create({
+                    'name': 'Focus Club',
+                    'category_id': category.id,
+                })
+        return True
+
     constellation_image = fields.Binary(
         string='Constellation Image',
         attachment=True,

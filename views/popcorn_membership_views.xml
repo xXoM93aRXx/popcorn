@@ -21,6 +21,7 @@
                     <field name="remaining_offline" optional="show"/>
                     <field name="remaining_online" optional="show"/>
                     <field name="remaining_sp" optional="show"/>
+                    <field name="remaining_focus" optional="show"/>
                     <field name="points_remaining" optional="show"/>
                 </list>
             </field>
@@ -122,6 +123,7 @@
                                         <field name="remaining_offline" widget="integer"/>
                                         <field name="remaining_online" widget="integer"/>
                                         <field name="remaining_sp" widget="integer"/>
+                                        <field name="remaining_focus" widget="integer"/>
                                         <field name="points_remaining" widget="integer"/>
                                     </group>
                                     <group string="Plan Limits">
@@ -130,6 +132,7 @@
                                         <field name="plan_allowed_regular_offline"/>
                                         <field name="plan_allowed_regular_online"/>
                                         <field name="plan_allowed_spclub"/>
+                                        <field name="plan_allowed_focus_club"/>
                                     </group>
                                 </group>
                             </page>
@@ -176,6 +179,7 @@
                                         <field name="adj_offline"/>
                                         <field name="adj_online"/>
                                         <field name="adj_sp"/>
+                                        <field name="adj_focus"/>
                                     </group>
                                     <group string="Points Adjustments">
                                         <field name="adj_points"/>
@@ -209,6 +213,7 @@
                     <field name="remaining_offline"/>
                     <field name="remaining_online"/>
                     <field name="remaining_sp"/>
+                    <field name="remaining_focus"/>
                     <field name="points_remaining"/>
                     <templates>
                         <t t-name="kanban-box">
@@ -251,6 +256,9 @@
                                                     </span>
                                                     <span t-if="record.remaining_sp.raw_value != -1">
                                                         SP: <field name="remaining_sp"/> | 
+                                                    </span>
+                                                    <span t-if="record.remaining_focus.raw_value != -1">
+                                                        Focus: <field name="remaining_focus"/> |
                                                     </span>
                                                     <span t-if="record.points_remaining.raw_value != -1">
                                                         Points: <field name="points_remaining"/>

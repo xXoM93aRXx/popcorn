@@ -57,6 +57,7 @@
                                 <field name="allowed_regular_offline"/>
                                 <field name="allowed_regular_online"/>
                                 <field name="allowed_spclub"/>
+                                <field name="allowed_focus_club"/>
                             </group>
                         </group>
                         
@@ -65,6 +66,7 @@
                                 <field name="quota_offline"/>
                                 <field name="quota_online"/>
                                 <field name="quota_sp"/>
+                                <field name="quota_focus"/>
                             </group>
                             
                             <group string="Points Configuration" invisible="quota_mode != 'points'">
@@ -72,6 +74,7 @@
                                 <field name="points_per_offline"/>
                                 <field name="points_per_online"/>
                                 <field name="points_per_sp"/>
+                                <field name="points_per_focus"/>
                                 <field name="points_per_social_experience"/>
                             </group>
                         </group>

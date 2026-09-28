@@ -41,17 +41,20 @@ class PopcornMembershipPlan(models.Model):
     allowed_regular_offline = fields.Boolean(string='Allows Regular Offline', default=True, tracking=True)
     allowed_regular_online = fields.Boolean(string='Allows Regular Online', default=True, tracking=True)
     allowed_spclub = fields.Boolean(string='Allows Special Club', default=False, tracking=True)
+    allowed_focus_club = fields.Boolean(string='Allows Focus Club', default=False, tracking=True)
     
     # Session Quotas (for bucket_counts mode)
     quota_offline = fields.Integer(string='Offline Sessions', default=0, tracking=True)
     quota_online = fields.Integer(string='Online Sessions', default=0, tracking=True)
     quota_sp = fields.Integer(string='Special Club Sessions', default=0, tracking=True)
+    quota_focus = fields.Integer(string='Focus Club Sessions', default=0, tracking=True)
     
     # Points Configuration (for points mode)
     points_start = fields.Integer(string='Starting Points', default=0, tracking=True)
     points_per_offline = fields.Integer(string='Points per Offline Session', default=3, tracking=True)
     points_per_online = fields.Integer(string='Points per Online Session', default=2, tracking=True)
     points_per_sp = fields.Integer(string='Points per Special Club Session', default=4, tracking=True)
+    points_per_focus = fields.Integer(string='Points per Focus Club', default=3, tracking=True)
     points_per_social_experience = fields.Integer(string='Points per Social Experience', default=0, tracking=True,
                                                   help='Points cost for Social Experience events')
     
@@ -139,7 +142,7 @@ class PopcornMembershipPlan(models.Model):
     unit_value_fixed = fields.Monetary(string='Fixed Unit Value', currency_field='currency_id',
                                      help='Fixed value per unit for upgrade calculations')
     
-    @api.depends('name', 'quota_mode', 'duration_days', 'quota_offline', 'quota_online', 'quota_sp', 'points_start')
+    @api.depends('name', 'quota_mode', 'duration_days', 'quota_offline', 'quota_online', 'quota_sp', 'quota_focus', 'points_start')
     def _compute_display_name(self):
         """Compute a user-friendly display name for the membership plan"""
         for plan in self:
@@ -149,14 +152,19 @@ class PopcornMembershipPlan(models.Model):
                 else:
                     plan.display_name = f"{plan.name} ({plan.duration_days} days)"
             elif plan.quota_mode == 'bucket_counts':
-                total_sessions = (plan.quota_offline or 0) + (plan.quota_online or 0) + (plan.quota_sp or 0)
+                total_sessions = sum((
+                    plan.quota_offline or 0,
+                    plan.quota_online or 0,
+                    plan.quota_sp or 0,
+                    plan.quota_focus or 0,
+                ))
                 plan.display_name = f"{plan.name} ({total_sessions} sessions)"
             elif plan.quota_mode == 'points':
                 plan.display_name = f"{plan.name} ({plan.points_start} points)"
             else:
                 plan.display_name = plan.name
     
-    @api.depends('quota_mode', 'duration_days', 'quota_offline', 'quota_online', 'quota_sp', 'points_start', 'freeze_allowed', 'allowed_regular_offline', 'allowed_regular_online', 'allowed_spclub')
+    @api.depends('quota_mode', 'duration_days', 'quota_offline', 'quota_online', 'quota_sp', 'quota_focus', 'points_start', 'freeze_allowed', 'allowed_regular_offline', 'allowed_regular_online', 'allowed_spclub', 'allowed_focus_club')
     def _compute_plan_summary(self):
         """Compute a comprehensive summary of the membership plan"""
         for plan in self:
@@ -173,6 +181,8 @@ class PopcornMembershipPlan(models.Model):
                     sessions.append(f"{plan.quota_online} online")
                 if plan.quota_sp:
                     sessions.append(f"{plan.quota_sp} special club")
+                if plan.quota_focus:
+                    sessions.append(f"{plan.quota_focus} focus club")
                 summary_parts.append(f"Session-based: {', '.join(sessions)}")
             elif plan.quota_mode == 'points':
                 summary_parts.append(f"Points-based: {plan.points_start} starting points")
@@ -189,6 +199,8 @@ class PopcornMembershipPlan(models.Model):
                 access_types.append("Regular Online")
             if plan.allowed_spclub:
                 access_types.append("Special Club")
+            if plan.allowed_focus_club:
+                access_types.append("Focus Club")
             
             if access_types:
                 summary_parts.append(f"Access: {', '.join(access_types)}")
@@ -205,12 +217,17 @@ class PopcornMembershipPlan(models.Model):
             
             plan.plan_summary = " | ".join(summary_parts)
     
-    @api.constrains('quota_mode', 'quota_offline', 'quota_online', 'quota_sp')
+    @api.constrains('quota_mode', 'quota_offline', 'quota_online', 'quota_sp', 'quota_focus')
     def _check_quota_consistency(self):
         """Ensure quota fields are consistent with quota mode"""
         for plan in self:
             if plan.quota_mode == 'bucket_counts':
-                total_quota = (plan.quota_offline or 0) + (plan.quota_online or 0) + (plan.quota_sp or 0)
+                total_quota = sum((
+                    plan.quota_offline or 0,
+                    plan.quota_online or 0,
+                    plan.quota_sp or 0,
+                    plan.quota_focus or 0,
+                ))
                 if total_quota <= 0:
                     raise ValidationError(_('Bucket-based plans must have at least one session quota'))
     
@@ -258,6 +275,7 @@ class PopcornMembershipPlan(models.Model):
             self.quota_offline = 0
             self.quota_online = 0
             self.quota_sp = 0
+            self.quota_focus = 0
             self.points_start = 0
         elif self.quota_mode == 'bucket_counts':
             # Reset points for bucket plans
@@ -267,6 +285,7 @@ class PopcornMembershipPlan(models.Model):
             self.quota_offline = 0
             self.quota_online = 0
             self.quota_sp = 0
+            self.quota_focus = 0
     
     def get_membership_benefits(self):
         """Get a structured list of membership benefits"""
@@ -299,6 +318,12 @@ class PopcornMembershipPlan(models.Model):
                     'type': 'quota',
                     'title': 'Special Club',
                     'description': f'{self.quota_sp} special club sessions'
+                })
+            if self.quota_focus:
+                benefits.append({
+                    'type': 'quota',
+                    'title': 'Focus Club',
+                    'description': f'{self.quota_focus} focus club sessions'
                 })
         elif self.quota_mode == 'points':
             benefits.append({

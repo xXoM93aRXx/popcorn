@@ -58,6 +58,7 @@ class PopcornDiscount(models.Model):
         ('regular_offline', 'Regular Offline Only'),
         ('regular_online', 'Regular Online Only'),
         ('spclub', 'Special Club Only'),
+        ('focus_club', 'Focus Club Only'),
         ('social_experience', 'Social Experience Only'),
         ('free_for_members', 'Free for Members Only'),
     ], string='Event Type Restriction',
@@ -188,6 +189,22 @@ class PopcornDiscount(models.Model):
                 return False
             return customer_partner.has_expired_membership or customer_partner.pdb
         return True
+
+    def _applies_to_event_type(self, event_type):
+        """Check event-type scope, including Focus Club first-timer coupons."""
+        self.ensure_one()
+        if not self.event_type or not event_type or self.event_type == event_type:
+            return True
+
+        is_first_timer_coupon = (
+            self.customer_type in ('first_timer', 'new')
+            or self.discount_type == 'first_timer'
+        )
+        return bool(
+            is_first_timer_coupon
+            and self.event_type == 'regular_offline'
+            and event_type == 'focus_club'
+        )
 
     def _compute_days_until_expiry(self):
         """Compute days until the discount's valid-to date."""

@@ -68,6 +68,7 @@ class PopcornMembership(models.Model):
     adj_offline = fields.Integer(string='Offline Adjustment', default=0, tracking=True)
     adj_online = fields.Integer(string='Online Adjustment', default=0, tracking=True)
     adj_sp = fields.Integer(string='Special Club Adjustment', default=0, tracking=True)
+    adj_focus = fields.Integer(string='Focus Club Adjustment', default=0, tracking=True)
     adj_points = fields.Integer(string='Points Adjustment', default=0, tracking=True)
     
     # Upgrade eligibility
@@ -78,6 +79,7 @@ class PopcornMembership(models.Model):
     remaining_offline = fields.Integer(string='Remaining Offline Sessions', compute='_compute_remaining_usage')
     remaining_online = fields.Integer(string='Remaining Online Sessions', compute='_compute_remaining_usage')
     remaining_sp = fields.Integer(string='Remaining Special Club Sessions', compute='_compute_remaining_usage')
+    remaining_focus = fields.Integer(string='Remaining Focus Club Sessions', compute='_compute_remaining_usage')
     points_remaining = fields.Integer(string='Points Remaining', compute='_compute_remaining_usage')
     effective_end_date = fields.Date(string='Effective End Date', compute='_compute_effective_end_date', store=True)
     
@@ -131,6 +133,7 @@ class PopcornMembership(models.Model):
     plan_allowed_regular_offline = fields.Boolean(string='Allows Regular Offline', related='membership_plan_id.allowed_regular_offline')
     plan_allowed_regular_online = fields.Boolean(string='Allows Regular Online', related='membership_plan_id.allowed_regular_online')
     plan_allowed_spclub = fields.Boolean(string='Allows Special Club', related='membership_plan_id.allowed_spclub')
+    plan_allowed_focus_club = fields.Boolean(string='Allows Focus Club', related='membership_plan_id.allowed_focus_club')
     
     # Club registrations booked on this membership
     registration_ids = fields.One2many('event.registration', 'membership_id', string='Club Registrations')
@@ -242,7 +245,12 @@ class PopcornMembership(models.Model):
         for membership in self:
             if membership.plan_quota_mode == 'bucket_counts':
                 # For bucket plans, sum all remaining sessions
-                total = (membership.remaining_offline or 0) + (membership.remaining_online or 0) + (membership.remaining_sp or 0)
+                total = sum((
+                    membership.remaining_offline or 0,
+                    membership.remaining_online or 0,
+                    membership.remaining_sp or 0,
+                    membership.remaining_focus or 0,
+                ))
                 membership.total_clubs_remaining = total
             elif membership.plan_quota_mode == 'points':
                 # For points plans, divide by 3 to get approximate clubs (assuming avg 3 points per club)
@@ -297,7 +305,7 @@ class PopcornMembership(models.Model):
             # Use the contact's first timer status
             membership.first_timer_customer = membership.partner_id.is_first_timer if membership.partner_id else False
     
-    @api.depends('adj_offline', 'adj_online', 'adj_sp', 'adj_points', 'membership_plan_id.quota_mode', 'membership_plan_id.quota_offline', 'membership_plan_id.quota_online', 'membership_plan_id.quota_sp', 'membership_plan_id.points_start')
+    @api.depends('adj_offline', 'adj_online', 'adj_sp', 'adj_focus', 'adj_points', 'membership_plan_id.quota_mode', 'membership_plan_id.quota_offline', 'membership_plan_id.quota_online', 'membership_plan_id.quota_sp', 'membership_plan_id.quota_focus', 'membership_plan_id.points_start')
     def _compute_remaining_usage(self):
         for membership in self:
             plan = membership.membership_plan_id
@@ -306,6 +314,7 @@ class PopcornMembership(models.Model):
             membership.remaining_offline = 0
             membership.remaining_online = 0
             membership.remaining_sp = 0
+            membership.remaining_focus = 0
             membership.points_remaining = 0
             
             # Only compute if we have a valid plan
@@ -316,6 +325,7 @@ class PopcornMembership(models.Model):
                 membership.remaining_offline = -1  # -1 indicates unlimited
                 membership.remaining_online = -1
                 membership.remaining_sp = -1
+                membership.remaining_focus = -1
                 membership.points_remaining = -1
                 
             elif plan.quota_mode == 'bucket_counts':
@@ -323,15 +333,18 @@ class PopcornMembership(models.Model):
                 used_offline = membership._count_used_sessions('regular_offline')
                 used_online = membership._count_used_sessions('regular_online')
                 used_sp = membership._count_used_sessions('spclub')
+                used_focus = membership._count_used_sessions('focus_club')
                 
                 # Use safe access with defaults
                 quota_offline = getattr(plan, 'quota_offline', 0) or 0
                 quota_online = getattr(plan, 'quota_online', 0) or 0
                 quota_sp = getattr(plan, 'quota_sp', 0) or 0
+                quota_focus = getattr(plan, 'quota_focus', 0) or 0
                 
                 membership.remaining_offline = max(0, quota_offline - used_offline + membership.adj_offline)
                 membership.remaining_online = max(0, quota_online - used_online + membership.adj_online)
                 membership.remaining_sp = max(0, quota_sp - used_sp + membership.adj_sp)
+                membership.remaining_focus = max(0, quota_focus - used_focus + membership.adj_focus)
                 membership.points_remaining = 0
                 
             elif plan.quota_mode == 'points':
@@ -339,6 +352,7 @@ class PopcornMembership(models.Model):
                 membership.remaining_offline = 0
                 membership.remaining_online = 0
                 membership.remaining_sp = 0
+                membership.remaining_focus = 0
                 points_start = getattr(plan, 'points_start', 0) or 0
                 membership.points_remaining = max(0, points_start - used_points + membership.adj_points)
                 
@@ -432,6 +446,9 @@ class PopcornMembership(models.Model):
                         total_points += points
                     elif club_type == 'spclub':
                         points = plan.points_per_sp
+                        total_points += points
+                    elif club_type == 'focus_club':
+                        points = plan.points_per_focus
                         total_points += points
                     elif club_type == 'social_experience':
                         points = plan.points_per_social_experience
@@ -855,6 +872,24 @@ class PopcornMembership(models.Model):
         )
         
         return True
+
+    def action_adjust_focus_quota(self, adjustment):
+        """Staff action to manually adjust Focus Club quota."""
+        self.ensure_one()
+        if self.plan_quota_mode != 'bucket_counts':
+            raise UserError(_('This membership plan does not use bucket quotas'))
+
+        self.write({
+            'adj_focus': self.adj_focus + adjustment
+        })
+
+        action = 'added' if adjustment > 0 else 'removed'
+        self.message_post(
+            body=_('Staff %s %s Focus Club sessions. New remaining: %s') %
+                 (action, abs(adjustment), self.remaining_focus)
+        )
+
+        return True
     
     def action_adjust_points(self, adjustment):
         """Staff action to manually adjust points"""
@@ -930,8 +965,9 @@ class PopcornMembership(models.Model):
         past_offline = self._count_used_sessions('regular_offline', past_only=True)
         past_online = self._count_used_sessions('regular_online', past_only=True)
         past_sp = self._count_used_sessions('spclub', past_only=True)
+        past_focus = self._count_used_sessions('focus_club', past_only=True)
 
-        total_past = past_offline + past_online + past_sp
+        total_past = past_offline + past_online + past_sp + past_focus
         total_remaining = max(0, plan.unit_base_count - total_past)
 
         # Calculate unit value
@@ -1346,12 +1382,12 @@ class PopcornMembership(models.Model):
         
         # Invalidate computed fields that depend on membership_plan_id
         self.invalidate_recordset([
-            'remaining_offline', 'remaining_online', 'remaining_sp',
+            'remaining_offline', 'remaining_online', 'remaining_sp', 'remaining_focus',
             'points_remaining',
             'end_date_base', 'effective_end_date', 'total_duration_days',
             'plan_duration_days', 'plan_quota_mode',
             'plan_allowed_regular_offline', 'plan_allowed_regular_online',
-            'plan_allowed_spclub'
+            'plan_allowed_spclub', 'plan_allowed_focus_club'
         ])
         self.flush_recordset()
         

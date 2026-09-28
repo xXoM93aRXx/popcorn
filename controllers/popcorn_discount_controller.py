@@ -242,7 +242,7 @@ class PopcornDiscountController(http.Controller):
 
             # Check event type restriction
             if discount.event_type:
-                if event.club_type != discount.event_type:
+                if not discount._applies_to_event_type(event.club_type):
                     event_type_name = dict(event._fields['club_type'].selection).get(event.club_type, 'this event type')
                     result = {
                         'success': False,

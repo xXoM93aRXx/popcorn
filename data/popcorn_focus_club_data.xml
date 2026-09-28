@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Idempotently add Focus Club to every existing Type tag category. -->
+    <function model="event.tag" name="_ensure_focus_club_type_tag"/>
+</odoo>

@@ -77,6 +77,7 @@ class EventEvent(models.Model):
         ('regular_offline', 'Regular Offline'),
         ('regular_online', 'Regular Online'),
         ('spclub', 'Special Club'),
+        ('focus_club', 'Focus Club'),
         ('social_experience', 'Social Experience'),
         ('free_for_members', 'Free for Members'),
     ], string='Club Type', compute='_compute_club_type', store=False,
@@ -245,6 +246,8 @@ class EventEvent(models.Model):
                         event.club_type = 'social_experience'
                     elif any('sp' in name or 'special' in name for name in tag_names):
                         event.club_type = 'spclub'
+                    elif any('focus' in name for name in tag_names):
+                        event.club_type = 'focus_club'
                     elif any('offline' in name for name in tag_names):
                         event.club_type = 'regular_offline'
                     elif any('online' in name for name in tag_names):
@@ -555,6 +558,8 @@ class EventEvent(models.Model):
             return False
         elif self.club_type == 'spclub' and not membership.plan_allowed_spclub:
             return False
+        elif self.club_type == 'focus_club' and not membership.plan_allowed_focus_club:
+            return False
         
         # Check if membership has sufficient quota
         if membership.plan_quota_mode == 'unlimited':
@@ -566,6 +571,8 @@ class EventEvent(models.Model):
                 return False
             elif self.club_type == 'spclub' and membership.remaining_sp <= 0:
                 return False
+            elif self.club_type == 'focus_club' and membership.remaining_focus <= 0:
+                return False
         elif membership.plan_quota_mode == 'points':
             # Get points from membership plan
             plan = membership.membership_plan_id
@@ -575,6 +582,8 @@ class EventEvent(models.Model):
                 points_needed = plan.points_per_online
             elif self.club_type == 'spclub':
                 points_needed = plan.points_per_sp
+            elif self.club_type == 'focus_club':
+                points_needed = plan.points_per_focus
             elif self.club_type == 'social_experience':
                 points_needed = plan.points_per_social_experience
             else:
