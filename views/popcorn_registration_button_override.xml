@@ -17,8 +17,8 @@
                     <button type="button" 
                             t-att-class="'btn btn-secondary popcorn-fixed-registration-button ' + (cta_additional_classes or '')"
                             disabled="disabled"
-                            t-att-title="'Already registered for this event'">
-                        <i class="fa fa-check me-2"/> <span t-translation="on">Already Registered</span>
+                            t-att-title="'Already booked for this club'">
+                        <i class="fa fa-check me-2"/> <span t-translation="on">Already booked</span>
                     </button>
                 </t>
                 <t t-elif="event.user_waitlist_position and event.user_waitlist_position > 0">
@@ -63,7 +63,7 @@
                         <a t-att-href="'/popcorn/event/' + slug(event) + '/register'" 
                            t-att-class="'btn btn-primary popcorn-fixed-registration-button ' + (cta_additional_classes or '')"
                            t-att-title="'Book this club'">
-                            <i class="fa fa-ticket me-2"/> <span t-translation="on">Book</span>
+                            <i class="fa fa-ticket me-2"/> <span t-translation="on">Book me</span>
                         </a>
                     </t>
                 </t>
