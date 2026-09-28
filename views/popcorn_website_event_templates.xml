@@ -300,7 +300,7 @@
                                                 <div t-if="event.is_participating and event.user_waitlist_position == 0" class="popcorn-registered-status">
                                                     <div class="popcorn-registered-content">
                                                         <i class="fa fa-check-circle"></i>
-                                                        <span>Registered</span>
+                                                        <span>Booked</span>
                                                     </div>
                                                 </div>
                                                 
@@ -525,7 +525,7 @@
                                                 <div t-if="event.is_participating and event.user_waitlist_position == 0" class="popcorn-registered-status">
                                                     <div class="popcorn-registered-content">
                                                         <i class="fa fa-check-circle"></i>
-                                                        <span>Registered</span>
+                                                        <span>Booked</span>
                                                     </div>
                                                 </div>
                                                 
