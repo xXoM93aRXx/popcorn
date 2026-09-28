@@ -14,6 +14,19 @@
             <field name="user_id" ref="base.user_root"/>
             <field name="priority">5</field>
         </record>
+
+        <!-- Keep scheduled and completed freeze states current throughout the day -->
+        <record id="ir_cron_membership_freeze_lifecycle" model="ir.cron">
+            <field name="name">Popcorn: Update Membership Freeze Status</field>
+            <field name="model_id" ref="model_popcorn_membership"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_update_membership_freezes()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">hours</field>
+            <field name="active" eval="True"/>
+            <field name="user_id" ref="base.user_root"/>
+            <field name="priority">5</field>
+        </record>
         
     </data>
 </odoo>

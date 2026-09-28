@@ -1930,7 +1930,7 @@ class PopcornPortalController(CustomerPortal):
             'unactivated_memberships': unactivated_memberships,
             'expired_memberships': expired_memberships,
             'page_name': 'my_cards',
-            'current_date': fields.Date.today(),
+            'current_date': fields.Date.context_today(request.env.user),
             'error_message': error_message,
             'success_message': success_message,
         }
@@ -2162,6 +2162,10 @@ class PopcornPortalController(CustomerPortal):
         # Check if user owns this membership
         if membership.partner_id.id != request.env.user.partner_id.id:
             return request.redirect('/my/cards')
+
+        # Normalize a completed freeze immediately so a delayed scheduled
+        # action cannot leave the member looking or behaving as frozen.
+        membership._update_freeze_status()
         
         # Check if membership is active
         if membership.state != 'active':

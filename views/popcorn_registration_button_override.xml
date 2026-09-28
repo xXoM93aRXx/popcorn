@@ -62,8 +62,8 @@
                     <t t-else="">
                         <a t-att-href="'/popcorn/event/' + slug(event) + '/register'" 
                            t-att-class="'btn btn-primary popcorn-fixed-registration-button ' + (cta_additional_classes or '')"
-                           t-att-title="'Register for this event'">
-                            <i class="fa fa-ticket me-2"/> <span t-translation="on">Register Now</span>
+                           t-att-title="'Book this club'">
+                            <i class="fa fa-ticket me-2"/> <span t-translation="on">Book</span>
                         </a>
                     </t>
                 </t>

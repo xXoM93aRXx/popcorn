@@ -550,9 +550,12 @@
                                                              </h5>
                                                          </div>
                                                          <div class="col-auto">
-                                                             <t t-if="membership.freeze_active">
+                                                             <t t-set="freeze_scheduled" t-value="membership.freeze_active and membership.freeze_start and membership.freeze_end and current_date &lt; membership.freeze_start"/>
+                                                             <t t-set="currently_frozen" t-value="membership.is_frozen_on(current_date)"/>
+                                                             <t t-set="freeze_finished" t-value="membership.freeze_active and membership.freeze_end and membership.freeze_end &lt; current_date"/>
+                                                             <t t-if="freeze_scheduled or currently_frozen">
                                                                  <span class="badge bg-warning">
-                                                                      <t t-if="membership.freeze_start and current_date &lt; membership.freeze_start">
+                                                                      <t t-if="freeze_scheduled">
                                                                           <i class="fa fa-calendar"></i>
                                                                           <span t-translation="on">Freeze scheduled</span>
                                                                           <span t-esc="membership.freeze_start"/> – <span t-esc="membership.freeze_end"/>
@@ -622,7 +625,7 @@
                                                                      </a>
                                                                  </t>
                                                                   <t t-set="remaining_freeze_days" t-value="membership.membership_plan_id.freeze_max_total_days - membership.freeze_total_days_used"/>
-                                                                  <t t-if="membership.membership_plan_id.freeze_allowed and membership.state == 'active' and not membership.freeze_active and remaining_freeze_days &gt;= membership.membership_plan_id.freeze_min_days">
+                                                                  <t t-if="membership.membership_plan_id.freeze_allowed and (membership.state == 'active' or freeze_finished) and (not membership.freeze_active or freeze_finished) and remaining_freeze_days &gt;= membership.membership_plan_id.freeze_min_days">
                                                                      <button type="button" class="btn btn-outline-warning btn-sm popcorn-freeze-btn" 
                                                                              t-att-data-membership-id="membership.id"
                                                                              t-att-data-min-days="membership.membership_plan_id.freeze_min_days"
@@ -630,7 +633,7 @@
                                                                          <i class="fa fa-pause"></i> <span t-translation="on">Freeze</span>
                                                                      </button>
                                                                  </t>
-                                                                <t t-if="membership.freeze_active and not membership.freeze_is_penalty">
+                                                                <t t-if="(freeze_scheduled or currently_frozen) and not membership.freeze_is_penalty">
                                                                      <button type="button" class="btn btn-outline-warning btn-sm popcorn-unfreeze-btn" 
                                                                              t-att-data-membership-id="membership.id">
                                                                           <i class="fa fa-play"></i>

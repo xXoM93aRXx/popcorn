@@ -532,6 +532,11 @@ class PopcornMembership(models.Model):
         freeze_start = fields.Date.to_date(freeze_start) if freeze_start else fields.Date.context_today(self)
         today = fields.Date.context_today(self)
 
+        # Do not let a delayed cron leave a completed freeze blocking the next
+        # portal action. The consumed days remain recorded; only stale status
+        # fields are cleared.
+        self._update_freeze_status(today=today)
+
         if self.state != 'active':
             raise UserError(_('Only active memberships can be frozen'))
         
@@ -722,17 +727,19 @@ class PopcornMembership(models.Model):
 
         self.write(vals)
 
-    @api.model
-    def _cron_update_membership_freezes(self):
-        """Activate scheduled freezes and close freeze periods that have ended."""
-        today = fields.Date.today()
-        memberships = self.search([
-            ('freeze_active', '=', True),
-            ('freeze_start', '!=', False),
-            ('freeze_end', '!=', False),
-        ])
-        for membership in memberships:
-            if membership.freeze_end < today:
+    def _update_freeze_status(self, today=None, post_completion_message=False):
+        """Synchronize stored freeze state with the configured date range."""
+        fixed_today = fields.Date.to_date(today) if today else False
+        for membership in self:
+            membership_today = fixed_today or fields.Date.context_today(membership)
+            if not (
+                membership.freeze_active
+                and membership.freeze_start
+                and membership.freeze_end
+            ):
+                continue
+
+            if membership.freeze_end < membership_today:
                 membership.write({
                     'freeze_active': False,
                     'freeze_start': False,
@@ -740,9 +747,30 @@ class PopcornMembership(models.Model):
                     'freeze_is_penalty': False,
                     'state': 'active' if membership.state == 'frozen' else membership.state,
                 })
-                membership.message_post(body=_('Membership freeze completed automatically.'))
-            elif membership.freeze_start <= today <= membership.freeze_end and membership.state == 'active':
+                if post_completion_message:
+                    membership.message_post(body=_('Membership freeze completed automatically.'))
+            elif (
+                membership.freeze_start <= membership_today <= membership.freeze_end
+                and membership.state == 'active'
+            ):
                 membership.state = 'frozen'
+            elif membership_today < membership.freeze_start and membership.state == 'frozen':
+                membership.state = 'active'
+
+        return True
+
+    @api.model
+    def _cron_update_membership_freezes(self):
+        """Activate scheduled freezes and close freeze periods that have ended."""
+        memberships = self.search([
+            ('freeze_active', '=', True),
+            ('freeze_start', '!=', False),
+            ('freeze_end', '!=', False),
+        ])
+        memberships._update_freeze_status(
+            today=fields.Date.today(),
+            post_completion_message=True,
+        )
     
     def action_expire(self):
         """Mark membership as expired"""

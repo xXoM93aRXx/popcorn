@@ -118,6 +118,24 @@ class TestMembershipFreeze(TransactionCase):
         self.assertEqual(membership.freeze_total_days_used, 7)
         self.assertEqual(membership.state, 'active')
 
+    def test_new_freeze_clears_stale_completed_freeze(self):
+        membership = self._create_membership()
+        membership.action_freeze(7, self.today)
+        membership.write({
+            'freeze_start': self.today - timedelta(days=7),
+            'freeze_end': self.today - timedelta(days=1),
+            'state': 'frozen',
+        })
+
+        new_start = self.today + timedelta(days=10)
+        membership.action_freeze(5, new_start)
+
+        self.assertTrue(membership.freeze_active)
+        self.assertEqual(membership.freeze_start, new_start)
+        self.assertEqual(membership.freeze_end, new_start + timedelta(days=4))
+        self.assertEqual(membership.freeze_total_days_used, 12)
+        self.assertEqual(membership.state, 'active')
+
     def test_penalty_freeze_starts_tomorrow_and_cancels_bookings(self):
         membership = self._create_membership()
         first_penalty_day = self.today + timedelta(days=1)
