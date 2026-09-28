@@ -273,6 +273,21 @@
     line-height: 1.6;
 }
 
+.popcorn-popup-image-wrap {
+    display: flex;
+    justify-content: center;
+    margin: -1.5rem -1.5rem 1.5rem;
+    overflow: hidden;
+}
+
+.popcorn-popup-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 60vh;
+    object-fit: contain;
+}
+
 .popcorn-popup-body h1,
 .popcorn-popup-body h2,
 .popcorn-popup-body h3,
@@ -348,6 +363,14 @@
 
     .popcorn-popup-title {
         font-size: 1.25rem;
+    }
+
+    .popcorn-popup-image-wrap {
+        margin: -1rem -1rem 1rem;
+    }
+
+    .popcorn-popup-image {
+        max-height: 55vh;
     }
 }
 

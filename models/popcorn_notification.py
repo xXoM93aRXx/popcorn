@@ -28,6 +28,12 @@ class PopcornNotification(models.Model):
     title = fields.Char('Title', required=True, translate=True, help='Notification title')
     message = fields.Html('Message', required=True, translate=True, 
                           help='Notification message. Use {field_name} for dynamic content from partner fields')
+    image = fields.Binary(
+        'Popup Image',
+        attachment=True,
+        help='Optional image displayed in popup notifications above the message',
+    )
+    image_filename = fields.Char('Popup Image Filename')
     
     # Styling
     banner_position = fields.Selection([
@@ -564,6 +570,10 @@ class PopcornNotification(models.Model):
             'type': self.notification_type,
             'title': dynamic_title,
             'message': dynamic_message,
+            'image_url': (
+                '/web/image/popcorn.notification/%s/image' % self.id
+                if self.image else False
+            ),
             'banner_position': self.banner_position,
             'banner_style': self.banner_style,
             'popup_size': self.popup_size,

@@ -195,6 +195,18 @@ odoo.define('popcorn.notifications', [], function () {
             
             const isTermsAcceptance = notification.show_action_button && notification.action_button_url === '/popcorn/notifications/accept_terms';
 
+            let popupImageHTML = '';
+            if (notification.image_url) {
+                popupImageHTML = `
+                    <div class="popcorn-popup-image-wrap">
+                        <img src="${notification.image_url}"
+                             class="popcorn-popup-image"
+                             alt=""
+                             loading="eager" />
+                    </div>
+                `;
+            }
+
             // Build popup HTML
             let popupHTML = `
                 <div class="popcorn-popup-header">
@@ -203,7 +215,10 @@ odoo.define('popcorn.notifications', [], function () {
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <div class="popcorn-popup-body">${notification.message}</div>
+                <div class="popcorn-popup-body">
+                    ${popupImageHTML}
+                    <div class="popcorn-popup-message">${notification.message}</div>
+                </div>
             `;
 
             if (notification.show_action_button && notification.action_button_url) {
