@@ -99,11 +99,15 @@ class TestFocusClub(TransactionCase):
         self.assertEqual(registration.points_consumed, 5)
         self.assertEqual(membership.points_remaining, 15)
 
-    def test_first_timer_coupon_requires_event_opt_in(self):
+    def test_first_timer_coupon_follows_event_setting(self):
         discount = self.partner._get_first_timer_discount_record()
         event = self._create_event('Focus Club Coupon Opt In')
 
         self.assertTrue(discount)
+        self.assertTrue(event.allow_first_timer_coupon)
+
+        event.allow_first_timer_coupon = False
+
         self.assertFalse(event.allow_first_timer_coupon)
         self.assertFalse(discount._applies_to_event(event))
         self.assertFalse(self.partner.has_valid_first_timer_coupon(event))

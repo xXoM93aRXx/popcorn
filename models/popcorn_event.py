@@ -30,7 +30,7 @@ class EventEvent(models.Model):
 
     allow_first_timer_coupon = fields.Boolean(
         string='Allow First-Time Coupon',
-        default=False,
+        default=True,
         help='Allow customers to apply their first-time event coupon to this event',
     )
     
