@@ -31,6 +31,7 @@ class EventEvent(models.Model):
     allow_first_timer_coupon = fields.Boolean(
         string='Allow First-Time Coupon',
         default=True,
+        tracking=True,
         help='Allow customers to apply their first-time event coupon to this event',
     )
     
@@ -337,6 +338,12 @@ class EventEvent(models.Model):
                     event.club_type = 'regular_online'
                 else:
                     event.club_type = 'regular_offline'
+
+    @api.onchange('tag_ids', 'address_id')
+    def _onchange_allow_first_timer_coupon(self):
+        """Use the club type's coupon default when event classification changes."""
+        for event in self:
+            event.allow_first_timer_coupon = event.club_type != 'regular_online'
     
     def is_in_freeze_period(self, partner):
         """Check if this event falls within any of the partner's freeze periods"""
@@ -467,7 +474,13 @@ class EventEvent(models.Model):
     @api.model
     def create(self, vals):
         """Override create to automatically set is_host field when host is assigned and auto-register staff if published"""
+        coupon_setting_provided = 'allow_first_timer_coupon' in vals
         event = super().create(vals)
+
+        # API/import-created online events do not run the form onchange. Apply the
+        # online default only when the caller did not explicitly choose a value.
+        if not coupon_setting_provided and event.club_type == 'regular_online':
+            event.allow_first_timer_coupon = False
         
         # If a host is assigned, mark them as a host
         if event.host_id:

@@ -16,6 +16,10 @@ class TestFocusClub(TransactionCase):
             ('name', '=', 'Focus Club'),
             ('category_id.name', '=', 'Type'),
         ], limit=1)
+        cls.online_tag = cls.env['event.tag'].create({
+            'name': 'Regular Online Test',
+            'category_id': cls.focus_tag.category_id.id,
+        })
         cls.partner = cls.env['res.partner'].create({
             'name': 'Focus Club Test Member',
             'email': 'focus-club-test@example.com',
@@ -116,6 +120,45 @@ class TestFocusClub(TransactionCase):
 
         self.assertTrue(discount._applies_to_event(event))
         self.assertTrue(self.partner.has_valid_first_timer_coupon(event))
+
+    def test_regular_online_event_disables_first_timer_coupon_by_default(self):
+        start = fields.Datetime.now() + timedelta(days=7)
+        event = self.env['event.event'].create({
+            'name': 'Regular Online Coupon Default',
+            'date_begin': start,
+            'date_end': start + timedelta(hours=2),
+            'tag_ids': [(6, 0, self.online_tag.ids)],
+        })
+
+        self.assertEqual(event.club_type, 'regular_online')
+        self.assertFalse(event.allow_first_timer_coupon)
+
+        explicitly_enabled_event = self.env['event.event'].create({
+            'name': 'Regular Online Coupon Enabled',
+            'date_begin': start,
+            'date_end': start + timedelta(hours=2),
+            'tag_ids': [(6, 0, self.online_tag.ids)],
+            'allow_first_timer_coupon': True,
+        })
+
+        self.assertTrue(explicitly_enabled_event.allow_first_timer_coupon)
+
+        self.env.flush_all()
+        self.cr.precommit.run()
+        messages_before = explicitly_enabled_event.message_ids
+
+        explicitly_enabled_event.allow_first_timer_coupon = False
+        self.env.flush_all()
+        self.cr.precommit.run()
+
+        tracking_message = explicitly_enabled_event.message_ids - messages_before
+        self.assertEqual(len(tracking_message), 1)
+        tracking_value = tracking_message.tracking_value_ids.filtered(
+            lambda value: value.field_id.name == 'allow_first_timer_coupon'
+        )
+        self.assertEqual(len(tracking_value), 1)
+        self.assertEqual(tracking_value.old_value_integer, 1)
+        self.assertEqual(tracking_value.new_value_integer, 0)
 
     def test_event_opt_in_supports_existing_type_restricted_coupons(self):
         discount = self.partner._get_first_timer_discount_record()
