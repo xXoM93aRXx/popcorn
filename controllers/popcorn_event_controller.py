@@ -1159,13 +1159,25 @@ class PopcornEventController(http.Controller):
                     if not applied_discount.exists() or not applied_discount._is_currently_valid():
                         applied_discount = None
                     else:
-                        # Validate event type restriction if discount has one
-                        if applied_discount.event_type:
-                            event_club_type = self._get_event_club_type(event)
-                            if not applied_discount._applies_to_event_type(event_club_type):
-                                # Discount doesn't match event type - invalidate it
-                                _logger.warning(f"Discount {applied_discount_id} event_type ({applied_discount.event_type}) doesn't match event club_type ({event_club_type})")
-                                applied_discount = None
+                        # Revalidate ownership, customer eligibility and event
+                        # eligibility server-side; never trust the hidden form ID.
+                        if (
+                            applied_discount.partner_id
+                            and applied_discount.partner_id != partner
+                        ):
+                            applied_discount = None
+                        elif not applied_discount._customer_matches_types(
+                            partner,
+                            event_type=self._get_event_club_type(event),
+                        ):
+                            applied_discount = None
+                        elif not applied_discount._applies_to_event(event):
+                            _logger.warning(
+                                "Discount %s is not enabled for event %s",
+                                applied_discount_id,
+                                event.id,
+                            )
+                            applied_discount = None
                 except (ValueError, TypeError):
                     applied_discount = None
             
@@ -1176,15 +1188,6 @@ class PopcornEventController(http.Controller):
             # Recalculate the configured membership price server-side. Never trust a
             # price supplied by the browser.
             event_club_type = self._get_event_club_type(event)
-
-            # First-timer coupons cannot be used on free-for-members events
-            if applied_discount and event_club_type == 'free_for_members':
-                is_first_timer_coupon = (
-                    applied_discount.customer_type in ('first_timer', 'new') or
-                    applied_discount.discount_type == 'first_timer'
-                )
-                if is_first_timer_coupon:
-                    applied_discount = None
 
             event_price = special_price if special_price is not None else event.event_price
             

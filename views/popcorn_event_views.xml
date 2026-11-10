@@ -15,6 +15,7 @@
                 <field name="host_id" placeholder="Select host for this event" widget="many2one_avatar" domain="[('is_host', '=', True)]"/>
                 <field name="cancellation_deadline_hours" placeholder="24"/>
                 <field name="event_price" placeholder="0.00"/>
+                <field name="allow_first_timer_coupon"/>
                 <field name="second_price" placeholder="0.00"/>
                 <field name="membership_plans_second_price_ids" widget="many2many_tags"
                        options="{'no_create_edit': True}"

@@ -27,6 +27,12 @@ class EventEvent(models.Model):
         digits='Product Price',
         help='Price for attending this event'
     )
+
+    allow_first_timer_coupon = fields.Boolean(
+        string='Allow First-Time Coupon',
+        default=False,
+        help='Allow customers to apply their first-time event coupon to this event',
+    )
     
     second_price = fields.Float(
         string='Second Price',

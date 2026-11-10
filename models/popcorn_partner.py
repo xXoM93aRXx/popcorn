@@ -444,7 +444,7 @@ class ResPartner(models.Model):
             ('partner_id', '=', self.id),
         ], limit=1)
 
-    def has_valid_first_timer_coupon(self, club_type=None):
+    def has_valid_first_timer_coupon(self, event=None):
         """Return True if the partner currently has a usable first-timer coupon."""
         self.ensure_one()
         if not self.is_first_timer or not self.first_timer_discount_code:
@@ -453,7 +453,7 @@ class ResPartner(models.Model):
         discount = self._get_first_timer_discount_record()
         if not discount:
             return False
-        if club_type and not discount._applies_to_event_type(club_type):
+        if event and not discount._applies_to_event(event):
             return False
 
         return discount._is_currently_valid()
@@ -535,11 +535,11 @@ class ResPartner(models.Model):
                     'popcorn.first_timer_discount_amount', '118.00'
                 ))
                 
-                # First-timer coupons cover Regular Offline and Focus Club events.
+                # Event eligibility is controlled on each event record.
                 self.env['popcorn.discount'].sudo().create({
                     'name': f'First Timer Discount - {partner.name}',
                     'code': discount_code,
-                    'description': f'First timer discount for {partner.name} - Valid for Regular Offline and Focus Clubs',
+                    'description': f'First-time event discount for {partner.name}',
                     'active': True,
                     'discount_type': 'fixed_amount',
                     'discount_value': discount_amount,
@@ -549,11 +549,8 @@ class ResPartner(models.Model):
                     'usage_limit_per_customer': 1,
                     'customer_type': 'first_timer',
                     'partner_id': partner.id,  # Restrict to this specific partner
-                    # Kept as regular_offline for compatibility; discount matching
-                    # explicitly includes Focus Club for first-timer coupons.
-                    'event_type': 'regular_offline',
                     'is_public': True,
-                    'website_description': f'Welcome discount for {partner.name}! Get {discount_amount}RMB off your first Regular Offline or Focus Club booking.'
+                    'website_description': f'Welcome discount for {partner.name}! Get {discount_amount}RMB off an eligible event booking.'
                 })
                 
                 # Post message

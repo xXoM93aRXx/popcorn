@@ -474,8 +474,8 @@
                                         </div>
                                     </t>
                                     
-                                    <!-- First Timer Discount Notification (Regular Offline and Focus Club) -->
-                                    <div class="popcorn-form-section" t-if="event.club_type in ('regular_offline', 'focus_club') and request.env.user.partner_id.has_valid_first_timer_coupon(event.club_type)">
+                                    <!-- First Timer Discount Notification -->
+                                    <div class="popcorn-form-section" t-if="event.allow_first_timer_coupon and request.env.user.partner_id.has_valid_first_timer_coupon(event)">
                                         <div class="popcorn-first-timer-discount-notification">
                                             <div class="popcorn-discount-notification-content">
                                                 <i class="fa fa-gift popcorn-discount-icon"></i>

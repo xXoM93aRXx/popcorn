@@ -99,12 +99,42 @@ class TestFocusClub(TransactionCase):
         self.assertEqual(registration.points_consumed, 5)
         self.assertEqual(membership.points_remaining, 15)
 
-    def test_first_timer_coupon_applies_to_focus_club(self):
+    def test_first_timer_coupon_requires_event_opt_in(self):
         discount = self.partner._get_first_timer_discount_record()
+        event = self._create_event('Focus Club Coupon Opt In')
 
         self.assertTrue(discount)
-        self.assertEqual(discount.event_type, 'regular_offline')
-        self.assertTrue(discount._applies_to_event_type('regular_offline'))
-        self.assertTrue(discount._applies_to_event_type('focus_club'))
-        self.assertFalse(discount._applies_to_event_type('spclub'))
-        self.assertTrue(self.partner.has_valid_first_timer_coupon('focus_club'))
+        self.assertFalse(event.allow_first_timer_coupon)
+        self.assertFalse(discount._applies_to_event(event))
+        self.assertFalse(self.partner.has_valid_first_timer_coupon(event))
+
+        event.allow_first_timer_coupon = True
+
+        self.assertTrue(discount._applies_to_event(event))
+        self.assertTrue(self.partner.has_valid_first_timer_coupon(event))
+
+    def test_event_opt_in_supports_existing_type_restricted_coupons(self):
+        discount = self.partner._get_first_timer_discount_record()
+        event = self._create_event('Focus Club Legacy Coupon')
+        event.allow_first_timer_coupon = True
+
+        # Simulate an existing generated coupon from before event-level opt-in.
+        discount.event_type = 'regular_offline'
+
+        self.assertEqual(event.club_type, 'focus_club')
+        self.assertTrue(discount._applies_to_event(event))
+
+    def test_ordinary_discount_keeps_club_type_restriction(self):
+        event = self._create_event('Focus Club Ordinary Coupon')
+        event.allow_first_timer_coupon = True
+        discount = self.env['popcorn.discount'].create({
+            'name': 'Regular Offline Promotion',
+            'code': 'OFFLINEONLY',
+            'discount_type': 'fixed_amount',
+            'discount_value': 10,
+            'customer_type': 'all',
+            'event_type': 'regular_offline',
+        })
+
+        self.assertFalse(discount._is_first_timer_coupon())
+        self.assertFalse(discount._applies_to_event(event))
