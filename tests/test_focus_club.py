@@ -20,6 +20,18 @@ class TestFocusClub(TransactionCase):
             'name': 'Regular Online Test',
             'category_id': cls.focus_tag.category_id.id,
         })
+        cls.offline_tag = cls.env['event.tag'].create({
+            'name': 'Regular Offline Test',
+            'category_id': cls.focus_tag.category_id.id,
+        })
+        cls.social_tag = cls.env['event.tag'].create({
+            'name': 'Social Experience Test',
+            'category_id': cls.focus_tag.category_id.id,
+        })
+        cls.special_tag = cls.env['event.tag'].create({
+            'name': 'Special Club Test',
+            'category_id': cls.focus_tag.category_id.id,
+        })
         cls.partner = cls.env['res.partner'].create({
             'name': 'Focus Club Test Member',
             'email': 'focus-club-test@example.com',
@@ -121,17 +133,26 @@ class TestFocusClub(TransactionCase):
         self.assertTrue(discount._applies_to_event(event))
         self.assertTrue(self.partner.has_valid_first_timer_coupon(event))
 
-    def test_regular_online_event_disables_first_timer_coupon_by_default(self):
+    def test_first_timer_coupon_defaults_follow_club_type(self):
         start = fields.Datetime.now() + timedelta(days=7)
-        event = self.env['event.event'].create({
-            'name': 'Regular Online Coupon Default',
-            'date_begin': start,
-            'date_end': start + timedelta(hours=2),
-            'tag_ids': [(6, 0, self.online_tag.ids)],
-        })
+        cases = (
+            ('Regular Offline', self.offline_tag, 'regular_offline', True),
+            ('Focus Club', self.focus_tag, 'focus_club', True),
+            ('Regular Online', self.online_tag, 'regular_online', False),
+            ('Social Experience', self.social_tag, 'social_experience', False),
+            ('Special Club', self.special_tag, 'spclub', False),
+        )
+        for name, tag, club_type, expected in cases:
+            with self.subTest(club_type=club_type):
+                event = self.env['event.event'].create({
+                    'name': f'{name} Coupon Default',
+                    'date_begin': start,
+                    'date_end': start + timedelta(hours=2),
+                    'tag_ids': [(6, 0, tag.ids)],
+                })
 
-        self.assertEqual(event.club_type, 'regular_online')
-        self.assertFalse(event.allow_first_timer_coupon)
+                self.assertEqual(event.club_type, club_type)
+                self.assertEqual(event.allow_first_timer_coupon, expected)
 
         explicitly_enabled_event = self.env['event.event'].create({
             'name': 'Regular Online Coupon Enabled',

@@ -343,7 +343,10 @@ class EventEvent(models.Model):
     def _onchange_allow_first_timer_coupon(self):
         """Use the club type's coupon default when event classification changes."""
         for event in self:
-            event.allow_first_timer_coupon = event.club_type != 'regular_online'
+            event.allow_first_timer_coupon = event.club_type in (
+                'regular_offline',
+                'focus_club',
+            )
     
     def is_in_freeze_period(self, partner):
         """Check if this event falls within any of the partner's freeze periods"""
@@ -477,10 +480,13 @@ class EventEvent(models.Model):
         coupon_setting_provided = 'allow_first_timer_coupon' in vals
         event = super().create(vals)
 
-        # API/import-created online events do not run the form onchange. Apply the
-        # online default only when the caller did not explicitly choose a value.
-        if not coupon_setting_provided and event.club_type == 'regular_online':
-            event.allow_first_timer_coupon = False
+        # API/import-created events do not run the form onchange. Apply the
+        # club-type default only when the caller did not explicitly choose a value.
+        if not coupon_setting_provided:
+            event.allow_first_timer_coupon = event.club_type in (
+                'regular_offline',
+                'focus_club',
+            )
         
         # If a host is assigned, mark them as a host
         if event.host_id:
