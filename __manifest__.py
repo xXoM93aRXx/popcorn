@@ -87,6 +87,7 @@
     'assets': {
         'web.assets_frontend': [
             'popcorn/static/src/css/popcorn_event_styles.css',
+            'popcorn/static/src/css/popcorn_event_list_cards.css',
             'popcorn/static/src/css/popcorn_membership_styles.css',
             'popcorn/static/src/css/popcorn_membership_renewal_banner.css',
             'popcorn/static/src/css/popcorn_event_registration_styles.css',
