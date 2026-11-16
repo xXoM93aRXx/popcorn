@@ -199,7 +199,7 @@
                             <small t-if="not event.website_published" class="popcorn-event-list-card__unpublished">Unpublished</small>
                         </div>
 
-                        <div class="popcorn-event-list-card__main">
+                        <div class="popcorn-event-list-card__headline">
                             <h3 class="popcorn-event-list-card__title" itemprop="name" t-out="event.name"/>
 
                             <div class="popcorn-event-list-card__tags" aria-label="Event categories">
@@ -209,7 +209,9 @@
                                     </span>
                                 </t>
                             </div>
+                        </div>
 
+                        <div class="popcorn-event-list-card__details">
                             <div class="popcorn-event-list-card__time">
                                 <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
                                 <t t-if="event.date_begin != event.date_end">

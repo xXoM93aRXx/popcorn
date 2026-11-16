@@ -59,10 +59,12 @@
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    grid-template-areas: "date media main action";
+    grid-template-areas:
+        "date media headline headline"
+        "date media details action";
     grid-template-columns: 88px 156px minmax(0, 1fr) 158px;
-    gap: 22px;
-    align-items: center;
+    gap: 10px 22px;
+    align-items: start;
     min-height: 188px;
     padding: 22px 24px;
     overflow: hidden;
@@ -151,8 +153,13 @@
     text-transform: uppercase;
 }
 
-.popcorn-event-list-card__main {
-    grid-area: main;
+.popcorn-event-list-card__headline {
+    grid-area: headline;
+    min-width: 0;
+}
+
+.popcorn-event-list-card__details {
+    grid-area: details;
     min-width: 0;
 }
 
@@ -317,8 +324,8 @@
 
     .popcorn-event-list-card__surface {
         grid-template-areas:
-            "media main action"
-            "date main action";
+            "media headline headline"
+            "date details action";
         grid-template-columns: 92px minmax(0, 1fr) 112px;
         gap: 8px 14px;
         align-items: start;
