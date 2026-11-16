@@ -200,11 +200,15 @@
                         </div>
 
                         <div class="popcorn-event-list-card__headline">
-                            <h3 class="popcorn-event-list-card__title" itemprop="name" t-out="event.name"/>
+                            <h3 class="popcorn-event-list-card__title" itemprop="name">
+                                <t t-if="request.env.context.get('lang') == 'zh_CN' and event.event_chinese_name"
+                                   t-out="event.event_chinese_name"/>
+                                <t t-else="" t-out="event.name"/>
+                            </h3>
 
                             <div class="popcorn-event-list-card__tags" aria-label="Event categories">
                                 <t t-foreach="event.tag_ids.filtered(lambda tag: tag.color and (tag.category_id.website_id == website or not tag.category_id.website_id))[:2]" t-as="tag">
-                                    <span t-attf-class="popcorn-event-list-card__tag #{'o_color_%s' % tag.color}">
+                                    <span t-attf-class="popcorn-event-list-card__tag badge #{'o_color_%s' % tag.color}">
                                         <t t-out="tag.name"/>
                                     </span>
                                 </t>

@@ -14,7 +14,7 @@
         <t t-set="languages" t-value="request.website.language_ids"/>
         <t t-set="current_lang" t-value="request.env.context.get('lang', 'en_US')"/>
         <t t-if="languages and len(languages) > 1">
-            <div class="popcorn-lang-selector">
+            <div class="popcorn-lang-selector js_language_selector">
             <div class="dropdown">
                 <button class="btn dropdown-toggle popcorn-lang-btn" type="button" 
                         data-bs-toggle="dropdown" aria-expanded="false">
@@ -31,9 +31,10 @@
                 <ul class="dropdown-menu popcorn-lang-dropdown">
                     <t t-foreach="languages" t-as="lang">
                         <li t-if="lang.code != current_lang">
-                            <a t-attf-href="#{request.httprequest.url_root}#{lang.code}#{request.httprequest.path}" 
-                               class="popcorn-lang-option"
-                               t-att-data-lang="lang.code">
+                            <a t-att-href="url_localized(lang_code=lang.code, prefetch_langs=True, force_default_lang=True)"
+                               class="popcorn-lang-option js_change_lang"
+                               t-att-data-lang="lang.code"
+                               t-att-data-url_code="lang.url_code">
                                 <span class="popcorn-lang-name">
                                     <t t-if="lang.code == 'zh_CN'">中文</t>
                                     <t t-elif="lang.code == 'en_US'">EN</t>
