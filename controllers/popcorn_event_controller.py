@@ -12,6 +12,8 @@ from werkzeug.utils import redirect
 from werkzeug.urls import url_quote
 from odoo.addons.portal.controllers.portal import CustomerPortal
 
+from ..models.popcorn_club_types import get_plan_points_for_club_type, is_focus_club_type
+
 _logger = logging.getLogger(__name__)
 
 
@@ -393,23 +395,12 @@ class PopcornEventController(http.Controller):
                 return False
             elif club_type == 'spclub' and membership.remaining_sp < 1:
                 return False
-            elif club_type == 'focus_club' and membership.remaining_focus < 1:
+            elif is_focus_club_type(club_type) and membership.remaining_focus < 1:
                 return False
         elif membership.plan_quota_mode == 'points' and not is_pending_auto_eligible:
             # Calculate points needed for this club type
             plan = membership.membership_plan_id
-            if club_type == 'regular_offline':
-                points_needed = plan.points_per_offline
-            elif club_type == 'regular_online':
-                points_needed = plan.points_per_online
-            elif club_type == 'spclub':
-                points_needed = plan.points_per_sp
-            elif club_type == 'focus_club':
-                points_needed = plan.points_per_focus
-            elif club_type == 'social_experience':
-                points_needed = plan.points_per_social_experience
-            else:
-                points_needed = 0
+            points_needed = get_plan_points_for_club_type(plan, club_type)
 
             if membership.points_remaining < points_needed:
                 return False
@@ -421,7 +412,7 @@ class PopcornEventController(http.Controller):
             return False
         elif club_type == 'spclub' and not membership.plan_allowed_spclub:
             return False
-        elif club_type == 'focus_club' and not membership.plan_allowed_focus_club:
+        elif is_focus_club_type(club_type) and not membership.plan_allowed_focus_club:
             return False
         # Note: social_experience doesn't have a permission check - all memberships can attend
         
@@ -563,24 +554,13 @@ class PopcornEventController(http.Controller):
                 return _("1 online session consumed (remaining: %s)") % membership.remaining_online
             elif club_type == 'spclub':
                 return _("1 special club session consumed (remaining: %s)") % membership.remaining_sp
-            elif club_type == 'focus_club':
+            elif is_focus_club_type(club_type):
                 return _("1 Focus Club session consumed (remaining: %s)") % membership.remaining_focus
             elif club_type == 'social_experience':
                 return _("No membership quota consumed (bucket plans don't support Social Experience events)")
         elif membership.plan_quota_mode == 'points':
             plan = membership.membership_plan_id
-            if club_type == 'regular_offline':
-                points_needed = plan.points_per_offline
-            elif club_type == 'regular_online':
-                points_needed = plan.points_per_online
-            elif club_type == 'spclub':
-                points_needed = plan.points_per_sp
-            elif club_type == 'focus_club':
-                points_needed = plan.points_per_focus
-            elif club_type == 'social_experience':
-                points_needed = plan.points_per_social_experience
-            else:
-                points_needed = 0
+            points_needed = get_plan_points_for_club_type(plan, club_type)
             return _("%s points consumed (remaining: %s)") % (points_needed, membership.points_remaining)
         return _("Unknown consumption type")
     
@@ -763,19 +743,9 @@ class PopcornEventController(http.Controller):
                     _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Membership ID: {membership.id}, Plan: {membership.membership_plan_id.name}, Quota Mode: {membership.plan_quota_mode}, Points Remaining: {membership.points_remaining}")
                     if membership.plan_quota_mode == 'points':
                         plan = membership.membership_plan_id
-                        if event_club_type == 'regular_offline':
-                            points_needed = plan.points_per_offline
-                        elif event_club_type == 'regular_online':
-                            points_needed = plan.points_per_online
-                        elif event_club_type == 'spclub':
-                            points_needed = plan.points_per_sp
-                        elif event_club_type == 'focus_club':
-                            points_needed = plan.points_per_focus
-                        elif event_club_type == 'social_experience':
-                            points_needed = plan.points_per_social_experience
+                        points_needed = get_plan_points_for_club_type(plan, event_club_type)
+                        if event_club_type == 'social_experience':
                             _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Social Experience detected! Plan points_per_social_experience: {plan.points_per_social_experience}, Points needed: {points_needed}")
-                        else:
-                            points_needed = 0
                         _logger.info(f"[SOCIAL_EXPERIENCE_DEBUG] Points needed: {points_needed}, Points remaining: {membership.points_remaining}")
                         if membership.points_remaining < points_needed:
                             error_message = _('Insufficient points. You need %s points but have %s remaining') % (points_needed, membership.points_remaining)
@@ -794,7 +764,7 @@ class PopcornEventController(http.Controller):
                             error_message = _('No special club sessions remaining. You have %s special club sessions left') % membership.remaining_sp
                             quota_issue_found = True
                             break
-                        elif event_club_type == 'focus_club' and membership.remaining_focus < 1:
+                        elif is_focus_club_type(event_club_type) and membership.remaining_focus < 1:
                             error_message = _('No Focus Club sessions remaining. You have %s Focus Club sessions left') % membership.remaining_focus
                             quota_issue_found = True
                             break
@@ -815,7 +785,7 @@ class PopcornEventController(http.Controller):
                             allows_club_type = membership.plan_allowed_regular_online
                         elif event_club_type == 'spclub':
                             allows_club_type = membership.plan_allowed_spclub
-                        elif event_club_type == 'focus_club':
+                        elif is_focus_club_type(event_club_type):
                             allows_club_type = membership.plan_allowed_focus_club
                         
                         if allows_club_type:

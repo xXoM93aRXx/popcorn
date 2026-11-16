@@ -10,6 +10,22 @@ class PopcornMembershipPlan(models.Model):
     _description = 'Popcorn Club Membership Plan'
     _order = 'sequence, name'
     _inherit = ['mail.thread', 'mail.activity.mixin']
+
+    @api.model
+    def _ensure_focus_club_point_costs(self):
+        """Apply the fixed Focus duration costs to the standard Freedom plan."""
+        freedom_plan = self.env.ref(
+            'popcorn.membership_plan_freedom',
+            raise_if_not_found=False,
+        )
+        if freedom_plan:
+            freedom_plan.sudo().write({
+                'allowed_focus_club': True,
+                'points_per_focus': 2,
+                'points_per_focus_90': 3,
+                'points_per_focus_120': 4,
+            })
+        return True
     
     # Basic Information
     name = fields.Char(string='Plan Name', required=True, tracking=True)
@@ -54,7 +70,9 @@ class PopcornMembershipPlan(models.Model):
     points_per_offline = fields.Integer(string='Points per Offline Session', default=3, tracking=True)
     points_per_online = fields.Integer(string='Points per Online Session', default=2, tracking=True)
     points_per_sp = fields.Integer(string='Points per Special Club Session', default=4, tracking=True)
-    points_per_focus = fields.Integer(string='Points per Focus Club', default=3, tracking=True)
+    points_per_focus = fields.Integer(string='Points per Focus Club 60', default=2, tracking=True)
+    points_per_focus_90 = fields.Integer(string='Points per Focus Club 90', default=3, tracking=True)
+    points_per_focus_120 = fields.Integer(string='Points per Focus Club 120', default=4, tracking=True)
     points_per_social_experience = fields.Integer(string='Points per Social Experience', default=0, tracking=True,
                                                   help='Points cost for Social Experience events')
     

@@ -4,6 +4,8 @@ from odoo.http import request
 import logging
 from datetime import timedelta
 
+from .popcorn_club_types import get_plan_points_for_club_type, is_focus_club_type
+
 _logger = logging.getLogger(__name__)
 
 
@@ -151,6 +153,8 @@ class EventEvent(models.Model):
         ('regular_online', 'Regular Online'),
         ('spclub', 'Special Club'),
         ('focus_club', 'Focus Club'),
+        ('focus_club_90', 'Focus Club 90'),
+        ('focus_club_120', 'Focus Club 120'),
         ('social_experience', 'Social Experience'),
         ('free_for_members', 'Free for Members'),
     ], string='Club Type', compute='_compute_club_type', store=False,
@@ -319,6 +323,10 @@ class EventEvent(models.Model):
                         event.club_type = 'social_experience'
                     elif any('sp' in name or 'special' in name for name in tag_names):
                         event.club_type = 'spclub'
+                    elif any('focus' in name and '120' in name for name in tag_names):
+                        event.club_type = 'focus_club_120'
+                    elif any('focus' in name and '90' in name for name in tag_names):
+                        event.club_type = 'focus_club_90'
                     elif any('focus' in name for name in tag_names):
                         event.club_type = 'focus_club'
                     elif any('offline' in name for name in tag_names):
@@ -343,9 +351,9 @@ class EventEvent(models.Model):
     def _onchange_allow_first_timer_coupon(self):
         """Use the club type's coupon default when event classification changes."""
         for event in self:
-            event.allow_first_timer_coupon = event.club_type in (
-                'regular_offline',
-                'focus_club',
+            event.allow_first_timer_coupon = (
+                event.club_type == 'regular_offline'
+                or is_focus_club_type(event.club_type)
             )
     
     def is_in_freeze_period(self, partner):
@@ -483,9 +491,9 @@ class EventEvent(models.Model):
         # API/import-created events do not run the form onchange. Apply the
         # club-type default only when the caller did not explicitly choose a value.
         if not coupon_setting_provided:
-            event.allow_first_timer_coupon = event.club_type in (
-                'regular_offline',
-                'focus_club',
+            event.allow_first_timer_coupon = (
+                event.club_type == 'regular_offline'
+                or is_focus_club_type(event.club_type)
             )
         
         # If a host is assigned, mark them as a host
@@ -649,7 +657,7 @@ class EventEvent(models.Model):
             return False
         elif self.club_type == 'spclub' and not membership.plan_allowed_spclub:
             return False
-        elif self.club_type == 'focus_club' and not membership.plan_allowed_focus_club:
+        elif is_focus_club_type(self.club_type) and not membership.plan_allowed_focus_club:
             return False
         
         # Check if membership has sufficient quota
@@ -662,23 +670,11 @@ class EventEvent(models.Model):
                 return False
             elif self.club_type == 'spclub' and membership.remaining_sp <= 0:
                 return False
-            elif self.club_type == 'focus_club' and membership.remaining_focus <= 0:
+            elif is_focus_club_type(self.club_type) and membership.remaining_focus <= 0:
                 return False
         elif membership.plan_quota_mode == 'points':
-            # Get points from membership plan
             plan = membership.membership_plan_id
-            if self.club_type == 'regular_offline':
-                points_needed = plan.points_per_offline
-            elif self.club_type == 'regular_online':
-                points_needed = plan.points_per_online
-            elif self.club_type == 'spclub':
-                points_needed = plan.points_per_sp
-            elif self.club_type == 'focus_club':
-                points_needed = plan.points_per_focus
-            elif self.club_type == 'social_experience':
-                points_needed = plan.points_per_social_experience
-            else:
-                points_needed = 0
+            points_needed = get_plan_points_for_club_type(plan, self.club_type)
             
             if membership.points_remaining < points_needed:
                 return False

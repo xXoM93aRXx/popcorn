@@ -4,6 +4,8 @@ import logging
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError, UserError
 from datetime import datetime, timedelta, time
+
+from .popcorn_club_types import FOCUS_CLUB_TYPES
 import pytz
 
 _logger = logging.getLogger(__name__)
@@ -397,8 +399,13 @@ class PopcornMembership(models.Model):
             
             count = 0
             for reg in registrations:
-                # Use the computed club_type field from the registration, not from the event
-                if reg.club_type == club_type:
+                # The legacy focus_club bucket includes every Focus duration.
+                matches_type = (
+                    reg.club_type in FOCUS_CLUB_TYPES
+                    if club_type == 'focus_club'
+                    else reg.club_type == club_type
+                )
+                if matches_type:
                     count += 1
             
             return count
@@ -432,29 +439,9 @@ class PopcornMembership(models.Model):
                 domain.append(('quota_penalty_applied', '=', True))
             registrations = self.env['event.registration'].sudo().search(domain)
             
-            total_points = 0
-            for reg in registrations:
-                # Use the computed club_type field from the registration, not from the event
-                if reg.club_type:
-                    club_type = reg.club_type
-                    plan = self.membership_plan_id
-                    if club_type == 'regular_offline':
-                        points = plan.points_per_offline
-                        total_points += points
-                    elif club_type == 'regular_online':
-                        points = plan.points_per_online
-                        total_points += points
-                    elif club_type == 'spclub':
-                        points = plan.points_per_sp
-                        total_points += points
-                    elif club_type == 'focus_club':
-                        points = plan.points_per_focus
-                        total_points += points
-                    elif club_type == 'social_experience':
-                        points = plan.points_per_social_experience
-                        total_points += points
-        
-            return total_points
+            # points_consumed is a stored booking-time snapshot. Summing it keeps
+            # historical usage stable when plan point settings change later.
+            return sum(registrations.mapped('points_consumed'))
         except Exception:
             # If access denied, return 0
             return 0

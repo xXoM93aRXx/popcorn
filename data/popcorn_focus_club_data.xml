@@ -2,4 +2,7 @@
 <odoo>
     <!-- Idempotently add Focus Club to every existing Type tag category. -->
     <function model="event.tag" name="_ensure_focus_club_type_tag"/>
+
+    <!-- Apply the fixed Freedom Card costs without changing legacy registrations. -->
+    <function model="popcorn.membership.plan" name="_ensure_focus_club_point_costs"/>
 </odoo>

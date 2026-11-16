@@ -75,6 +75,8 @@
                                 <field name="points_per_online"/>
                                 <field name="points_per_sp"/>
                                 <field name="points_per_focus"/>
+                                <field name="points_per_focus_90"/>
+                                <field name="points_per_focus_120"/>
                                 <field name="points_per_social_experience"/>
                             </group>
                         </group>

@@ -3,6 +3,8 @@
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError, UserError
 
+from .popcorn_club_types import is_focus_club_type
+
 
 class PopcornDiscount(models.Model):
     """Flexible discount system for membership plans"""
@@ -201,6 +203,8 @@ class PopcornDiscount(models.Model):
     def _applies_to_event_type(self, event_type):
         """Check the configured club-type scope for ordinary discounts."""
         self.ensure_one()
+        if self.event_type == 'focus_club' and is_focus_club_type(event_type):
+            return True
         return bool(
             not self.event_type
             or not event_type

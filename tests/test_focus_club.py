@@ -16,6 +16,14 @@ class TestFocusClub(TransactionCase):
             ('name', '=', 'Focus Club'),
             ('category_id.name', '=', 'Type'),
         ], limit=1)
+        cls.focus_90_tag = cls.env['event.tag'].search([
+            ('name', '=', 'Focus Club 90'),
+            ('category_id', '=', cls.focus_tag.category_id.id),
+        ], limit=1)
+        cls.focus_120_tag = cls.env['event.tag'].search([
+            ('name', '=', 'Focus Club 120'),
+            ('category_id', '=', cls.focus_tag.category_id.id),
+        ], limit=1)
         cls.online_tag = cls.env['event.tag'].create({
             'name': 'Regular Online Test',
             'category_id': cls.focus_tag.category_id.id,
@@ -40,12 +48,15 @@ class TestFocusClub(TransactionCase):
         cls.today = fields.Date.today()
 
     def _create_event(self, name):
-        start = fields.Datetime.now() + timedelta(days=7)
+        return self._create_focus_event(name, self.focus_tag)
+
+    def _create_focus_event(self, name, tag, day_offset=7):
+        start = fields.Datetime.now() + timedelta(days=day_offset)
         return self.env['event.event'].create({
             'name': name,
             'date_begin': start,
             'date_end': start + timedelta(hours=2),
-            'tag_ids': [(6, 0, self.focus_tag.ids)],
+            'tag_ids': [(6, 0, tag.ids)],
         })
 
     def _create_membership(self, plan):
@@ -115,6 +126,98 @@ class TestFocusClub(TransactionCase):
         self.assertEqual(registration.points_consumed, 5)
         self.assertEqual(membership.points_remaining, 15)
 
+    def test_freedom_plan_has_focus_duration_point_costs(self):
+        freedom_plan = self.env.ref('popcorn.membership_plan_freedom')
+
+        self.assertTrue(freedom_plan.allowed_focus_club)
+        self.assertEqual(freedom_plan.points_per_focus, 2)
+        self.assertEqual(freedom_plan.points_per_focus_90, 3)
+        self.assertEqual(freedom_plan.points_per_focus_120, 4)
+
+    def test_focus_duration_types_use_2_3_4_points_and_snapshot_history(self):
+        self.assertTrue(self.focus_90_tag)
+        self.assertTrue(self.focus_120_tag)
+        self.assertTrue(self.focus_90_tag.color)
+        self.assertTrue(self.focus_120_tag.color)
+
+        plan = self.env['popcorn.membership.plan'].create({
+            'name': 'Focus Duration Points Plan',
+            'quota_mode': 'points',
+            'duration_days': 90,
+            'activation_policy': 'immediate',
+            'allowed_focus_club': True,
+            'points_start': 20,
+            'points_per_focus': 2,
+            'points_per_focus_90': 3,
+            'points_per_focus_120': 4,
+            'price_normal': 100.0,
+        })
+        membership = self._create_membership(plan)
+        cases = (
+            (self.focus_tag, 'focus_club', 2),
+            (self.focus_90_tag, 'focus_club_90', 3),
+            (self.focus_120_tag, 'focus_club_120', 4),
+        )
+        registrations = []
+        for index, (tag, club_type, points) in enumerate(cases, start=1):
+            event = self._create_focus_event(
+                f'{club_type} Points',
+                tag,
+                day_offset=7 + index,
+            )
+            registration = self.env['event.registration'].create({
+                'event_id': event.id,
+                'partner_id': self.partner.id,
+                'membership_id': membership.id,
+                'name': self.partner.name,
+                'email': self.partner.email,
+                'state': 'open',
+            })
+            self.assertEqual(event.club_type, club_type)
+            self.assertEqual(registration.club_type, club_type)
+            self.assertEqual(registration.points_consumed, points)
+            registrations.append(registration)
+
+        self.assertEqual(membership.points_remaining, 11)
+
+        focus_90_registration = registrations[1]
+        focus_90_registration.event_id.tag_ids = [(6, 0, self.focus_120_tag.ids)]
+        plan.points_per_focus_90 = 9
+
+        self.assertEqual(focus_90_registration.event_id.club_type, 'focus_club_120')
+        self.assertEqual(focus_90_registration.club_type, 'focus_club_90')
+        self.assertEqual(focus_90_registration.points_consumed, 3)
+        self.assertEqual(membership.points_remaining, 11)
+
+    def test_focus_duration_types_share_focus_session_bucket(self):
+        plan = self.env['popcorn.membership.plan'].create({
+            'name': 'Focus Duration Bucket Plan',
+            'quota_mode': 'bucket_counts',
+            'duration_days': 90,
+            'activation_policy': 'immediate',
+            'allowed_focus_club': True,
+            'quota_focus': 2,
+            'price_normal': 100.0,
+        })
+        membership = self._create_membership(plan)
+
+        for index, tag in enumerate((self.focus_90_tag, self.focus_120_tag), start=1):
+            event = self._create_focus_event(
+                f'Focus Bucket {index}',
+                tag,
+                day_offset=10 + index,
+            )
+            self.env['event.registration'].create({
+                'event_id': event.id,
+                'partner_id': self.partner.id,
+                'membership_id': membership.id,
+                'name': self.partner.name,
+                'email': self.partner.email,
+                'state': 'open',
+            })
+
+        self.assertEqual(membership.remaining_focus, 0)
+
     def test_first_timer_coupon_follows_event_setting(self):
         discount = self.partner._get_first_timer_discount_record()
         event = self._create_event('Focus Club Coupon Opt In')
@@ -138,6 +241,8 @@ class TestFocusClub(TransactionCase):
         cases = (
             ('Regular Offline', self.offline_tag, 'regular_offline', True),
             ('Focus Club', self.focus_tag, 'focus_club', True),
+            ('Focus Club 90', self.focus_90_tag, 'focus_club_90', True),
+            ('Focus Club 120', self.focus_120_tag, 'focus_club_120', True),
             ('Regular Online', self.online_tag, 'regular_online', False),
             ('Social Experience', self.social_tag, 'social_experience', False),
             ('Special Club', self.special_tag, 'spclub', False),
@@ -206,3 +311,23 @@ class TestFocusClub(TransactionCase):
 
         self.assertFalse(discount._is_first_timer_coupon())
         self.assertFalse(discount._applies_to_event(event))
+
+        focus_discount = self.env['popcorn.discount'].create({
+            'name': 'All Focus Promotion',
+            'code': 'ALLFOCUS',
+            'discount_type': 'fixed_amount',
+            'discount_value': 10,
+            'customer_type': 'all',
+            'event_type': 'focus_club',
+        })
+        focus_90_event = self._create_focus_event(
+            'Focus 90 Ordinary Coupon',
+            self.focus_90_tag,
+        )
+        focus_120_event = self._create_focus_event(
+            'Focus 120 Ordinary Coupon',
+            self.focus_120_tag,
+        )
+
+        self.assertTrue(focus_discount._applies_to_event(focus_90_event))
+        self.assertTrue(focus_discount._applies_to_event(focus_120_event))
