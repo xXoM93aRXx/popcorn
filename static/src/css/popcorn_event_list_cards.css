@@ -59,11 +59,8 @@
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    grid-template-areas:
-        "date media headline headline"
-        "date media details action";
-    grid-template-columns: 88px 156px minmax(0, 1fr) 158px;
-    gap: 10px 22px;
+    grid-template-columns: 266px minmax(0, 1fr);
+    column-gap: 22px;
     align-items: start;
     min-height: 188px;
     padding: 22px 24px;
@@ -86,8 +83,15 @@
     transform: translateY(0) scale(0.995);
 }
 
+.popcorn-event-list-card__aside {
+    display: grid;
+    grid-template-columns: 88px 156px;
+    column-gap: 22px;
+    align-items: start;
+    min-width: 0;
+}
+
 .popcorn-event-list-card__date {
-    grid-area: date;
     align-self: end;
     color: var(--popcorn-event-card-text, var(--popcorn-list-ink));
     text-align: center;
@@ -112,7 +116,6 @@
 
 .popcorn-event-list-card__media {
     position: relative;
-    grid-area: media;
     align-self: start;
     width: 156px;
     aspect-ratio: 1;
@@ -153,13 +156,19 @@
     text-transform: uppercase;
 }
 
-.popcorn-event-list-card__headline {
-    grid-area: headline;
+.popcorn-event-list-card__content {
+    min-width: 0;
+}
+
+.popcorn-event-list-card__body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 158px;
+    column-gap: 22px;
+    align-items: end;
     min-width: 0;
 }
 
 .popcorn-event-list-card__details {
-    grid-area: details;
     min-width: 0;
 }
 
@@ -230,7 +239,6 @@
 
 .popcorn-event-list-card__action {
     display: flex;
-    grid-area: action;
     align-self: end;
     flex-direction: column;
     align-items: stretch;
@@ -323,23 +331,29 @@
     }
 
     .popcorn-event-list-card__surface {
-        grid-template-areas:
-            "media headline headline"
-            "date details action";
-        grid-template-columns: 92px minmax(0, 1fr) 112px;
-        gap: 8px 14px;
+        grid-template-columns: 92px minmax(0, 1fr);
+        column-gap: 14px;
         align-items: start;
         min-height: 0;
         padding: 14px;
     }
 
+    .popcorn-event-list-card__aside {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
     .popcorn-event-list-card__media {
+        order: 1;
         width: 92px;
         border-radius: 10px;
     }
 
     .popcorn-event-list-card__date {
+        order: 2;
         align-self: start;
+        width: 100%;
         padding-top: 4px;
     }
 
@@ -362,6 +376,11 @@
         min-height: 20px;
         margin-bottom: 7px;
         gap: 5px;
+    }
+
+    .popcorn-event-list-card__body {
+        grid-template-columns: minmax(0, 1fr) 112px;
+        column-gap: 14px;
     }
 
     .popcorn-event-list-card__tag {
@@ -405,9 +424,14 @@
 
 @media (max-width: 389.98px) {
     .popcorn-event-list-card__surface {
-        grid-template-columns: 82px minmax(0, 1fr) 104px;
-        gap: 8px 11px;
+        grid-template-columns: 82px minmax(0, 1fr);
+        column-gap: 11px;
         padding: 12px;
+    }
+
+    .popcorn-event-list-card__body {
+        grid-template-columns: minmax(0, 1fr) 104px;
+        column-gap: 11px;
     }
 
     .popcorn-event-list-card__media {

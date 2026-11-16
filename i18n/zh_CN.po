@@ -3379,3 +3379,53 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:popcorn.event_registration_success_page
 msgid "🎉 Registration Successful!"
 msgstr "🎉 注册成功！"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_event_list_card
+msgid "Book me"
+msgstr "预订座位"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_event_list_card
+msgid "Booked"
+msgstr "已预订"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_event_list_card
+msgid "Conflict"
+msgstr "冲突"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_event_list_card
+msgid "Join waitlist"
+msgstr "加入候补"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_event_list_card
+msgid "Unlimited seats"
+msgstr "座位不限"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_event_list_card
+msgid "Waitlist"
+msgstr "候补名单"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_event_list_card
+msgid "full"
+msgstr "已满"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_event_list_card
+msgid "min"
+msgstr "分钟"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_event_list_card
+msgid "seats"
+msgstr "座位"
+
+#. module: popcorn
+#: model_terms:ir.ui.view,arch_db:popcorn.popcorn_event_list_card
+msgid "waitlist"
+msgstr "候补"

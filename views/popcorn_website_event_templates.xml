@@ -175,102 +175,98 @@
                              t-att-style="'--popcorn-event-card-bg: ' + (event.background_color or '#ffffff') + '; --popcorn-event-card-text: ' + (event.text_color or '#171717') + ';'">
                         <meta itemprop="startDate" t-att-content="event.date_begin.isoformat()"/>
 
-                        <div class="popcorn-event-list-card__date o_not_editable" aria-label="Event date">
-                            <span class="popcorn-event-list-card__date-main" t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'MM.dd'}"/>
-                            <span class="popcorn-event-list-card__weekday" t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'EEE'}"/>
-                        </div>
+                        <div class="popcorn-event-list-card__aside">
+                            <div class="popcorn-event-list-card__date o_not_editable" aria-label="Event date">
+                                <span class="popcorn-event-list-card__date-main" t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'MM.dd'}"/>
+                                <span class="popcorn-event-list-card__weekday" t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'EEE'}"/>
+                            </div>
 
-                        <div class="popcorn-event-list-card__media">
-                            <img t-if="event.host_image"
-                                 t-att-src="'/web/image/event.event/' + str(event.id) + '/host_image'"
-                                 t-att-alt="event.host_name or event.name"
-                                 width="156"
-                                 height="156"
-                                 loading="lazy"/>
-                            <img t-elif="event.badge_image"
-                                 t-att-src="'/web/image/event.event/' + str(event.id) + '/badge_image'"
-                                 t-att-alt="event.name"
-                                 width="156"
-                                 height="156"
-                                 loading="lazy"/>
-                            <span t-else="" class="popcorn-event-list-card__media-placeholder" aria-hidden="true">
-                                <t t-out="(event.host_name or event.name or 'P')[:1]"/>
-                            </span>
-                            <small t-if="not event.website_published" class="popcorn-event-list-card__unpublished">Unpublished</small>
-                        </div>
-
-                        <div class="popcorn-event-list-card__headline">
-                            <h3 class="popcorn-event-list-card__title" itemprop="name">
-                                <t t-if="request.env.context.get('lang') == 'zh_CN' and event.event_chinese_name"
-                                   t-out="event.event_chinese_name"/>
-                                <t t-else="" t-out="event.name"/>
-                            </h3>
-
-                            <div class="popcorn-event-list-card__tags" aria-label="Event categories">
-                                <t t-foreach="event.tag_ids.filtered(lambda tag: tag.color and (tag.category_id.website_id == website or not tag.category_id.website_id))[:2]" t-as="tag">
-                                    <span t-attf-class="popcorn-event-list-card__tag badge #{'o_color_%s' % tag.color}">
-                                        <t t-out="tag.name"/>
-                                    </span>
-                                </t>
+                            <div class="popcorn-event-list-card__media">
+                                <img t-if="event.host_image"
+                                     t-att-src="'/web/image/event.event/' + str(event.id) + '/host_image'"
+                                     t-att-alt="event.host_name or event.name"
+                                     width="156"
+                                     height="156"
+                                     loading="lazy"/>
+                                <img t-elif="event.badge_image"
+                                     t-att-src="'/web/image/event.event/' + str(event.id) + '/badge_image'"
+                                     t-att-alt="event.name"
+                                     width="156"
+                                     height="156"
+                                     loading="lazy"/>
+                                <span t-else="" class="popcorn-event-list-card__media-placeholder" aria-hidden="true">
+                                    <t t-out="(event.host_name or event.name or 'P')[:1]"/>
+                                </span>
+                                <small t-if="not event.website_published" class="popcorn-event-list-card__unpublished">Unpublished</small>
                             </div>
                         </div>
 
-                        <div class="popcorn-event-list-card__details">
-                            <div class="popcorn-event-list-card__time">
-                                <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
-                                <t t-if="event.date_begin != event.date_end">
-                                    <span aria-hidden="true"> – </span>
-                                    <span t-out="event.date_end" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
-                                </t>
-                                <span t-if="duration_minutes"> (<t t-out="duration_minutes"/> min)</span>
-                            </div>
+                        <div class="popcorn-event-list-card__content">
+                            <div class="popcorn-event-list-card__headline">
+                                <h3 class="popcorn-event-list-card__title" itemprop="name">
+                                    <t t-if="request.env.context.get('lang') == 'zh_CN' and event.event_chinese_name"
+                                       t-out="event.event_chinese_name"/>
+                                    <t t-else="" t-out="event.name"/>
+                                </h3>
 
-                            <div class="popcorn-event-list-card__location" itemprop="location">
-                                <span aria-hidden="true">@</span>
-                                <span t-if="event.event_city" t-out="event.event_city"/>
-                                <span t-elif="event.is_online_event">Online</span>
-                                <span t-else="">Popcorn Club</span>
-                            </div>
-
-                            <div class="popcorn-event-list-card__seats">
-                                <t t-if="event.seats_limited">
-                                    <t t-out="event.seats_taken"/>/<t t-out="event.seats_max"/> seats
-                                    <t t-if="event.seats_available == 0 and event.waitlist_count > 0">
-                                        (waitlist: <t t-out="event.waitlist_count"/>)
+                                <div class="popcorn-event-list-card__tags" aria-label="Event categories">
+                                    <t t-foreach="event.tag_ids.filtered(lambda tag: tag.color and (tag.category_id.website_id == website or not tag.category_id.website_id))[:2]" t-as="tag">
+                                        <span t-attf-class="popcorn-event-list-card__tag badge #{'o_color_%s' % tag.color}">
+                                            <t t-out="tag.name"/>
+                                        </span>
                                     </t>
-                                    <t t-elif="event.seats_available == 0"> (full)</t>
-                                </t>
-                                <t t-else="">Unlimited seats</t>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="popcorn-event-list-card__action">
-                            <span t-if="event.event_price and event.event_price > 0" class="popcorn-event-list-card__price">
-                                <span t-out="event.currency_id.symbol"/><span t-out="event.event_price"/>
-                            </span>
+                            <div class="popcorn-event-list-card__body">
+                                <div class="popcorn-event-list-card__details">
+                                    <div class="popcorn-event-list-card__time">
+                                        <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
+                                        <t t-if="event.date_begin != event.date_end">
+                                            <span aria-hidden="true"> – </span>
+                                            <span t-out="event.date_end" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
+                                        </t>
+                                        <span t-if="duration_minutes"> (<t t-out="duration_minutes"/> <span t-translation="on">min</span>)</span>
+                                    </div>
 
-                            <span t-if="is_frozen" class="popcorn-event-list-card__status is-frozen">
-                                Membership frozen
-                            </span>
-                            <span t-elif="event.is_participating and event.user_waitlist_position == 0" class="popcorn-event-list-card__status is-booked">
-                                Booked
-                            </span>
-                            <span t-elif="event.user_waitlist_position > 0" class="popcorn-event-list-card__status is-waitlisted">
-                                Waitlist #<t t-out="event.user_waitlist_position"/>
-                            </span>
-                            <span t-elif="event.has_conflicting_registration" class="popcorn-event-list-card__status is-conflict">
-                                Conflict
-                            </span>
-                            <span t-elif="event.event_registrations_sold_out" class="popcorn-event-list-card__status is-waitlist">
-                                Join waitlist
-                            </span>
-                            <span t-elif="event.event_registrations_open" class="popcorn-event-list-card__status is-book">
-                                Book me
-                            </span>
-                            <span t-else="" class="popcorn-event-list-card__status is-closed">
-                                <t t-if="not event.event_registrations_started">Not open</t>
-                                <t t-else="">Closed</t>
-                            </span>
+                                    <div class="popcorn-event-list-card__location" itemprop="location">
+                                        <span aria-hidden="true">@</span>
+                                        <span t-if="event.event_city" t-out="event.event_city"/>
+                                        <span t-elif="event.is_online_event" t-translation="on">Online</span>
+                                        <span t-else="">Popcorn Club</span>
+                                    </div>
+
+                                    <div class="popcorn-event-list-card__seats">
+                                        <t t-if="event.seats_limited">
+                                            <t t-out="event.seats_taken"/>/<t t-out="event.seats_max"/> <span t-translation="on">seats</span>
+                                            <t t-if="event.seats_available == 0 and event.waitlist_count > 0">
+                                                (<span t-translation="on">waitlist</span>: <t t-out="event.waitlist_count"/>)
+                                            </t>
+                                            <t t-elif="event.seats_available == 0"> (<span t-translation="on">full</span>)</t>
+                                        </t>
+                                        <span t-else="" t-translation="on">Unlimited seats</span>
+                                    </div>
+                                </div>
+
+                                <div class="popcorn-event-list-card__action">
+                                    <span t-if="event.event_price and event.event_price > 0" class="popcorn-event-list-card__price">
+                                        <span t-out="event.currency_id.symbol"/><span t-out="event.event_price"/>
+                                    </span>
+
+                                    <span t-if="is_frozen" class="popcorn-event-list-card__status is-frozen" t-translation="on">Membership Frozen</span>
+                                    <span t-elif="event.is_participating and event.user_waitlist_position == 0" class="popcorn-event-list-card__status is-booked" t-translation="on">Booked</span>
+                                    <span t-elif="event.user_waitlist_position > 0" class="popcorn-event-list-card__status is-waitlisted">
+                                        <span t-translation="on">Waitlist</span> #<t t-out="event.user_waitlist_position"/>
+                                    </span>
+                                    <span t-elif="event.has_conflicting_registration" class="popcorn-event-list-card__status is-conflict" t-translation="on">Conflict</span>
+                                    <span t-elif="event.event_registrations_sold_out" class="popcorn-event-list-card__status is-waitlist" t-translation="on">Join waitlist</span>
+                                    <span t-elif="event.event_registrations_open" class="popcorn-event-list-card__status is-book" t-translation="on">Book me</span>
+                                    <span t-else="" class="popcorn-event-list-card__status is-closed">
+                                        <span t-if="not event.event_registrations_started" t-translation="on">Not Open</span>
+                                        <span t-else="" t-translation="on">Closed</span>
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </article>
                 </a>
