@@ -131,6 +131,18 @@
     object-fit: cover;
 }
 
+.popcorn-event-list-card__media.has-host-portrait {
+    aspect-ratio: 2 / 3;
+    overflow: visible;
+    background: transparent;
+    border-radius: 0;
+}
+
+.popcorn-event-list-card__media.has-host-portrait img {
+    object-fit: contain;
+    object-position: center;
+}
+
 .popcorn-event-list-card__media-placeholder {
     display: flex;
     align-items: center;
@@ -162,8 +174,8 @@
 
 .popcorn-event-list-card__body {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 158px;
-    column-gap: 22px;
+    grid-template-columns: minmax(0, 1fr) 142px;
+    column-gap: 16px;
     align-items: end;
     min-width: 0;
 }
@@ -173,48 +185,42 @@
 }
 
 .popcorn-event-list-card__title {
-    display: -webkit-box;
-    margin: 0 0 10px;
-    overflow: hidden;
+    margin: 0;
     color: var(--popcorn-event-card-text, var(--popcorn-list-ink));
     font-size: clamp(1.05rem, 2vw, 1.42rem);
     font-weight: 800;
-    line-height: 1.22;
+    line-height: 1.16;
     overflow-wrap: anywhere;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
+}
+
+.popcorn-event-list-card__chinese-title {
+    margin-top: 3px;
+    color: var(--popcorn-event-card-text, var(--popcorn-list-ink));
+    font-size: clamp(0.98rem, 1.8vw, 1.28rem);
+    font-weight: 800;
+    line-height: 1.16;
+    overflow-wrap: anywhere;
 }
 
 .popcorn-event-list-card__tags {
     display: flex;
-    min-height: 24px;
-    margin-bottom: 10px;
+    flex-wrap: wrap;
+    margin-top: 7px;
+    margin-bottom: 8px;
     gap: 7px;
-    overflow: hidden;
 }
 
 .popcorn-event-list-card__tag {
     display: inline-flex;
     align-items: center;
-    min-width: 76px;
-    max-width: 145px;
+    min-width: 0;
     min-height: 23px;
     padding: 2px 10px;
-    overflow: hidden;
     border: 1px solid currentColor;
     border-radius: 6px;
     font-size: 0.72rem;
     font-weight: 700;
     line-height: 1;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.popcorn-event-list-card__time,
-.popcorn-event-list-card__location,
-.popcorn-event-list-card__seats {
-    overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
 }
 
@@ -222,19 +228,25 @@
     color: var(--popcorn-list-red);
     font-size: 1rem;
     font-weight: 500;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
 }
 
 .popcorn-event-list-card__location {
-    margin-top: 5px;
+    margin-top: 4px;
     color: var(--popcorn-event-card-text, var(--popcorn-list-ink));
     font-size: 1rem;
     font-weight: 800;
+    line-height: 1.18;
+    overflow-wrap: anywhere;
 }
 
 .popcorn-event-list-card__seats {
     margin-top: 4px;
     color: var(--popcorn-list-muted);
     font-size: 0.88rem;
+    line-height: 1.18;
+    overflow-wrap: anywhere;
 }
 
 .popcorn-event-list-card__action {
@@ -331,7 +343,7 @@
     }
 
     .popcorn-event-list-card__surface {
-        grid-template-columns: 92px minmax(0, 1fr);
+        grid-template-columns: 104px minmax(0, 1fr);
         column-gap: 14px;
         align-items: start;
         min-height: 0;
@@ -348,6 +360,11 @@
         order: 1;
         width: 92px;
         border-radius: 10px;
+    }
+
+    .popcorn-event-list-card__media.has-host-portrait {
+        align-self: center;
+        width: 104px;
     }
 
     .popcorn-event-list-card__date {
@@ -367,20 +384,25 @@
     }
 
     .popcorn-event-list-card__title {
-        margin-bottom: 7px;
-        font-size: 1rem;
-        line-height: 1.18;
+        font-size: 0.94rem;
+        line-height: 1.14;
+    }
+
+    .popcorn-event-list-card__chinese-title {
+        margin-top: 2px;
+        font-size: 0.88rem;
+        line-height: 1.14;
     }
 
     .popcorn-event-list-card__tags {
-        min-height: 20px;
-        margin-bottom: 7px;
+        margin-top: 5px;
+        margin-bottom: 6px;
         gap: 5px;
     }
 
     .popcorn-event-list-card__body {
-        grid-template-columns: minmax(0, 1fr) 112px;
-        column-gap: 14px;
+        grid-template-columns: minmax(0, 1fr) 98px;
+        column-gap: 10px;
     }
 
     .popcorn-event-list-card__tag {
@@ -415,37 +437,45 @@
     }
 
     .popcorn-event-list-card__status {
-        min-width: 112px;
+        min-width: 98px;
         min-height: 44px;
-        padding: 9px 14px;
-        font-size: 0.82rem;
+        padding: 8px 10px;
+        font-size: 0.78rem;
     }
 }
 
 @media (max-width: 389.98px) {
     .popcorn-event-list-card__surface {
-        grid-template-columns: 82px minmax(0, 1fr);
+        grid-template-columns: 92px minmax(0, 1fr);
         column-gap: 11px;
         padding: 12px;
     }
 
     .popcorn-event-list-card__body {
-        grid-template-columns: minmax(0, 1fr) 104px;
-        column-gap: 11px;
+        grid-template-columns: minmax(0, 1fr) 90px;
+        column-gap: 8px;
     }
 
     .popcorn-event-list-card__media {
         width: 82px;
     }
 
+    .popcorn-event-list-card__media.has-host-portrait {
+        width: 92px;
+    }
+
     .popcorn-event-list-card__title {
-        font-size: 0.93rem;
+        font-size: 0.88rem;
+    }
+
+    .popcorn-event-list-card__chinese-title {
+        font-size: 0.82rem;
     }
 
     .popcorn-event-list-card__status {
-        min-width: 104px;
-        padding-right: 11px;
-        padding-left: 11px;
+        min-width: 90px;
+        padding-right: 8px;
+        padding-left: 8px;
     }
 }
 

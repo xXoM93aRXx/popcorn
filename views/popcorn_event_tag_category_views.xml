@@ -7,6 +7,7 @@
         <field name="arch" type="xml">
             <xpath expr="//group" position="inside">
                 <field name="controls_card_color"/>
+                <field name="show_on_event_card"/>
             </xpath>
         </field>
     </record>

@@ -162,6 +162,8 @@
         <!-- One shared card is used by the full list and any partial/AJAX render. -->
         <template id="popcorn_event_list_card" name="Popcorn Event List Card">
             <t t-set="duration_minutes" t-value="int((event.date_end - event.date_begin).total_seconds() / 60) if event.date_begin and event.date_end else 0"/>
+            <t t-set="english_event_name" t-value="event.with_context(lang='en_US').name"/>
+            <t t-set="event_location_label" t-value="event.address_id.sudo().name if event.address_id else False"/>
             <div t-attf-class="#{opt_event_size} popcorn-event-list-item">
                 <a t-attf-href="/event/#{ slug(event) }/#{(not event.menu_id) and (event.event_registrations_open or event.event_registrations_sold_out) and 'register'}"
                    t-att-data-publish="event.website_published and 'on' or 'off'"
@@ -181,7 +183,7 @@
                                 <span class="popcorn-event-list-card__weekday" t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'EEE'}"/>
                             </div>
 
-                            <div class="popcorn-event-list-card__media">
+                            <div t-attf-class="popcorn-event-list-card__media #{event.host_image and 'has-host-portrait' or ''}">
                                 <img t-if="event.host_image"
                                      t-att-src="'/web/image/event.event/' + str(event.id) + '/host_image'"
                                      t-att-alt="event.host_name or event.name"
@@ -203,14 +205,16 @@
 
                         <div class="popcorn-event-list-card__content">
                             <div class="popcorn-event-list-card__headline">
-                                <h3 class="popcorn-event-list-card__title" itemprop="name">
-                                    <t t-if="request.env.context.get('lang') == 'zh_CN' and event.event_chinese_name"
-                                       t-out="event.event_chinese_name"/>
-                                    <t t-else="" t-out="event.name"/>
-                                </h3>
+                                <div class="popcorn-event-list-card__titles">
+                                    <h3 class="popcorn-event-list-card__title" itemprop="name" t-out="english_event_name"/>
+                                    <div t-if="event.event_chinese_name"
+                                         class="popcorn-event-list-card__chinese-title"
+                                         lang="zh-CN"
+                                         t-out="event.event_chinese_name"/>
+                                </div>
 
                                 <div class="popcorn-event-list-card__tags" aria-label="Event categories">
-                                    <t t-foreach="event.tag_ids.filtered(lambda tag: tag.color and (tag.category_id.website_id == website or not tag.category_id.website_id))[:2]" t-as="tag">
+                                    <t t-foreach="event.tag_ids.filtered(lambda tag: tag.color and tag.category_id.show_on_event_card and (tag.category_id.website_id == website or not tag.category_id.website_id))[:3]" t-as="tag">
                                         <span t-attf-class="popcorn-event-list-card__tag badge #{'o_color_%s' % tag.color}">
                                             <t t-out="tag.name"/>
                                         </span>
@@ -223,7 +227,7 @@
                                     <div class="popcorn-event-list-card__time">
                                         <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
                                         <t t-if="event.date_begin != event.date_end">
-                                            <span aria-hidden="true"> – </span>
+                                            <span aria-hidden="true">–</span>
                                             <span t-out="event.date_end" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'HH:mm'}"/>
                                         </t>
                                         <span t-if="duration_minutes"> (<t t-out="duration_minutes"/> <span t-translation="on">min</span>)</span>
@@ -231,7 +235,8 @@
 
                                     <div class="popcorn-event-list-card__location" itemprop="location">
                                         <span aria-hidden="true">@</span>
-                                        <span t-if="event.event_city" t-out="event.event_city"/>
+                                        <span t-if="event_location_label" t-out="event_location_label"/>
+                                        <span t-elif="event.event_city" t-out="event.event_city"/>
                                         <span t-elif="event.is_online_event" t-translation="on">Online</span>
                                         <span t-else="">Popcorn Club</span>
                                     </div>

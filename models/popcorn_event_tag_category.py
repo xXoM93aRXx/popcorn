@@ -7,6 +7,14 @@ class EventTagCategory(models.Model):
         string='Controls Card Color',
         help='If checked, this category will control the background color of event cards in the website view'
     )
+    show_on_event_card = fields.Boolean(
+        string='Show on Event Card',
+        default=True,
+        help=(
+            'If checked, tags from this category are displayed on website event cards. '
+            'This only controls their visibility; tags continue to work normally in all business rules.'
+        ),
+    )
 
 
 class EventTag(models.Model):
