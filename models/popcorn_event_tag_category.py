@@ -20,6 +20,15 @@ class EventTagCategory(models.Model):
 class EventTag(models.Model):
     _inherit = 'event.tag'
 
+    card_display_name = fields.Char(
+        string='Display Name',
+        translate=True,
+        help=(
+            'Optional public label shown on website event cards. '
+            'Leave empty to display the functional tag name.'
+        ),
+    )
+
     @api.model
     def _ensure_focus_club_type_tag(self):
         """Ensure each Type category offers all Focus Club event types."""

@@ -156,7 +156,7 @@
                                                         <div class="popcorn-event-tags">
                                                             <t t-foreach="event.tag_ids.filtered(lambda tag: tag.category_id.show_on_event_card and (tag.category_id.website_id == website or not tag.category_id.website_id))" t-as="tag">
                                                                 <span t-if="tag.color" t-attf-class="popcorn-event-tag badge #{'o_color_%s' % tag.color if tag.color else 'text-bg-light'}">
-                                                                    <t t-out="tag.name"/>
+                                                                    <t t-out="tag.card_display_name or tag.name"/>
                                                                 </span>
                                                             </t>
                                                         </div>

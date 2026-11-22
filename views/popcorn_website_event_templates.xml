@@ -216,7 +216,7 @@
                                 <div class="popcorn-event-list-card__tags" aria-label="Event categories">
                                     <t t-foreach="event.tag_ids.filtered(lambda tag: tag.color and tag.category_id.show_on_event_card and (tag.category_id.website_id == website or not tag.category_id.website_id))[:3]" t-as="tag">
                                         <span t-attf-class="popcorn-event-list-card__tag badge #{'o_color_%s' % tag.color}">
-                                            <t t-out="tag.name"/>
+                                            <t t-out="tag.card_display_name or tag.name"/>
                                         </span>
                                     </t>
                                 </div>
