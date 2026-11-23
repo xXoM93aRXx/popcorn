@@ -220,8 +220,8 @@ class EventEvent(models.Model):
     host_image = fields.Binary(
         string='Host Image',
         compute='_compute_host_info',
-        store=True,
-        help='Host image for website display'
+        store=False,
+        help='High-resolution host image for website display'
     )
     
     host_function = fields.Char(
@@ -383,7 +383,14 @@ class EventEvent(models.Model):
         
         return False, None
     
-    @api.depends('host_id')
+    @api.depends(
+        'host_id',
+        'host_id.name',
+        'host_id.function',
+        'host_id.host_bio',
+        'host_id.banner_image',
+        'host_id.image_1920',
+    )
     def _compute_host_info(self):
         """Compute host name, image, function, bio, and banner image from host_id"""
         for event in self:
@@ -392,7 +399,7 @@ class EventEvent(models.Model):
                     # Use sudo() to bypass access rights for reading basic fields
                     host = event.host_id.sudo()
                     event.host_name = host.name or ''
-                    event.host_image = host.image_128 or False
+                    event.host_image = host.image_512 or False
                     event.host_function = host.function or 'Host'
                     event.host_bio = host.host_bio or ''
                     event.host_banner_image = host.banner_image or False

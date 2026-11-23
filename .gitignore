@@ -67,6 +67,7 @@ tests/*
 !tests/test_event_special_price.py
 !tests/test_notification_image.py
 !tests/test_event_tag_display_name.py
+!tests/test_event_host_image.py
 
 # Translations (keep .po files but ignore compiled .mo files)
 *.mo
